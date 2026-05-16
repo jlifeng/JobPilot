@@ -366,6 +366,9 @@
     "themeLight": "浅色",
     "themeDark": "深色",
     "themeSystem": "跟随系统",
+    "save": "保存设置",
+    "saving": "保存中...",
+    "hasChanges": "有未保存的更改",
     "ai": {
       "title": "AI 配置",
       "provider": "模型协议",
@@ -375,6 +378,7 @@
       "baseURL": "API 地址",
       "model": "默认模型",
       "modelPlaceholder": "输入模型名称...",
+      "fetchModels": "获取模型列表",
       "resumeImportVisionModel": "简历导入视觉模型",
       "resumeImportVisionModelPlaceholder": "可选：填写支持图像输入的模型名称",
       "resumeImportVisionModelHint": "用于图片简历和扫描版 PDF 导入。留空时，这两类文件会提示需要先配置视觉模型。",

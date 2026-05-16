@@ -16,6 +16,8 @@ import {
   Loader2,
   X,
   Plug,
+  RefreshCw,
+  Save,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -109,6 +111,10 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   const [exaTestResult, setExaTestResult] = useState<ConnectivityTestResult | null>(null);
   const [exaTesting, setExaTesting] = useState(false);
 
+  // Save state
+  const [saving, setSaving] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
+
   // Load settings on open
   useEffect(() => {
     if (!open) return;
@@ -192,48 +198,33 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
     m.toLowerCase().includes(visionModelSearch.toLowerCase()),
   );
 
-  // Auto-save appearance settings on change
-  const saveAppearance = useCallback(
-    async (t: ThemeMode, lang: string, as: boolean, asInterval: number) => {
-      try {
-        await updateWorkspaceAppearanceSettings({
-          locale: lang,
-          theme: t,
-          autoSave: as,
-          rememberWindowState: true,
-        });
-        applyDesktopTheme(t);
-        void i18n.changeLanguage(lang);
-      } catch (error) {
-        console.error("Failed to save appearance:", error);
-      }
-    },
-    [],
-  );
+  // Mark as changed when settings are modified
+  const markChanged = () => setHasChanges(true);
 
   const handleThemeChange = (value: ThemeMode) => {
     setTheme(value);
-    void saveAppearance(value, language, autoSave, autoSaveInterval);
+    markChanged();
   };
 
   const handleLanguageChange = (value: string) => {
     setLanguage(value);
-    void saveAppearance(theme, value, autoSave, autoSaveInterval);
+    markChanged();
   };
 
   const handleAutoSaveChange = (value: boolean) => {
     setAutoSave(value);
-    void saveAppearance(theme, language, value, autoSaveInterval);
+    markChanged();
   };
 
   const handleAutoSaveIntervalChange = ([v]: number[]) => {
     setAutoSaveInterval(v);
-    void saveAppearance(theme, language, autoSave, v);
+    markChanged();
   };
 
   // Save AI settings
   const handleProviderChange = async (value: AiProvider) => {
     setAIProvider(value);
+    markChanged();
     // Load config for new provider
     try {
       const settings = await getWorkspaceSettingsSnapshot();
@@ -243,51 +234,53 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
     } catch { /* ignore */ }
   };
 
-  // Auto-save AI config on blur
-  const saveAIConfig = useCallback(async (overrides?: {
-    model?: string;
-    resumeImportVisionModel?: string;
-  }) => {
+  // Save all settings
+  const handleSaveAll = useCallback(async () => {
+    setSaving(true);
     try {
+      // Save appearance settings
+      await updateWorkspaceAppearanceSettings({
+        locale: language,
+        theme,
+        autoSave,
+        rememberWindowState: true,
+      });
+      applyDesktopTheme(theme);
+      void i18n.changeLanguage(language);
+
+      // Save AI settings
       const payload: ProviderConfigUpdateInput = {
         provider: aiProvider,
         baseUrl: aiBaseURL,
-        model: overrides?.model ?? aiModel,
+        model: aiModel,
         setAsDefault,
-        resumeImportVisionModel:
-          overrides?.resumeImportVisionModel ?? resumeImportVisionModel,
+        resumeImportVisionModel,
       };
       await updateAiProviderSettings(payload);
-    } catch (error) {
-      console.error("Failed to save AI settings:", error);
-    }
-  }, [aiProvider, aiBaseURL, aiModel, resumeImportVisionModel, setAsDefault]);
 
-  const saveApiKey = useCallback(async () => {
-    if (!aiApiKey.trim()) return;
-    try {
-      await writeSecretValue({
-        key: `provider.${aiProvider}.api_key`,
-        provider: aiProvider,
-        value: aiApiKey.trim(),
-      });
-    } catch (error) {
-      console.error("Failed to save API key:", error);
-    }
-  }, [aiProvider, aiApiKey]);
+      // Save API keys if provided
+      if (aiApiKey.trim()) {
+        await writeSecretValue({
+          key: `provider.${aiProvider}.api_key`,
+          provider: aiProvider,
+          value: aiApiKey.trim(),
+        });
+      }
+      if (exaPoolApiKey.trim()) {
+        await writeSecretValue({
+          key: "provider.exa_pool.api_key",
+          provider: "openai",
+          value: exaPoolApiKey.trim(),
+        });
+      }
 
-  const saveExaPoolApiKey = useCallback(async () => {
-    if (!exaPoolApiKey.trim()) return;
-    try {
-      await writeSecretValue({
-        key: "provider.exa_pool.api_key",
-        provider: "openai",
-        value: exaPoolApiKey.trim(),
-      });
+      setHasChanges(false);
     } catch (error) {
-      console.error("Failed to save Exa API key:", error);
+      console.error("Failed to save settings:", error);
+    } finally {
+      setSaving(false);
     }
-  }, [exaPoolApiKey]);
+  }, [theme, language, autoSave, aiProvider, aiBaseURL, aiModel, aiApiKey, resumeImportVisionModel, exaPoolApiKey, setAsDefault]);
 
   const handleTestAiConnection = useCallback(async () => {
     setAiTesting(true);
@@ -328,11 +321,9 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   return (
     <div
       className="fixed inset-0 z-50 grid items-start justify-items-center overflow-y-auto bg-black/50 p-4 sm:items-center"
-      onClick={onClose}
     >
       <div
         className="relative my-4 w-full max-w-[540px] max-h-[calc(100vh-2rem)] overflow-y-auto rounded-lg bg-white shadow-xl dark:bg-zinc-900"
-        onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="px-6 pt-6 pb-0">
@@ -394,8 +385,10 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                 <Input
                   type={showApiKey ? "text" : "password"}
                   value={aiApiKey}
-                  onChange={(e) => setAIApiKey(e.target.value)}
-                  onBlur={() => void saveApiKey()}
+                  onChange={(e) => {
+                    setAIApiKey(e.target.value);
+                    markChanged();
+                  }}
                   placeholder={t("settings.ai.apiKeyPlaceholder")}
                   className="pr-10"
                 />
@@ -421,15 +414,30 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
               <Label>{t("settings.ai.baseURL")}</Label>
               <Input
                 value={aiBaseURL}
-                onChange={(e) => setAIBaseURL(e.target.value)}
-                onBlur={() => void saveAIConfig()}
+                onChange={(e) => {
+                  setAIBaseURL(e.target.value);
+                  markChanged();
+                }}
                 placeholder="https://api.openai.com/v1"
               />
             </div>
 
             {/* Model — Combobox */}
             <div className="space-y-2">
-              <Label>{t("settings.ai.model")}</Label>
+              <div className="flex items-center justify-between">
+                <Label>{t("settings.ai.model")}</Label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 gap-1 text-xs cursor-pointer text-zinc-400 hover:text-zinc-600"
+                  disabled={modelsFetching}
+                  onClick={() => void fetchModelsForProvider()}
+                >
+                  <RefreshCw className={cn("h-3 w-3", modelsFetching && "animate-spin")} />
+                  {modelsFetching ? t("aiFetchingModels") : t("settings.ai.fetchModels")}
+                </Button>
+              </div>
               <div className="relative">
                 <Button
                   variant="outline"
@@ -479,7 +487,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                           onClick={() => {
                             setAIModel(m);
                             setModelOpen(false);
-                            void saveAIConfig({ model: m });
+                            markChanged();
                           }}
                         >
                           <Check className={cn("mr-2 h-4 w-4", aiModel === m ? "opacity-100" : "opacity-0")} />
@@ -491,13 +499,15 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                     <div className="border-t px-3 py-2 dark:border-zinc-800">
                       <Input
                         value={aiModel}
-                        onChange={(e) => setAIModel(e.target.value)}
+                        onChange={(e) => {
+                          setAIModel(e.target.value);
+                          markChanged();
+                        }}
                         placeholder={t("settings.ai.modelPlaceholder")}
                         className="h-8 text-sm"
                         onKeyDown={(e) => {
                           if (e.key === "Enter") {
                             setModelOpen(false);
-                            void saveAIConfig();
                           }
                         }}
                       />
@@ -556,7 +566,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                           onClick={() => {
                             setResumeImportVisionModel(m);
                             setVisionModelOpen(false);
-                            void saveAIConfig({ resumeImportVisionModel: m });
+                            markChanged();
                           }}
                         >
                           <Check
@@ -572,16 +582,17 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                     <div className="border-t px-3 py-2 dark:border-zinc-800">
                       <Input
                         value={resumeImportVisionModel}
-                        onChange={(e) => setResumeImportVisionModel(e.target.value)}
+                        onChange={(e) => {
+                          setResumeImportVisionModel(e.target.value);
+                          markChanged();
+                        }}
                         placeholder={t("settings.ai.resumeImportVisionModelPlaceholder")}
                         className="h-8 text-sm"
                         onKeyDown={(e) => {
                           if (e.key === "Enter") {
                             setVisionModelOpen(false);
-                            void saveAIConfig();
                           }
                         }}
-                        onBlur={() => void saveAIConfig()}
                       />
                     </div>
                   </div>
@@ -641,9 +652,11 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
               <Label>{t("settings.ai.exaPoolBaseURL")}</Label>
               <Input
                 value={exaPoolBaseURL}
-                onChange={(e) => setExaPoolBaseURL(e.target.value)}
+                onChange={(e) => {
+                  setExaPoolBaseURL(e.target.value);
+                  markChanged();
+                }}
                 placeholder={t("settings.ai.exaPoolBaseURLPlaceholder")}
-                onBlur={() => void saveAIConfig()}
               />
             </div>
 
@@ -653,10 +666,12 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                 <Input
                   type={showExaPoolApiKey ? "text" : "password"}
                   value={exaPoolApiKey}
-                  onChange={(e) => setExaPoolApiKey(e.target.value)}
+                  onChange={(e) => {
+                    setExaPoolApiKey(e.target.value);
+                    markChanged();
+                  }}
                   placeholder={t("settings.ai.exaPoolApiKeyPlaceholder")}
                   className="pr-10"
-                  onBlur={() => void saveExaPoolApiKey()}
                 />
                 <Button
                   type="button"
@@ -794,6 +809,42 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
             </div>
           </div>
         )}
+
+        {/* Footer with Save button */}
+        <div className="sticky bottom-0 border-t bg-white px-6 py-4 dark:border-zinc-800 dark:bg-zinc-900">
+          <div className="flex items-center justify-between">
+            {hasChanges && (
+              <span className="text-xs text-amber-600">
+                {t("settings.hasChanges")}
+              </span>
+            )}
+            <div className="flex items-center gap-2 ml-auto">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="cursor-pointer"
+                onClick={onClose}
+              >
+                {t("common.cancel")}
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                className="cursor-pointer gap-1.5"
+                disabled={saving || !hasChanges}
+                onClick={() => void handleSaveAll()}
+              >
+                {saving ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Save className="h-3.5 w-3.5" />
+                )}
+                {saving ? t("settings.saving") : t("settings.save")}
+              </Button>
+            </div>
+          </div>
+        </div>
 
         {/* Close button */}
         <button

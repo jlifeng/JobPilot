@@ -366,6 +366,9 @@
     "themeLight": "Light",
     "themeDark": "Dark",
     "themeSystem": "System",
+    "save": "Save Settings",
+    "saving": "Saving...",
+    "hasChanges": "You have unsaved changes",
     "ai": {
       "title": "AI Config",
       "provider": "Model Protocol",
@@ -375,6 +378,7 @@
       "baseURL": "Base URL",
       "model": "Default Model",
       "modelPlaceholder": "Enter model name...",
+      "fetchModels": "Fetch Models",
       "resumeImportVisionModel": "Resume Import Vision Model",
       "resumeImportVisionModelPlaceholder": "Optional: enter a vision-capable model name",
       "resumeImportVisionModelHint": "Used for image resumes and scanned PDFs. Leave it blank if you only import text PDFs.",
