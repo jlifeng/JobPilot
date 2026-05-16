@@ -465,7 +465,10 @@ export function AIChatContent({
 
       // Fetch models from the provider
       try {
-        const modelsResult = await fetchAiModels(provider);
+        const modelsResult = await fetchAiModels({
+          provider,
+          baseUrl: providerConfig?.baseUrl || "",
+        });
         setFetchedModelOptions(modelsResult.models);
       } catch {
         setFetchedModelOptions([]);
