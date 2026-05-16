@@ -448,7 +448,10 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                   role="combobox"
                   aria-expanded={modelOpen}
                   className="w-full justify-between cursor-pointer font-normal"
-                  onClick={() => setModelOpen(!modelOpen)}
+                  onClick={() => {
+                    setModelOpen(!modelOpen);
+                    setVisionModelOpen(false);
+                  }}
                 >
                   <span className="truncate">
                     {aiModel || t("settings.ai.modelPlaceholder")}
@@ -529,7 +532,10 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                   role="combobox"
                   aria-expanded={visionModelOpen}
                   className="w-full justify-between cursor-pointer font-normal"
-                  onClick={() => setVisionModelOpen(!visionModelOpen)}
+                  onClick={() => {
+                    setVisionModelOpen(!visionModelOpen);
+                    setModelOpen(false);
+                  }}
                 >
                   <span className="truncate">
                     {resumeImportVisionModel || t("settings.ai.resumeImportVisionModelPlaceholder")}
