@@ -12,6 +12,9 @@
 
 </div>
 
+<img width="1536" height="1024" alt="ChatGPT Image 2026年5月17日 17_29_45" src="https://github.com/user-attachments/assets/a8d4fef2-969f-4cc8-a168-ad78771a4d35" />
+
+
 ---
 
 JobPilot 是一款本地优先的 AI 求职桌面应用，帮助你完成简历编写与优化、面试模拟与复盘，从简历到面试全覆盖。下载安装后即可开始使用，无需搭建服务端环境。
