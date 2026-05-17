@@ -8,6 +8,7 @@
   [![React](https://img.shields.io/badge/React-19-61dafb)](https://react.dev/)
   [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6)](https://www.typescriptlang.org/)
   [![Platform](https://img.shields.io/badge/Platform-Windows-0078d4)](./desktop)
+  [![Linux.do](https://img.shields.io/badge/Linux.do-社区-blue)](https://linux.do/)
 
 </div>
 
