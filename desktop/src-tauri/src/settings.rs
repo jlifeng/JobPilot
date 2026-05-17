@@ -880,8 +880,12 @@ fn evaluate_runtime_vault_state(
             ));
         }
         if warnings.is_empty() && keyring_active_count > 0 {
-            warnings
-                .push("Active secret descriptors are backed by Windows Credential Manager.".into());
+            #[cfg(target_os = "windows")]
+            warnings.push("Active secret descriptors are backed by Windows Credential Manager.".into());
+            #[cfg(target_os = "macos")]
+            warnings.push("Active secret descriptors are backed by macOS Keychain.".into());
+            #[cfg(not(any(target_os = "windows", target_os = "macos")))]
+            warnings.push("Active secret descriptors are backed by OS keyring.".into());
         }
     }
 
@@ -1141,7 +1145,7 @@ fn decode_legacy_entry_to_utf8(
 }
 
 fn os_keyring_backend_supported() -> bool {
-    cfg!(target_os = "windows")
+    cfg!(target_os = "windows") || cfg!(target_os = "macos")
 }
 
 fn secret_keyring_target(secret_key: &str) -> String {
@@ -1154,7 +1158,11 @@ fn read_secret_from_os_keyring(secret_key: &str) -> Result<Option<String>, Strin
     {
         windows_credential::read(&target)
     }
-    #[cfg(not(target_os = "windows"))]
+    #[cfg(target_os = "macos")]
+    {
+        macos_keychain::read(&target)
+    }
+    #[cfg(not(any(target_os = "windows", target_os = "macos")))]
     {
         let _ = target;
         Ok(None)
@@ -1167,11 +1175,15 @@ fn write_secret_to_os_keyring(secret_key: &str, value: &str) -> Result<(), Strin
     {
         windows_credential::write(&target, value)
     }
-    #[cfg(not(target_os = "windows"))]
+    #[cfg(target_os = "macos")]
+    {
+        macos_keychain::write(&target, value)
+    }
+    #[cfg(not(any(target_os = "windows", target_os = "macos")))]
     {
         let _ = target;
         let _ = value;
-        Err("OS keyring backend is only available on Windows in this PR6 slice.".into())
+        Err("OS keyring backend is only available on Windows and macOS.".into())
     }
 }
 
@@ -1181,7 +1193,11 @@ fn delete_secret_from_os_keyring(secret_key: &str) -> Result<(), String> {
     {
         windows_credential::delete(&target)
     }
-    #[cfg(not(target_os = "windows"))]
+    #[cfg(target_os = "macos")]
+    {
+        macos_keychain::delete(&target)
+    }
+    #[cfg(not(any(target_os = "windows", target_os = "macos")))]
     {
         let _ = target;
         Ok(())
@@ -1362,6 +1378,41 @@ mod windows_credential {
         }
 
         Ok(())
+    }
+}
+
+#[cfg(target_os = "macos")]
+mod macos_keychain {
+    pub fn read(target: &str) -> Result<Option<String>, String> {
+        let entry = keyring::Entry::new("RoleRoverDesktop", target)
+            .map_err(|error| format!("failed to create keyring entry for read ({target}): {error}"))?;
+        match entry.get_password() {
+            Ok(password) => Ok(Some(password)),
+            Err(keyring::Error::NoEntry) => Ok(None),
+            Err(error) => Err(format!(
+                "failed to read secret from macOS Keychain ({target}): {error}"
+            )),
+        }
+    }
+
+    pub fn write(target: &str, value: &str) -> Result<(), String> {
+        let entry = keyring::Entry::new("RoleRoverDesktop", target)
+            .map_err(|error| format!("failed to create keyring entry for write ({target}): {error}"))?;
+        entry.set_password(value).map_err(|error| {
+            format!("failed to write secret to macOS Keychain ({target}): {error}")
+        })
+    }
+
+    pub fn delete(target: &str) -> Result<(), String> {
+        let entry = keyring::Entry::new("RoleRoverDesktop", target)
+            .map_err(|error| format!("failed to create keyring entry for delete ({target}): {error}"))?;
+        match entry.delete_credential() {
+            Ok(()) => Ok(()),
+            Err(keyring::Error::NoEntry) => Ok(()),
+            Err(error) => Err(format!(
+                "failed to delete secret from macOS Keychain ({target}): {error}"
+            )),
+        }
     }
 }
 

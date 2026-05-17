@@ -14,8 +14,22 @@ concurrency:
 
 jobs:
   release:
-    name: Draft Desktop Release
-    runs-on: windows-latest
+    name: Build (${{ matrix.target }})
+    runs-on: ${{ matrix.runner }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-pc-windows-msvc
+            runner: windows-latest
+            rust_target: x86_64-pc-windows-msvc
+          - target: aarch64-apple-darwin
+            runner: macos-latest
+            rust_target: aarch64-apple-darwin
+          - target: x86_64-apple-darwin
+            runner: macos-13
+            rust_target: x86_64-apple-darwin
 
     steps:
       - name: Checkout repository
@@ -38,12 +52,13 @@ jobs:
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: x86_64-pc-windows-msvc
+          targets: ${{ matrix.rust_target }}
 
       - name: Cache Rust
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: desktop/src-tauri -> .codex-cargo-target/desktop-tauri
+          key: ${{ matrix.rust_target }}
 
       - name: Install dependencies
         run: pnpm install
@@ -101,6 +116,92 @@ jobs:
           RELEASE_TAG: ${{ github.ref_name }}
           RELEASE_NOTES_OUTPUT: desktop/.codex-temp/release-assets/RELEASE_NOTES.md
 
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-${{ matrix.target }}
+          path: |
+            desktop/.codex-temp/release-assets/
+            .codex-cargo-target/desktop-tauri/release/bundle/
+
+  merge-and-publish:
+    name: Merge Manifest & Publish Release
+    needs: release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: build-*
+          path: build-artifacts
+          merge-multiple: false
+
+      - name: Collect and merge updater manifests
+        shell: pwsh
+        run: |
+          $manifestDir = "merged-manifests"
+          New-Item -ItemType Directory -Path $manifestDir -Force
+
+          Get-ChildItem -Path "build-artifacts" -Recurse -Filter "latest.json" |
+            ForEach-Object {
+              Copy-Item $_.FullName -Destination (Join-Path $manifestDir "latest-$($_.Directory.Parent.Name).json") -Force
+            }
+
+          node scripts/merge-updater-manifests.mjs $manifestDir desktop/.codex-temp/release-assets/latest.json
+
+      - name: Collect release notes
+        shell: pwsh
+        run: |
+          $notesFile = Get-ChildItem -Path "build-artifacts" -Recurse -Filter "RELEASE_NOTES.md" |
+            Select-Object -First 1
+          if ($notesFile) {
+            New-Item -ItemType Directory -Path "desktop/.codex-temp/release-assets" -Force
+            Copy-Item $notesFile.FullName -Destination "desktop/.codex-temp/release-assets/RELEASE_NOTES.md" -Force
+          }
+
+      - name: Collect all platform assets
+        id: collect
+        shell: pwsh
+        run: |
+          $assets = @()
+
+          # Windows assets
+          Get-ChildItem -Path "build-artifacts" -Recurse -File |
+            Where-Object { $_.Extension -in @('.exe', '.msi', '.zip', '.sig') } |
+            ForEach-Object { $assets += $_.FullName }
+
+          # macOS assets
+          Get-ChildItem -Path "build-artifacts" -Recurse -File |
+            Where-Object { $_.Extension -in @('.dmg', '.app', '.sig') } |
+            ForEach-Object { $assets += $_.FullName }
+
+          # Merged manifest
+          $manifestPath = (Resolve-Path "desktop/.codex-temp/release-assets/latest.json").Path
+          $assets += $manifestPath
+
+          if ($assets.Count -eq 0) {
+            throw "No release assets were found."
+          }
+
+          # Write asset list to file for next step
+          $assets -join "`n" | Out-File -FilePath "asset-list.txt" -Encoding utf8
+          Write-Output "Asset count: $($assets.Count)"
+
       - name: Create or update draft GitHub release
         shell: pwsh
         env:
@@ -108,19 +209,8 @@ jobs:
         run: |
           $tag = "${{ github.ref_name }}"
           $repo = "${{ github.repository }}"
-          $notesPath = (Resolve-Path "desktop/.codex-temp/release-assets/RELEASE_NOTES.md").Path
-          $manifestPath = (Resolve-Path "desktop/.codex-temp/release-assets/latest.json").Path
-          $bundleRoot = (Resolve-Path ".codex-cargo-target/desktop-tauri/release/bundle").Path
-
-          $assets = Get-ChildItem -Path $bundleRoot -Recurse -File |
-            Where-Object { $_.Extension -in @('.exe', '.msi', '.zip', '.sig') } |
-            Select-Object -ExpandProperty FullName
-
-          $assets += $manifestPath
-
-          if ($assets.Count -eq 0) {
-            throw "No release assets were found under $bundleRoot."
-          }
+          $notesPath = "desktop/.codex-temp/release-assets/RELEASE_NOTES.md"
+          $assetList = Get-Content "asset-list.txt" | Where-Object { $_.Trim().Length -gt 0 }
 
           & gh release view $tag --repo $repo *> $null
           $releaseExists = $LASTEXITCODE -eq 0
@@ -132,7 +222,7 @@ jobs:
               "--title", $tag,
               "--draft",
               "--notes-file", $notesPath
-            ) + $assets
+            ) + $assetList
             & gh @createArgs
             exit $LASTEXITCODE
           }
@@ -153,6 +243,6 @@ jobs:
             "release", "upload", $tag,
             "--repo", $repo,
             "--clobber"
-          ) + $assets
+          ) + $assetList
           & gh @uploadArgs
           exit $LASTEXITCODE

@@ -29,7 +29,7 @@ const bundleDirCandidates = [
   path.join(ROOT, ".codex-cargo-target", "desktop-tauri", "release", "bundle"),
   path.join(ROOT, "desktop", "src-tauri", "target", "release", "bundle"),
 ].filter((value) => typeof value === "string" && value.length > 0);
-const supportedArtifactExtensions = [".zip", ".exe", ".msi"];
+const supportedArtifactExtensions = [".zip", ".exe", ".msi", ".dmg"];
 
 function walk(dir) {
   const entries = fs.readdirSync(dir, { withFileTypes: true });
@@ -49,6 +49,9 @@ function scoreArtifact(artifactPath) {
   const extension = path.extname(artifactPath).toLowerCase();
   const normalized = artifactPath.toLowerCase();
   if (normalized.includes("nsis") && extension === ".exe") {
+    return 4;
+  }
+  if (extension === ".dmg") {
     return 4;
   }
   if (normalized.includes("msi") && extension === ".msi") {
@@ -114,7 +117,10 @@ const preferred = candidates.sort((left, right) => {
 
 const artifactName = path.basename(preferred.artifactPath);
 const signature = fs.readFileSync(preferred.sigPath, "utf8").trim();
-const target = process.env.DESKTOP_UPDATER_TARGET?.trim() || "windows-x86_64";
+const target = process.env.DESKTOP_UPDATER_TARGET?.trim()
+  || (process.platform === "darwin"
+    ? (process.arch === "arm64" ? "darwin-aarch64" : "darwin-x86_64")
+    : "windows-x86_64");
 const downloadUrl = `https://github.com/${repository}/releases/download/${encodeURIComponent(releaseTag)}/${encodeURIComponent(artifactName.replace(/ /g, "."))}`;
 const releaseNotes = collectReleaseNotes(ROOT, releaseTag, repository);
 
