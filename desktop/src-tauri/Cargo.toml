@@ -27,3 +27,6 @@ tauri-plugin-updater = "2.0.0-rc.4"
 uuid = { version = "1.18.1", features = ["v4"] }
 pdf-extract = "0.7"
 
+[target.'cfg(target_os = "macos")'.dependencies]
+keyring = "3"
+

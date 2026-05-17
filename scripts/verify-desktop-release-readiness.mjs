@@ -160,6 +160,16 @@ function collectChecks() {
       detail: `Expected icon at ${TAURI_ICON_PATH}.`,
     },
     {
+      status: fileExists("desktop/src-tauri/icons/icon.icns") ? "pass" : "warn",
+      label: "macOS desktop icon asset exists",
+      detail: "Expected icon at desktop/src-tauri/icons/icon.icns.",
+    },
+    {
+      status: fileExists("desktop/src-tauri/entitlements/macOS.entitlements") ? "pass" : "warn",
+      label: "macOS entitlements file exists",
+      detail: "Expected entitlements at desktop/src-tauri/entitlements/macOS.entitlements.",
+    },
+    {
       status: fileExists(checklistPath) ? "pass" : "fail",
       label: "Windows release smoke checklist exists",
       detail: `Expected checklist at ${checklistPath}.`,

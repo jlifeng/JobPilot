@@ -911,6 +911,10 @@ fn resolve_pdf_browser_path() -> Result<PathBuf, String> {
     let candidates = [
         "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
         "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
+        "/opt/homebrew/bin/google-chrome",
+        "/opt/homebrew/bin/microsoft-edge",
+        "/usr/local/bin/google-chrome",
+        "/usr/local/bin/microsoft-edge",
     ];
 
     #[cfg(target_os = "linux")]

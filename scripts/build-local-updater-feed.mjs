@@ -19,7 +19,7 @@ const bundleDirCandidates = [
   path.join(ROOT, "desktop", "src-tauri", "target", "release", "bundle"),
 ].filter((value) => typeof value === "string" && value.length > 0);
 const bundleDir = bundleDirCandidates.find((candidate) => fs.existsSync(candidate));
-const supportedArtifactExtensions = [".zip", ".exe", ".msi"];
+const supportedArtifactExtensions = [".zip", ".exe", ".msi", ".dmg"];
 
 function walk(dir) {
   const entries = fs.readdirSync(dir, { withFileTypes: true });
@@ -67,6 +67,9 @@ const preferred = candidates.sort((left, right) => {
     if (normalized.includes("nsis") && extension === ".exe") {
       return 4;
     }
+    if (extension === ".dmg") {
+      return 4;
+    }
     if (normalized.includes("msi") && extension === ".msi") {
       return 3;
     }
@@ -95,7 +98,10 @@ fs.copyFileSync(preferred.sigPath, signatureTargetPath);
 const signature = fs.readFileSync(preferred.sigPath, "utf8").trim();
 const baseUrl =
   process.env.DESKTOP_UPDATER_FEED_BASE_URL ?? "http://127.0.0.1:8765/artifacts";
-const target = process.env.DESKTOP_UPDATER_TARGET ?? "windows-x86_64";
+const target = process.env.DESKTOP_UPDATER_TARGET?.trim()
+  || (process.platform === "darwin"
+    ? (process.arch === "arm64" ? "darwin-aarch64" : "darwin-x86_64")
+    : "windows-x86_64");
 const latestJson = {
   version: tauriConfig.version,
   notes: "Local updater smoke-test feed for RoleRover Desktop.",
