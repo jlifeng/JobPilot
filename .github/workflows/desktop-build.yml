@@ -58,11 +58,28 @@ jobs:
       - name: Verify desktop release readiness
         run: pnpm run verify:desktop:release-readiness
 
-  package-smoke:
-    name: Packaged Desktop Smoke
+  build:
+    name: Build (${{ matrix.target }})
     if: github.event_name != 'pull_request'
     needs: verify
-    runs-on: windows-latest
+    runs-on: ${{ matrix.runner }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-pc-windows-msvc
+            runner: windows-latest
+            rust_target: x86_64-pc-windows-msvc
+            artifact_ext: exe
+          - target: aarch64-apple-darwin
+            runner: macos-latest
+            rust_target: aarch64-apple-darwin
+            artifact_ext: dmg
+          - target: x86_64-apple-darwin
+            runner: macos-13
+            rust_target: x86_64-apple-darwin
+            artifact_ext: dmg
 
     steps:
       - name: Checkout repository
@@ -82,12 +99,13 @@ jobs:
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: x86_64-pc-windows-msvc
+          targets: ${{ matrix.rust_target }}
 
       - name: Cache Rust
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: desktop/src-tauri -> .codex-cargo-target/desktop-tauri
+          key: ${{ matrix.rust_target }}
 
       - name: Install dependencies
         run: pnpm install
@@ -96,6 +114,7 @@ jobs:
         run: pnpm run verify:desktop:version-sync
 
       - name: Ensure updater signing key
+        if: runner.os == 'Windows'
         run: |
           if ([string]::IsNullOrWhiteSpace($env:TAURI_SIGNING_PRIVATE_KEY)) {
             pnpm --prefix desktop exec tauri signer generate --ci --write-keys .tauri/updater.key --force
@@ -106,6 +125,18 @@ jobs:
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
 
+      - name: Ensure updater signing key (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          if [ -z "$TAURI_SIGNING_PRIVATE_KEY" ]; then
+            pnpm --prefix desktop exec tauri signer generate --ci --write-keys .tauri/updater.key --force
+          else
+            echo "Using repository TAURI_SIGNING_PRIVATE_KEY secret."
+          fi
+        shell: bash
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+
       - name: Build Tauri Desktop
         run: pnpm run build:tauri
         env:
@@ -113,7 +144,8 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
 
-      - name: Upload Desktop Artifacts
+      - name: Upload Desktop Artifacts (Windows)
+        if: runner.os == 'Windows'
         uses: actions/upload-artifact@v4
         with:
           name: rolerover-desktop-windows-${{ github.sha }}
@@ -124,4 +156,17 @@ jobs:
             .codex-cargo-target/desktop-tauri/release/bundle/**/*.msi.sig
             .codex-cargo-target/desktop-tauri/release/bundle/**/*.zip
             .codex-cargo-target/desktop-tauri/release/bundle/**/*.zip.sig
+          if-no-files-found: error
+
+      - name: Upload Desktop Artifacts (macOS)
+        if: runner.os == 'macOS'
+        uses: actions/upload-artifact@v4
+        with:
+          name: rolerover-desktop-macos-${{ matrix.target }}-${{ github.sha }}
+          path: |
+            .codex-cargo-target/desktop-tauri/release/bundle/**/*.dmg
+            .codex-cargo-target/desktop-tauri/release/bundle/**/*.dmg.sig
+            .codex-cargo-target/desktop-tauri/release/bundle/**/*.app
+            .codex-cargo-target/desktop-tauri/release/bundle/**/*.app.tar.gz
+            .codex-cargo-target/desktop-tauri/release/bundle/**/*.app.tar.gz.sig
           if-no-files-found: error
