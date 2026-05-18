@@ -158,10 +158,17 @@ jobs:
           Write-Host "Build artifacts structure:"
           Get-ChildItem -Path "build-artifacts" -Recurse | Select-Object FullName
 
+          # Find all latest.json files in artifacts
           Get-ChildItem -Path "build-artifacts" -Recurse -Filter "latest.json" |
             ForEach-Object {
-              Copy-Item $_.FullName -Destination (Join-Path $manifestDir "latest-$($_.Directory.Parent.Name).json") -Force
+              # Use the artifact name (build-x86_64-pc-windows-msvc) as part of the filename
+              $artifactName = $_.FullName.Split([IO.Path]::DirectorySeparatorChar)[1]
+              Copy-Item $_.FullName -Destination (Join-Path $manifestDir "latest-$artifactName.json") -Force
             }
+
+          # Debug: show merged manifests
+          Write-Host "Merged manifests directory:"
+          Get-ChildItem -Path $manifestDir | Select-Object Name
 
           node scripts/merge-updater-manifests.mjs $manifestDir desktop/.codex-temp/release-assets/latest.json
 
