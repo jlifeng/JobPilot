@@ -120,6 +120,7 @@ jobs:
           path: |
             desktop/.codex-temp/release-assets/
             .codex-cargo-target/desktop-tauri/release/bundle/
+          include-hidden-files: true
 
   merge-and-publish:
     name: Merge Manifest & Publish Release
@@ -154,12 +155,12 @@ jobs:
           $manifestDir = "merged-manifests"
           New-Item -ItemType Directory -Path $manifestDir -Force
 
-          # Debug: show artifact structure
+          # Debug: show artifact structure (including hidden files)
           Write-Host "Build artifacts structure:"
-          Get-ChildItem -Path "build-artifacts" -Recurse | Select-Object FullName
+          Get-ChildItem -Path "build-artifacts" -Recurse -Force | Select-Object FullName
 
           # Find all latest.json files in artifacts
-          Get-ChildItem -Path "build-artifacts" -Recurse -Filter "latest.json" |
+          Get-ChildItem -Path "build-artifacts" -Recurse -Filter "latest.json" -Force |
             ForEach-Object {
               # Use the artifact name (build-x86_64-pc-windows-msvc) as part of the filename
               $artifactName = $_.FullName.Split([IO.Path]::DirectorySeparatorChar)[1]
