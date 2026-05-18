@@ -176,7 +176,7 @@ jobs:
       - name: Collect release notes
         shell: pwsh
         run: |
-          $notesFile = Get-ChildItem -Path "build-artifacts" -Recurse -Filter "RELEASE_NOTES.md" |
+          $notesFile = Get-ChildItem -Path "build-artifacts" -Recurse -Filter "RELEASE_NOTES.md" -Force |
             Select-Object -First 1
           if ($notesFile) {
             New-Item -ItemType Directory -Path "desktop/.codex-temp/release-assets" -Force
@@ -190,13 +190,13 @@ jobs:
           $assets = @()
 
           # Windows assets
-          Get-ChildItem -Path "build-artifacts" -Recurse -File |
+          Get-ChildItem -Path "build-artifacts" -Recurse -File -Force |
             Where-Object { $_.Extension -in @('.exe', '.msi', '.zip', '.sig') } |
             ForEach-Object { $assets += $_.FullName }
 
           # macOS assets
-          Get-ChildItem -Path "build-artifacts" -Recurse -File |
-            Where-Object { $_.Extension -in @('.dmg', '.app', '.sig') } |
+          Get-ChildItem -Path "build-artifacts" -Recurse -File -Force |
+            Where-Object { $_.Extension -in @('.dmg', '.app', '.sig') -or $_.Name.EndsWith('.app.tar.gz') } |
             ForEach-Object { $assets += $_.FullName }
 
           # Merged manifest
