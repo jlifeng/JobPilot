@@ -80,10 +80,21 @@ if (!/^[^/]+\/[^/]+$/u.test(repository)) {
 }
 
 const bundleDir = bundleDirCandidates.find((candidate) => fs.existsSync(candidate));
+console.log(`[build-release-updater-manifest] Looking for bundle directory...`);
+console.log(`[build-release-updater-manifest] Candidates: ${bundleDirCandidates.join(", ")}`);
+console.log(`[build-release-updater-manifest] Found: ${bundleDir || "NONE"}`);
+
 if (!bundleDir) {
   throw new Error(
     `No Tauri bundle directory was found. Checked: ${bundleDirCandidates.join(", ")}`,
   );
+}
+
+// Debug: list all files in bundle directory
+console.log(`[build-release-updater-manifest] Bundle directory contents:`);
+const allFiles = walk(bundleDir);
+for (const file of allFiles) {
+  console.log(`  ${file}`);
 }
 
 const tauriConfig = JSON.parse(fs.readFileSync(TAURI_CONFIG_PATH, "utf8"));
