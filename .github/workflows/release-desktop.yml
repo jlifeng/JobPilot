@@ -154,6 +154,10 @@ jobs:
           $manifestDir = "merged-manifests"
           New-Item -ItemType Directory -Path $manifestDir -Force
 
+          # Debug: show artifact structure
+          Write-Host "Build artifacts structure:"
+          Get-ChildItem -Path "build-artifacts" -Recurse | Select-Object FullName
+
           Get-ChildItem -Path "build-artifacts" -Recurse -Filter "latest.json" |
             ForEach-Object {
               Copy-Item $_.FullName -Destination (Join-Path $manifestDir "latest-$($_.Directory.Parent.Name).json") -Force
