@@ -1386,6 +1386,70 @@ function MosaicThumb() {
   );
 }
 
+function ModernMinimalThumb() {
+  return (
+    <div className="flex h-full flex-col p-2.5">
+      {/* Header: name + subtitle */}
+      <div className="mb-2">
+        <div className="h-1.5 w-12 rounded-full bg-[#111827]" />
+        <div className="mt-0.5 h-0.5 w-8 rounded-full bg-zinc-300" />
+        <div className="mt-1 flex gap-1.5">
+          <div className="flex items-center gap-0.5">
+            <div className="h-0.5 w-0.5 rounded-full" style={{ background: '#2563EB' }} />
+            <div className="h-0.5 w-2 rounded-full bg-zinc-300" />
+          </div>
+          <div className="flex items-center gap-0.5">
+            <div className="h-0.5 w-0.5 rounded-full" style={{ background: '#2563EB' }} />
+            <div className="h-0.5 w-2 rounded-full bg-zinc-300" />
+          </div>
+        </div>
+      </div>
+      {/* Divider */}
+      <div className="mb-1.5 h-px w-full bg-zinc-200" />
+      {/* Timeline section */}
+      <div className="mb-2 flex gap-1.5">
+        <div className="flex flex-col items-center gap-0.5">
+          <div className="h-0.5 w-1.5 rounded-full bg-zinc-300" />
+          <div className="h-[3px] w-[3px] rounded-full" style={{ background: '#2563EB' }} />
+          <div className="h-3 w-px bg-zinc-200" />
+          <div className="h-[3px] w-[3px] rounded-full" style={{ background: '#2563EB' }} />
+        </div>
+        <div className="flex-1 space-y-1">
+          <div className="space-y-0.5">
+            <div className="h-0.5 w-full rounded-full bg-zinc-200" />
+            <div className="h-0.5 w-3/4 rounded-full bg-zinc-200" />
+          </div>
+          <div className="space-y-0.5">
+            <div className="h-0.5 w-full rounded-full bg-zinc-200" />
+            <div className="h-0.5 w-2/3 rounded-full bg-zinc-200" />
+          </div>
+        </div>
+      </div>
+      {/* Card grid */}
+      <div className="mb-1.5 grid grid-cols-2 gap-0.5">
+        <div className="rounded-sm border border-zinc-100 p-0.5">
+          <div className="h-0.5 w-full rounded-full bg-zinc-200" />
+        </div>
+        <div className="rounded-sm border border-zinc-100 p-0.5">
+          <div className="h-0.5 w-full rounded-full bg-zinc-200" />
+        </div>
+      </div>
+      {/* Skill pills */}
+      <div className="flex flex-wrap gap-0.5">
+        <div className="rounded-full bg-zinc-100 px-1 py-px">
+          <div className="h-0.5 w-2 rounded-full bg-zinc-300" />
+        </div>
+        <div className="rounded-full bg-zinc-100 px-1 py-px">
+          <div className="h-0.5 w-1.5 rounded-full bg-zinc-300" />
+        </div>
+        <div className="rounded-full bg-zinc-100 px-1 py-px">
+          <div className="h-0.5 w-2 rounded-full bg-zinc-300" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const thumbnails: Record<string, React.FC> = {
   classic: ClassicThumb,
   modern: ModernThumb,
@@ -1443,6 +1507,7 @@ const thumbnails: Record<string, React.FC> = {
   zigzag: ZigzagThumb,
   ribbon: RibbonThumb,
   mosaic: MosaicThumb,
+  'modern-minimal': ModernMinimalThumb,
 };
 
 export function TemplateThumbnail({ template, className = '' }: TemplateThumbnailProps) {

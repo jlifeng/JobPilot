@@ -95,6 +95,7 @@
     "templateZigzag": "Zigzag",
     "templateRibbon": "Ribbon",
     "templateMosaic": "Mosaic",
+    "templateModernMinimal": "Modern Minimal",
     "upload": {
       "fromTemplate": "From Template",
       "fromFile": "Upload File",

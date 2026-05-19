@@ -38,7 +38,7 @@ export function ModernTemplate({ resume }: { resume: Resume }) {
               </p>
             )}
             <div className="mt-3 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[13px] text-zinc-300">
-              {[pi.age, pi.politicalStatus, pi.gender, pi.ethnicity, pi.hometown, pi.maritalStatus, pi.yearsOfExperience, pi.educationLevel, pi.email, pi.phone, pi.wechat, pi.location, pi.website].filter(Boolean).map((item, i, arr) => (
+              {[pi.age, pi.politicalStatus, pi.gender, pi.ethnicity, pi.hometown, pi.maritalStatus, pi.yearsOfExperience, pi.educationLevel, pi.email, pi.phone, pi.wechat, pi.location, pi.website, pi.linkedin, pi.github, ...(pi.customLinks?.map(l => `${l.label}: ${l.url}`) || [])].filter(Boolean).map((item, i, arr) => (
                 <span key={i} className="flex items-center gap-1.5">
                   {item}
                   {i < arr.length - 1 && <span className="text-zinc-500">|</span>}

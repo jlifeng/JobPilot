@@ -60,4 +60,6 @@ export const templateLabelsMap: Record<string, string> = {
   zigzag: 'dashboard.templateZigzag',
   ribbon: 'dashboard.templateRibbon',
   mosaic: 'dashboard.templateMosaic',
+  // Batch 7
+  'modern-minimal': 'dashboard.templateModernMinimal',
 };

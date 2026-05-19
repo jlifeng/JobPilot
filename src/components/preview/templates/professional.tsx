@@ -15,13 +15,12 @@ import type {
 } from '@/types/resume';
 import { degreeField, isSectionEmpty, md } from '../utils';
 import { AvatarImage } from '../avatar-image';
+import { ContactInfo } from '../contact-info';
 import { QrCodesPreview } from '../qr-codes-preview';
 
 export function ProfessionalTemplate({ resume }: { resume: Resume }) {
   const personalInfo = resume.sections.find((s) => s.type === 'personal_info');
   const pi = (personalInfo?.content || {}) as PersonalInfoContent;
-
-  const contacts = [pi.age, pi.politicalStatus, pi.gender, pi.ethnicity, pi.hometown, pi.maritalStatus, pi.yearsOfExperience, pi.educationLevel, pi.email, pi.phone, pi.wechat, pi.location, pi.website].filter(Boolean);
 
   return (
     <div className="mx-auto max-w-[210mm] bg-white shadow-lg" style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}>
@@ -42,16 +41,7 @@ export function ProfessionalTemplate({ resume }: { resume: Resume }) {
             )}
           </div>
         </div>
-        {contacts.length > 0 && (
-          <div className="mt-3 flex flex-wrap items-center justify-center gap-x-1.5 text-sm text-zinc-500">
-            {contacts.map((c, i) => (
-              <span key={i} className="flex items-center gap-1.5">
-                {c}
-                {i < contacts.length - 1 && <span className="text-zinc-300">|</span>}
-              </span>
-            ))}
-          </div>
-        )}
+        <ContactInfo pi={pi} iconColor="#1e3a5f" />
         <div className="mt-4 h-[2px] w-full" style={{ background: 'linear-gradient(90deg, transparent 0%, #1e3a5f 20%, #1e3a5f 80%, transparent 100%)' }} />
       </div>
 

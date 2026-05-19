@@ -7,6 +7,7 @@
 
 import React from 'react';
 import type {
+  PersonalInfoContent,
   SummaryContent,
   WorkExperienceContent,
   EducationContent,
@@ -24,10 +25,10 @@ import {
   degreeField,
   formatDate,
   getPersonalInfo,
-  getContactList,
   buildHighlights,
   visibleSections,
 } from '../template-contract';
+import { ContactInfo, buildContactEntries } from '../contact-info';
 
 // ============================================================================
 // Preview Component (React)
@@ -35,7 +36,6 @@ import {
 
 export function ClassicPreview({ resume }: TemplateProps): React.ReactElement {
   const pi = getPersonalInfo(resume);
-  const contacts = getContactList(pi);
   const sections = visibleSections(resume.sections);
 
   return (
@@ -62,11 +62,7 @@ export function ClassicPreview({ resume }: TemplateProps): React.ReactElement {
             )}
           </div>
         </div>
-        <div className="mt-2 flex flex-wrap items-center justify-center gap-3 text-sm text-zinc-500">
-          {contacts.map((c, i) => (
-            <span key={i}>{c}</span>
-          ))}
-        </div>
+        <ContactInfo pi={pi} />
       </div>
 
       {/* Sections */}
@@ -524,9 +520,25 @@ function buildClassicSectionContentHtml(
   return '';
 }
 
+function buildContactHtml(pi: PersonalInfoContent): string {
+  const { row1, row2 } = buildContactEntries(pi);
+  if (row1.length === 0 && row2.length === 0) return '';
+
+  const renderRow = (entries: typeof row1) =>
+    entries.map((c) => `<span style="display:inline-flex;align-items:center;gap:6px;margin:2px 8px"><span style="flex-shrink:0">${c.htmlIcon}</span><span>${esc(c.value)}</span></span>`).join('');
+
+  const r1 = row1.length > 0
+    ? `<div style="margin-top:4px;font-size:13px;color:#6B7280;text-align:center">${renderRow(row1)}</div>`
+    : '';
+  const r2 = row2.length > 0
+    ? `<div style="margin-top:${row1.length > 0 ? '2px' : '4px'};font-size:13px;color:#6B7280;text-align:center">${renderRow(row2)}</div>`
+    : '';
+
+  return r1 + r2;
+}
+
 export function buildClassicHtml(resume: CanonicalResume): string {
   const pi = getPersonalInfo(resume);
-  const contacts = getContactList(pi);
   const sections = visibleSections(resume.sections);
   const lang = resume.language || 'en';
 
@@ -539,9 +551,7 @@ export function buildClassicHtml(resume: CanonicalResume): string {
           ${pi.jobTitle ? `<p class="mt-1 text-lg text-zinc-600">${esc(pi.jobTitle)}</p>` : ''}
         </div>
       </div>
-      <div class="mt-2 flex flex-wrap items-center justify-center gap-3 text-sm text-zinc-500">
-        ${contacts.map((c) => `<span>${esc(c)}</span>`).join('')}
-      </div>
+      ${buildContactHtml(pi)}
     </div>
     ${sections
       .map(

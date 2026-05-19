@@ -3,6 +3,7 @@
 import type { Resume, PersonalInfoContent, SummaryContent, WorkExperienceContent, EducationContent, SkillsContent, ProjectsContent, CertificationsContent, LanguagesContent, CustomContent, GitHubContent } from '@/types/resume';
 import { degreeField, isSectionEmpty, md } from '../utils';
 import { AvatarImage } from '../avatar-image';
+import { ContactInfo } from '../contact-info';
 import { QrCodesPreview } from '../qr-codes-preview';
 
 export function MinimalTemplate({ resume }: { resume: Resume }) {
@@ -19,23 +20,10 @@ export function MinimalTemplate({ resume }: { resume: Resume }) {
           )}
           <div>
             <h1 className="text-xl font-medium text-zinc-900">{pi.fullName || 'Your Name'}</h1>
-            <div className="mt-1 flex flex-wrap gap-3 text-sm text-zinc-500">
-              {pi.jobTitle && <span>{pi.jobTitle}</span>}
-              {pi.age && <span>{pi.age}</span>}
-              {pi.politicalStatus && <span>{pi.politicalStatus}</span>}
-              {pi.gender && <span>{pi.gender}</span>}
-              {pi.ethnicity && <span>{pi.ethnicity}</span>}
-              {pi.hometown && <span>{pi.hometown}</span>}
-              {pi.maritalStatus && <span>{pi.maritalStatus}</span>}
-              {pi.yearsOfExperience && <span>{pi.yearsOfExperience}</span>}
-              {pi.educationLevel && <span>{pi.educationLevel}</span>}
-              {pi.email && <span>{pi.email}</span>}
-              {pi.phone && <span>{pi.phone}</span>}
-              {pi.wechat && <span>{pi.wechat}</span>}
-              {pi.location && <span>{pi.location}</span>}
-              {pi.linkedin && <span>LinkedIn: {pi.linkedin}</span>}
-              {pi.github && <span>GitHub: {pi.github}</span>}
-            </div>
+            {pi.jobTitle && (
+              <p className="mt-1 text-sm text-zinc-500">{pi.jobTitle}</p>
+            )}
+            <ContactInfo pi={pi} align="left" iconSize={12} />
           </div>
         </div>
       </div>

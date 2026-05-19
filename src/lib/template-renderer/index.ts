@@ -86,6 +86,8 @@ export function getUnifiedTemplateIds(): string[] {
 // Register unified templates
 import { classicTemplate } from './templates/classic';
 import { modernTemplate } from './templates/modern';
+import { modernMinimalTemplate } from './templates/modern-minimal';
 
 registerTemplate(classicTemplate);
 registerTemplate(modernTemplate);
+registerTemplate(modernMinimalTemplate);

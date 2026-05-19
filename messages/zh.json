@@ -95,6 +95,7 @@
     "templateZigzag": "锯齿",
     "templateRibbon": "缎带",
     "templateMosaic": "马赛克",
+    "templateModernMinimal": "现代极简",
     "upload": {
       "fromTemplate": "从模板创建",
       "fromFile": "上传文件",

@@ -19,21 +19,21 @@ export function EuroTemplate({ resume }: { resume: Resume }) {
           <h1 className="text-3xl font-bold" style={{ color: BLUE }}>{pi.fullName || 'Your Name'}</h1>
           {pi.jobTitle && <p className="mt-1 text-base text-zinc-500">{pi.jobTitle}</p>}
           <div className="mt-3 space-y-0.5 text-sm text-zinc-600">
-            {pi.age && <div><span className="inline-block w-20 text-xs font-semibold uppercase text-zinc-400">Age</span>{pi.age}</div>}
-            {pi.politicalStatus && <div><span className="inline-block w-20 text-xs font-semibold uppercase text-zinc-400">Political</span>{pi.politicalStatus}</div>}
-            {pi.gender && <div><span className="inline-block w-20 text-xs font-semibold uppercase text-zinc-400">Gender</span>{pi.gender}</div>}
-            {pi.ethnicity && <div><span className="inline-block w-20 text-xs font-semibold uppercase text-zinc-400">Ethnicity</span>{pi.ethnicity}</div>}
-            {pi.hometown && <div><span className="inline-block w-20 text-xs font-semibold uppercase text-zinc-400">Hometown</span>{pi.hometown}</div>}
-            {pi.maritalStatus && <div><span className="inline-block w-20 text-xs font-semibold uppercase text-zinc-400">Marital</span>{pi.maritalStatus}</div>}
-            {pi.yearsOfExperience && <div><span className="inline-block w-20 text-xs font-semibold uppercase text-zinc-400">Experience</span>{pi.yearsOfExperience}</div>}
-            {pi.educationLevel && <div><span className="inline-block w-20 text-xs font-semibold uppercase text-zinc-400">Education</span>{pi.educationLevel}</div>}
-            {pi.email && <div><span className="inline-block w-20 text-xs font-semibold uppercase text-zinc-400">Email</span>{pi.email}</div>}
-            {pi.phone && <div><span className="inline-block w-20 text-xs font-semibold uppercase text-zinc-400">Phone</span>{pi.phone}</div>}
-            {pi.wechat && <div><span className="inline-block w-20 text-xs font-semibold uppercase text-zinc-400">WeChat</span>{pi.wechat}</div>}
-            {pi.location && <div><span className="inline-block w-20 text-xs font-semibold uppercase text-zinc-400">Address</span>{pi.location}</div>}
-            {pi.website && <div><span className="inline-block w-20 text-xs font-semibold uppercase text-zinc-400">Website</span>{pi.website}</div>}
-            {pi.linkedin && <div><span className="inline-block w-20 text-xs font-semibold uppercase text-zinc-400">LinkedIn</span>{pi.linkedin}</div>}
-            {pi.github && <div><span className="inline-block w-20 text-xs font-semibold uppercase text-zinc-400">GitHub</span>{pi.github}</div>}
+            {pi.age && <div className="flex gap-2"><span className="w-28 shrink-0 font-semibold uppercase text-zinc-400" style={{ fontSize: '11px' }}>Age</span><span className="min-w-0">{pi.age}</span></div>}
+            {pi.politicalStatus && <div className="flex gap-2"><span className="w-28 shrink-0 font-semibold uppercase text-zinc-400" style={{ fontSize: '11px' }}>Political</span><span className="min-w-0">{pi.politicalStatus}</span></div>}
+            {pi.gender && <div className="flex gap-2"><span className="w-28 shrink-0 font-semibold uppercase text-zinc-400" style={{ fontSize: '11px' }}>Gender</span><span className="min-w-0">{pi.gender}</span></div>}
+            {pi.ethnicity && <div className="flex gap-2"><span className="w-28 shrink-0 font-semibold uppercase text-zinc-400" style={{ fontSize: '11px' }}>Ethnicity</span><span className="min-w-0">{pi.ethnicity}</span></div>}
+            {pi.hometown && <div className="flex gap-2"><span className="w-28 shrink-0 font-semibold uppercase text-zinc-400" style={{ fontSize: '11px' }}>Hometown</span><span className="min-w-0">{pi.hometown}</span></div>}
+            {pi.maritalStatus && <div className="flex gap-2"><span className="w-28 shrink-0 font-semibold uppercase text-zinc-400" style={{ fontSize: '11px' }}>Marital</span><span className="min-w-0">{pi.maritalStatus}</span></div>}
+            {pi.yearsOfExperience && <div className="flex gap-2"><span className="w-28 shrink-0 font-semibold uppercase text-zinc-400" style={{ fontSize: '11px' }}>Experience</span><span className="min-w-0">{pi.yearsOfExperience}</span></div>}
+            {pi.educationLevel && <div className="flex gap-2"><span className="w-28 shrink-0 font-semibold uppercase text-zinc-400" style={{ fontSize: '11px' }}>Education</span><span className="min-w-0">{pi.educationLevel}</span></div>}
+            {pi.email && <div className="flex gap-2"><span className="w-28 shrink-0 font-semibold uppercase text-zinc-400" style={{ fontSize: '11px' }}>Email</span><span className="min-w-0">{pi.email}</span></div>}
+            {pi.phone && <div className="flex gap-2"><span className="w-28 shrink-0 font-semibold uppercase text-zinc-400" style={{ fontSize: '11px' }}>Phone</span><span className="min-w-0">{pi.phone}</span></div>}
+            {pi.wechat && <div className="flex gap-2"><span className="w-28 shrink-0 font-semibold uppercase text-zinc-400" style={{ fontSize: '11px' }}>WeChat</span><span className="min-w-0">{pi.wechat}</span></div>}
+            {pi.location && <div className="flex gap-2"><span className="w-28 shrink-0 font-semibold uppercase text-zinc-400" style={{ fontSize: '11px' }}>Address</span><span className="min-w-0">{pi.location}</span></div>}
+            {pi.website && <div className="flex gap-2"><span className="w-28 shrink-0 font-semibold uppercase text-zinc-400" style={{ fontSize: '11px' }}>Website</span><span className="min-w-0">{pi.website}</span></div>}
+            {pi.linkedin && <div className="flex gap-2"><span className="w-28 shrink-0 font-semibold uppercase text-zinc-400" style={{ fontSize: '11px' }}>LinkedIn</span><span className="min-w-0">{pi.linkedin}</span></div>}
+            {pi.github && <div className="flex gap-2"><span className="w-28 shrink-0 font-semibold uppercase text-zinc-400" style={{ fontSize: '11px' }}>GitHub</span><span className="min-w-0">{pi.github}</span></div>}
           </div>
         </div>
         {pi.avatar && (
