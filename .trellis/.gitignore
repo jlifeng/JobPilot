@@ -4,6 +4,9 @@
 # Current task pointer (each dev works on different task)
 .current-task
 
+# Session/window scoped runtime state
+.runtime/
+
 # Ralph Loop state file
 .ralph-state.json
 
@@ -14,11 +17,6 @@
 
 # Task directory runtime files
 .plan-log
-
-# Local task records and personal workspace journals
-tasks/
-workspace/*
-!workspace/index.md
 
 # Atomic update temp files
 *.tmp

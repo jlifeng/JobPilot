@@ -207,21 +207,55 @@ def count_lines(file_path: Path) -> int:
 # Current Task Management
 # =============================================================================
 
-def _get_current_task_file(repo_root: Path | None = None) -> Path:
-    """Get .current-task file path.
+def normalize_task_ref(task_ref: str) -> str:
+    """Normalize a task ref for stable runtime storage.
 
-    Args:
-        repo_root: Repository root path. Defaults to auto-detected.
-
-    Returns:
-        Path to .current-task file.
+    Stored refs should prefer repo-relative POSIX paths like
+    `.trellis/tasks/03-27-my-task`, even on Windows. Absolute paths are preserved
+    unless they can later be converted back to repo-relative form by callers.
     """
+    normalized = task_ref.strip()
+    if not normalized:
+        return ""
+
+    path_obj = Path(normalized)
+    if path_obj.is_absolute():
+        return str(path_obj)
+
+    normalized = normalized.replace("\\", "/")
+    while normalized.startswith("./"):
+        normalized = normalized[2:]
+
+    if normalized.startswith(f"{DIR_TASKS}/"):
+        return f"{DIR_WORKFLOW}/{normalized}"
+
+    return normalized
+
+
+def resolve_task_ref(task_ref: str, repo_root: Path | None = None) -> Path | None:
+    """Resolve a task ref to an absolute task directory path."""
     if repo_root is None:
         repo_root = get_repo_root()
-    return repo_root / DIR_WORKFLOW / FILE_CURRENT_TASK
+
+    normalized = normalize_task_ref(task_ref)
+    if not normalized:
+        return None
+
+    path_obj = Path(normalized)
+    if path_obj.is_absolute():
+        return path_obj
+
+    if normalized.startswith(f"{DIR_WORKFLOW}/"):
+        return repo_root / path_obj
+
+    return repo_root / DIR_WORKFLOW / DIR_TASKS / path_obj
 
 
-def get_current_task(repo_root: Path | None = None) -> str | None:
+def get_current_task(
+    repo_root: Path | None = None,
+    platform_input: dict | None = None,
+    platform: str | None = None,
+) -> str | None:
     """Get current task directory path (relative to repo_root).
 
     Args:
@@ -230,18 +264,19 @@ def get_current_task(repo_root: Path | None = None) -> str | None:
     Returns:
         Relative path to current task directory or None.
     """
-    current_file = _get_current_task_file(repo_root)
+    if repo_root is None:
+        repo_root = get_repo_root()
 
-    if not current_file.is_file():
-        return None
+    from .active_task import resolve_active_task
 
-    try:
-        return current_file.read_text(encoding="utf-8").strip()
-    except (OSError, IOError):
-        return None
+    return resolve_active_task(repo_root, platform_input, platform).task_path
 
 
-def get_current_task_abs(repo_root: Path | None = None) -> Path | None:
+def get_current_task_abs(
+    repo_root: Path | None = None,
+    platform_input: dict | None = None,
+    platform: str | None = None,
+) -> Path | None:
     """Get current task directory absolute path.
 
     Args:
@@ -253,14 +288,33 @@ def get_current_task_abs(repo_root: Path | None = None) -> Path | None:
     if repo_root is None:
         repo_root = get_repo_root()
 
-    relative = get_current_task(repo_root)
+    relative = get_current_task(repo_root, platform_input, platform)
     if relative:
-        return repo_root / relative
+        return resolve_task_ref(relative, repo_root)
     return None
 
 
-def set_current_task(task_path: str, repo_root: Path | None = None) -> bool:
-    """Set current task.
+def get_current_task_source(
+    repo_root: Path | None = None,
+    platform_input: dict | None = None,
+    platform: str | None = None,
+) -> tuple[str, str | None, str | None]:
+    """Get active task source as (`source`, `context_key`, `task_path`)."""
+    if repo_root is None:
+        repo_root = get_repo_root()
+
+    from .active_task import get_current_task_source as _get_source
+
+    return _get_source(repo_root, platform_input, platform)
+
+
+def set_current_task(
+    task_path: str,
+    repo_root: Path | None = None,
+    platform_input: dict | None = None,
+    platform: str | None = None,
+) -> bool:
+    """Set current task in session scope.
 
     Args:
         task_path: Task directory path (relative to repo_root).
@@ -272,25 +326,22 @@ def set_current_task(task_path: str, repo_root: Path | None = None) -> bool:
     if repo_root is None:
         repo_root = get_repo_root()
 
-    if not task_path:
-        return False
+    from .active_task import set_active_task
 
-    # Verify task directory exists
-    full_path = repo_root / task_path
-    if not full_path.is_dir():
-        return False
-
-    current_file = _get_current_task_file(repo_root)
-
-    try:
-        current_file.write_text(task_path, encoding="utf-8")
-        return True
-    except (OSError, IOError):
-        return False
+    return set_active_task(
+        task_path,
+        repo_root,
+        platform_input=platform_input,
+        platform=platform,
+    ) is not None
 
 
-def clear_current_task(repo_root: Path | None = None) -> bool:
-    """Clear current task.
+def clear_current_task(
+    repo_root: Path | None = None,
+    platform_input: dict | None = None,
+    platform: str | None = None,
+) -> bool:
+    """Clear current task in session scope.
 
     Args:
         repo_root: Repository root path. Defaults to auto-detected.
@@ -298,14 +349,17 @@ def clear_current_task(repo_root: Path | None = None) -> bool:
     Returns:
         True on success.
     """
-    current_file = _get_current_task_file(repo_root)
+    if repo_root is None:
+        repo_root = get_repo_root()
 
-    try:
-        if current_file.is_file():
-            current_file.unlink()
-        return True
-    except (OSError, IOError):
-        return False
+    from .active_task import clear_active_task
+
+    clear_active_task(
+        repo_root,
+        platform_input=platform_input,
+        platform=platform,
+    )
+    return True
 
 
 def has_current_task(repo_root: Path | None = None) -> bool:
@@ -331,6 +385,52 @@ def generate_task_date_prefix() -> str:
         Date prefix string (e.g., "01-21").
     """
     return datetime.now().strftime("%m-%d")
+
+
+# =============================================================================
+# Monorepo / Package Paths
+# =============================================================================
+
+
+def get_spec_dir(package: str | None = None, repo_root: Path | None = None) -> Path:
+    """Get the spec directory path.
+
+    Single-repo: .trellis/spec
+    Monorepo with package: .trellis/spec/<package>
+
+    Uses lazy import to avoid circular dependency with config.py.
+    """
+    if repo_root is None:
+        repo_root = get_repo_root()
+
+    from .config import get_spec_base
+
+    base = get_spec_base(package, repo_root)
+    return repo_root / DIR_WORKFLOW / base
+
+
+def get_package_path(package: str, repo_root: Path | None = None) -> Path | None:
+    """Get a package's source directory absolute path from config.
+
+    Returns:
+        Absolute path to the package directory, or None if not found.
+    """
+    if repo_root is None:
+        repo_root = get_repo_root()
+
+    from .config import get_packages
+
+    packages = get_packages(repo_root)
+    if not packages or package not in packages:
+        return None
+
+    info = packages[package]
+    if isinstance(info, dict):
+        rel_path = info.get("path", package)
+    else:
+        rel_path = str(info)
+
+    return repo_root / rel_path
 
 
 # =============================================================================

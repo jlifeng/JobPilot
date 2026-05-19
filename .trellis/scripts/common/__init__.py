@@ -75,8 +75,18 @@ from .paths import (
     count_lines,
     get_current_task,
     get_current_task_abs,
+    normalize_task_ref,
+    resolve_task_ref,
     set_current_task,
     clear_current_task,
     has_current_task,
     generate_task_date_prefix,
+)
+
+from .active_task import (
+    ActiveTask,
+    clear_active_task,
+    resolve_active_task,
+    resolve_context_key,
+    set_active_task,
 )

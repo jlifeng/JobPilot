@@ -1,0 +1,2 @@
+{"file": "spec/document-model/template-contract.md", "reason": "ContactInfo 是模板共享组件，需遵循 template contract 规范"}
+{"file": "spec/frontend/component-guidelines.md", "reason": "共享组件修改需符合组件规范"}
