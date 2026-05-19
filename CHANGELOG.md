@@ -1,0 +1,86 @@
+# 更新日志
+
+所有重要的项目变更都会记录在这个文件中。
+
+格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
+并且本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
+
+## [Unreleased]
+
+### 新增
+
+- Modern Minimal 模板 — 现代极简风格简历模板，蓝色主题，时间线工作经历，卡片式项目展示
+
+### 变更
+
+- ContactInfo 组件 SVG 图标 — 将 emoji 图标替换为 Lucide SVG 图标，支持 CSS 颜色继承
+- 模板 ContactInfo 统一 — 迁移 30+ 模板使用共享 ContactInfo 组件，统一个人信息展示
+- 现代极简模板优化 — 重构时间线布局使用绝对定位，技能改为列表展示，项目卡片单列布局并支持亮点渲染
+
+## [1.1.2] - 2025-05-17
+
+### 新增
+
+- macOS 构建支持 — 支持 Apple Silicon (aarch64) 构建
+
+### 变更
+
+- 项目重命名 — 从 RoleRover 重命名为 JobPilot，更新应用名称、图标、包名
+
+### 修复
+
+- Keyring 密钥管理 — 修复 macOS/Windows Keyring 读写逻辑，简化验证流程
+- 桌面端密钥保留 — Keyring 读取失败时保留本地密钥，不意外清空
+- Tauri 包版本同步 — 修复 NPM 包与 Rust crate 版本不匹配问题
+- macOS 更新器 — 支持 .app.tar.gz 格式的更新包
+- CI 构建流程 — 修复资源重复上传、隐藏文件处理、artifact 路径解析等问题
+
+## [1.1.1] - 2025-05-15
+
+### 新增
+
+- Tauri 桌面端 — 基于 Tauri 2 构建原生桌面应用
+- 多格式导入 — 支持 JSON、Markdown、PDF、图片多种格式导入
+- PDF 导入增强 — 支持普通 PDF 和扫描件，使用多模态模型智能解析
+- Markdown 编辑器 — 支持工具栏快捷操作（加粗、斜体、代码、列表、链接）
+- 文本域列表组件 — 支持多行文本输入，适合编辑经历描述
+- 应用内更新 — 自动检测并安装新版本
+- 模型列表获取 — 支持手动刷新获取可用模型列表
+
+### 变更
+
+- 亮点字段优化 — 改用文本域组件，便于输入长文本亮点描述
+- 窗口启动优化 — 应用启动时以最小尺寸居中显示
+- 设置保存优化 — AI 配置即使测试失败也会保存用户填入的信息
+- API Key 管理 — 支持显示/隐藏切换，默认以密文展示
+- 模型获取优化 — 测试连接前自动保存配置
+
+### 修复
+
+- Exa 配置保存 — 修复 Exa Base URL 无法保存的问题
+- Tauri 权限配置 — 补全 interview 面试功能和 read_secret_value 命令的权限
+- 面试功能修复 — 修复面试创建失败的问题（Tauri 命令权限缺失）
+- 导入功能重构 — 统一文件导入组件，支持 JSON 直接解析和 Markdown AI 解析
+- 导入进度显示 — 显示详细的五阶段进度（验证、提取、渲染、解析、保存）
+- PDF 导出错误 — 改进 PDF 导出错误显示和浏览器发现逻辑
+- Headless Chrome — 增强 Windows 10 精简版系统的 Chrome 兼容性
+
+## [1.0.0] - 2025-05-01
+
+### 新增
+
+- 初始发布 — 基于 JadeAI/RoleRover 二次开发
+- 拖拽式简历编辑器 — 支持行内编辑、自动保存、模块拖拽排序
+- 50+ 简历模板 — 涵盖经典、现代、极简、ATS 友好等多种风格
+- AI 智能助手 — 简历生成、内容优化、JD 匹配分析、求职信撰写
+- 简历解析 — 支持从 PDF 和图片中解析简历内容
+- 多格式导出 — 支持 PDF、PNG、Word 等格式导出
+- 简历分享 — 生成分享链接，方便投递和展示
+- LinkedIn 职业照 — AI 生成专业证件照
+- 中英双语 — 完整的国际化支持
+- 本地优先 — 数据存储在本地，隐私安全有保障
+
+[Unreleased]: https://github.com/jlifeng/JobPilot/compare/v1.1.2...HEAD
+[1.1.2]: https://github.com/jlifeng/JobPilot/compare/v1.1.1...v1.1.2
+[1.1.1]: https://github.com/jlifeng/JobPilot/compare/v1.0.0...v1.1.1
+[1.0.0]: https://github.com/jlifeng/JobPilot/releases/tag/v1.0.0
