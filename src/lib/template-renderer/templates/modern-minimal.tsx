@@ -181,32 +181,30 @@ function ModernMinimalSectionContent({
   if (section.type === 'work_experience') {
     const items = (content as unknown as WorkExperienceContent).items || [];
     return (
-      <div className="space-y-4">
+      <div className="relative">
+        {/* Vertical timeline line */}
+        <div className="absolute left-[88px] top-2 bottom-2 w-[2px]" style={{ background: DIVIDER }} />
         {items.map((item, idx) => (
-          <div key={item.id} className="flex gap-4">
-            {/* Timeline */}
-            <div className="flex w-20 shrink-0 flex-col items-center pt-1">
-              <span className="text-xs whitespace-nowrap" style={{ color: TEXT_SECONDARY }}>
+          <div key={item.id} className="relative flex gap-4 mb-4 last:mb-0">
+            {/* Timeline dot */}
+            <div
+              className="absolute left-[85px] top-1.5 z-10 h-[6px] w-[6px] rounded-full"
+              style={{ background: ACCENT }}
+            />
+            {/* Date column */}
+            <div className="w-20 shrink-0 pr-2">
+              <span className="text-xs" style={{ color: TEXT_SECONDARY }}>
                 {formatDate(item.startDate, item.endDate, item.current, lang)}
               </span>
-              <div className="relative mt-1 flex flex-col items-center">
-                <div
-                  className="z-10 h-[6px] w-[6px] rounded-full"
-                  style={{ background: ACCENT }}
-                />
-                {idx < items.length - 1 && (
-                  <div className="w-[2px] flex-1" style={{ background: DIVIDER, minHeight: '20px' }} />
-                )}
-              </div>
             </div>
             {/* Content */}
-            <div className="min-w-0 flex-1 pb-2">
-              <div className="flex items-baseline justify-between gap-2">
+            <div className="min-w-0 flex-1 pl-4">
+              <div className="flex flex-wrap items-baseline gap-x-2">
                 <span className="text-sm font-semibold" style={{ color: TEXT_PRIMARY }}>
                   {item.position}
                 </span>
                 {item.company && (
-                  <span className="shrink-0 text-xs" style={{ color: ACCENT }}>
+                  <span className="text-sm" style={{ color: ACCENT }}>
                     {item.company}
                   </span>
                 )}
@@ -253,11 +251,11 @@ function ModernMinimalSectionContent({
     );
   }
 
-  // -- Projects (Card Grid) --
+  // -- Projects (Card List) --
   if (section.type === 'projects') {
     const items = (content as unknown as ProjectsContent).items || [];
     return (
-      <div className="grid grid-cols-2 gap-3">
+      <div className="space-y-3">
         {items.map((item) => (
           <div
             key={item.id}
@@ -287,13 +285,13 @@ function ModernMinimalSectionContent({
             )}
             {item.description && (
               <p
-                className="mt-1.5 text-xs leading-relaxed"
+                className="mt-1.5 text-sm leading-relaxed"
                 style={{ color: TEXT_SECONDARY }}
                 dangerouslySetInnerHTML={{ __html: md(item.description) }}
               />
             )}
             {item.technologies?.length > 0 && (
-              <div className="mt-2 flex flex-wrap gap-1">
+              <div className="mt-2 flex flex-wrap gap-1.5">
                 {item.technologies.map((t, i) => (
                   <span
                     key={i}
@@ -305,33 +303,45 @@ function ModernMinimalSectionContent({
                 ))}
               </div>
             )}
+            {item.highlights?.length > 0 && (
+              <ul className="mt-2 list-disc pl-4">
+                {item.highlights.map((h, i) => (
+                  <li
+                    key={i}
+                    className="text-sm"
+                    style={{ color: TEXT_SECONDARY }}
+                    dangerouslySetInnerHTML={{ __html: md(h) }}
+                  />
+                ))}
+              </ul>
+            )}
           </div>
         ))}
       </div>
     );
   }
 
-  // -- Skills (Pills) --
+  // -- Skills (Category List) --
   if (section.type === 'skills') {
     const categories = (content as unknown as SkillsContent).categories || [];
     return (
-      <div className="space-y-2">
+      <div className="space-y-3">
         {categories.map((cat) => (
-          <div key={cat.id} className="flex flex-wrap items-baseline gap-2">
-            <span className="text-xs font-semibold" style={{ color: TEXT_PRIMARY }}>
+          <div key={cat.id}>
+            <span className="text-sm font-semibold" style={{ color: TEXT_PRIMARY }}>
               {cat.name}
             </span>
-            <div className="flex flex-wrap gap-1.5">
+            <ul className="mt-1 list-disc pl-4">
               {(cat.skills || []).map((skill, i) => (
-                <span
+                <li
                   key={i}
-                  className="rounded-full px-2.5 py-0.5 text-xs"
-                  style={{ background: SKILL_BG, color: '#374151' }}
+                  className="text-sm"
+                  style={{ color: TEXT_SECONDARY }}
                 >
                   {skill}
-                </span>
+                </li>
               ))}
-            </div>
+            </ul>
           </div>
         ))}
       </div>
@@ -552,19 +562,16 @@ function buildModernMinimalSectionHtml(
       const highlights = it.highlights?.length
         ? `<ul style="margin:6px 0 0 16px;padding:0">${buildHighlights(it.highlights, `font-size:13px;color:${TEXT_SECONDARY}`)}</ul>`
         : '';
-      const dot = `<div style="width:6px;height:6px;border-radius:50%;background:${ACCENT};flex-shrink:0"></div>`;
-      const line = idx < items.length - 1
-        ? `<div style="width:2px;flex:1;min-height:20px;background:${DIVIDER}"></div>`
-        : '';
-      return `<div style="display:flex;gap:16px">
-        <div style="display:flex;width:80px;shrink:0;flex-direction:column;align-items:center;padding-top:4px">
-          <span style="font-size:11px;color:${TEXT_SECONDARY};white-space:nowrap">${esc(formatDate(it.startDate, it.endDate, it.current, lang))}</span>
-          <div style="display:flex;flex-direction:column;align-items:center;margin-top:4px">${dot}${line}</div>
+      const marginBottom = idx < items.length - 1 ? 'margin-bottom:16px' : '';
+      return `<div style="position:relative;display:flex;gap:16px;${marginBottom}">
+        <div style="position:absolute;left:85px;top:6px;z-index:10;width:6px;height:6px;border-radius:50%;background:${ACCENT}"></div>
+        <div style="width:80px;shrink:0;padding-right:8px">
+          <span style="font-size:11px;color:${TEXT_SECONDARY}">${esc(formatDate(it.startDate, it.endDate, it.current, lang))}</span>
         </div>
-        <div style="flex:1;padding-bottom:8px">
-          <div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px">
+        <div style="flex:1;padding-left:16px">
+          <div style="display:flex;flex-wrap:wrap;align-items:baseline;gap:8px">
             <span style="font-size:14px;font-weight:600;color:${TEXT_PRIMARY}">${esc(it.position)}</span>
-            ${it.company ? `<span style="font-size:11px;color:${ACCENT};flex-shrink:0">${esc(it.company)}</span>` : ''}
+            ${it.company ? `<span style="font-size:13px;color:${ACCENT}">${esc(it.company)}</span>` : ''}
           </div>
           ${it.location ? `<p style="font-size:11px;color:${TEXT_SECONDARY};margin:2px 0 0">${esc(it.location)}</p>` : ''}
           ${it.description ? `<p style="font-size:13px;color:${TEXT_SECONDARY};margin:4px 0 0">${md(it.description)}</p>` : ''}
@@ -575,7 +582,10 @@ function buildModernMinimalSectionHtml(
     return `<div data-section style="padding:0 32px 24px">
       <div style="border-top:1px solid ${DIVIDER};margin-bottom:16px"></div>
       ${sectionHeader}
-      <div style="display:flex;flex-direction:column;gap:16px">${itemsHtml}</div>
+      <div style="position:relative">
+        <div style="position:absolute;left:88px;top:8px;bottom:8px;width:2px;background:${DIVIDER}"></div>
+        ${itemsHtml}
+      </div>
     </div>`;
   }
 
@@ -584,7 +594,10 @@ function buildModernMinimalSectionHtml(
     const items = (content as unknown as ProjectsContent).items || [];
     const cardsHtml = items.map((it) => {
       const techs = it.technologies?.length
-        ? `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px">${it.technologies.map((t) => `<span style="background:${TECH_BG};color:${ACCENT};border:1px solid ${TECH_BORDER};border-radius:9999px;padding:2px 8px;font-size:11px">${esc(t)}</span>`).join('')}</div>`
+        ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">${it.technologies.map((t) => `<span style="background:${TECH_BG};color:${ACCENT};border:1px solid ${TECH_BORDER};border-radius:9999px;padding:2px 8px;font-size:11px">${esc(t)}</span>`).join('')}</div>`
+        : '';
+      const highlights = it.highlights?.length
+        ? `<ul style="margin:8px 0 0 16px;padding:0">${buildHighlights(it.highlights, `font-size:13px;color:${TEXT_SECONDARY}`)}</ul>`
         : '';
       const linkHtml = it.url ? `<a href="${esc(it.url)}" style="color:${ACCENT};text-decoration:none;font-size:12px">↗</a>` : '';
       return `<div style="border:1px solid ${DIVIDER};border-radius:12px;padding:16px;background:white">
@@ -593,14 +606,14 @@ function buildModernMinimalSectionHtml(
           ${linkHtml}
         </div>
         ${it.startDate ? `<p style="font-size:11px;color:${TEXT_SECONDARY};margin:2px 0 0">${formatDate(it.startDate, it.endDate || null, false, lang)}</p>` : ''}
-        ${it.description ? `<p style="font-size:12px;line-height:1.5;color:${TEXT_SECONDARY};margin:6px 0 0">${md(it.description)}</p>` : ''}
-        ${techs}
+        ${it.description ? `<p style="font-size:13px;line-height:1.5;color:${TEXT_SECONDARY};margin:6px 0 0">${md(it.description)}</p>` : ''}
+        ${techs}${highlights}
       </div>`;
     }).join('');
     return `<div data-section style="padding:0 32px 24px">
       <div style="border-top:1px solid ${DIVIDER};margin-bottom:16px"></div>
       ${sectionHeader}
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">${cardsHtml}</div>
+      <div style="display:flex;flex-direction:column;gap:12px">${cardsHtml}</div>
     </div>`;
   }
 
@@ -608,17 +621,17 @@ function buildModernMinimalSectionHtml(
   if (section.type === 'skills') {
     const categories = (content as unknown as SkillsContent).categories || [];
     const catsHtml = categories.map((cat) =>
-      `<div style="display:flex;flex-wrap:wrap;align-items:baseline;gap:8px">
-        <span style="font-size:12px;font-weight:600;color:${TEXT_PRIMARY}">${esc(cat.name)}</span>
-        <div style="display:flex;flex-wrap:wrap;gap:6px">${(cat.skills || []).map((s) =>
-          `<span style="background:${SKILL_BG};color:#374151;border-radius:9999px;padding:2px 10px;font-size:11px">${esc(s)}</span>`
-        ).join('')}</div>
+      `<div style="margin-bottom:12px">
+        <span style="font-size:14px;font-weight:600;color:${TEXT_PRIMARY}">${esc(cat.name)}</span>
+        <ul style="margin:4px 0 0 16px;padding:0">${(cat.skills || []).map((s) =>
+          `<li style="font-size:13px;color:${TEXT_SECONDARY}">${esc(s)}</li>`
+        ).join('')}</ul>
       </div>`
     ).join('');
     return `<div data-section style="padding:0 32px 24px">
       <div style="border-top:1px solid ${DIVIDER};margin-bottom:16px"></div>
       ${sectionHeader}
-      <div style="display:flex;flex-direction:column;gap:8px">${catsHtml}</div>
+      ${catsHtml}
     </div>`;
   }
 
