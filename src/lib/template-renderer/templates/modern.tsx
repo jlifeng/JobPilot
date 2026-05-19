@@ -7,6 +7,7 @@
 
 import React from 'react';
 import type {
+  PersonalInfoContent,
   SummaryContent,
   WorkExperienceContent,
   EducationContent,
@@ -24,9 +25,9 @@ import {
   degreeField,
   formatDate,
   getPersonalInfo,
-  getContactList,
   visibleSections,
 } from '../template-contract';
+import { ContactInfo, buildContactEntries } from '../contact-info';
 
 // Modern template accent colors
 const ACCENT_COLOR = '#e94560';
@@ -41,7 +42,6 @@ const RADIAL_ACCENT = 'radial-gradient(circle, #e94560 0%, transparent 70%)';
 
 export function ModernPreview({ resume }: TemplateProps): React.ReactElement {
   const pi = getPersonalInfo(resume);
-  const contacts = getContactList(pi);
   const sections = visibleSections(resume.sections);
   const lang = resume.language || 'en';
 
@@ -87,14 +87,7 @@ export function ModernPreview({ resume }: TemplateProps): React.ReactElement {
                 {pi.jobTitle}
               </p>
             )}
-            <div className="mt-3 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[13px] text-zinc-300">
-              {contacts.map((item, i) => (
-                <span key={i} className="flex items-center gap-1.5">
-                  {item}
-                  {i < contacts.length - 1 && <span className="text-zinc-500">|</span>}
-                </span>
-              ))}
-            </div>
+            <ContactInfo pi={pi} align="left" iconColor={ACCENT_COLOR} style={{ color: '#d4d4d8' }} />
           </div>
         </div>
 
@@ -561,9 +554,25 @@ function buildModernSectionContentHtml(
   return '';
 }
 
+function buildContactHtml(pi: PersonalInfoContent): string {
+  const { row1, row2 } = buildContactEntries(pi);
+  if (row1.length === 0 && row2.length === 0) return '';
+
+  const renderRow = (entries: typeof row1) =>
+    entries.map((c) => `<span style="display:inline-flex;align-items:center;gap:6px;margin:2px 8px 2px 0"><span style="color:${ACCENT_COLOR};font-size:13px;flex-shrink:0">${c.htmlIcon}</span><span style="color:#d4d4d8">${esc(c.value)}</span></span>`).join('');
+
+  const r1 = row1.length > 0
+    ? `<div style="margin-top:4px;font-size:13px">${renderRow(row1)}</div>`
+    : '';
+  const r2 = row2.length > 0
+    ? `<div style="margin-top:${row1.length > 0 ? '2px' : '4px'};font-size:13px">${renderRow(row2)}</div>`
+    : '';
+
+  return r1 + r2;
+}
+
 export function buildModernHtml(resume: CanonicalResume): string {
   const pi = getPersonalInfo(resume);
-  const contacts = getContactList(pi);
   const sections = visibleSections(resume.sections);
   const lang = resume.language || 'en';
 
@@ -576,9 +585,7 @@ export function buildModernHtml(resume: CanonicalResume): string {
         <div class="min-w-0 flex-1">
           <h1 class="text-3xl font-bold tracking-tight">${esc(pi.fullName || 'Your Name')}</h1>
           ${pi.jobTitle ? `<p class="mt-1.5 text-base font-light tracking-wide" style="color:${ACCENT_COLOR}">${esc(pi.jobTitle)}</p>` : ''}
-          <div class="mt-3 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[13px] text-zinc-300">
-            ${contacts.map((c, i) => `<span class="flex items-center gap-1.5">${esc(c)}${i < contacts.length - 1 ? '<span class="text-zinc-500">|</span>' : ''}</span>`).join('')}
-          </div>
+          ${buildContactHtml(pi)}
         </div>
       </div>
       <div class="absolute bottom-0 left-0 h-[3px] w-full" style="background:${ACCENT_GRADIENT}"></div>

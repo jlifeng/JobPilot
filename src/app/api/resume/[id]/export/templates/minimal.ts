@@ -10,6 +10,7 @@ import type {
   GitHubContent,
 } from '@/types/resume';
 import { esc, md, degreeField, getPersonalInfo, visibleSections, buildHighlights, buildQrCodesHtml, type ResumeWithSections, type Section } from '../utils';
+import { buildContactEntries } from '@/lib/template-renderer/contact-info';
 
 function buildMinimalSectionContent(section: Section, lang: string = 'en'): string {
   const c = section.content as any;
@@ -78,6 +79,14 @@ function buildMinimalSectionContent(section: Section, lang: string = 'en'): stri
 export function buildMinimalHtml(resume: ResumeWithSections): string {
   const pi = getPersonalInfo(resume);
   const sections = visibleSections(resume);
+  const { row1, row2 } = buildContactEntries(pi);
+
+  const renderRow = (entries: typeof row1) =>
+    entries.map((c) => `<span style="display:inline-flex;align-items:center;gap:4px;margin:2px 12px 2px 0"><span style="color:#71717a;font-size:12px">${c.htmlIcon}</span><span style="color:#6B7280">${esc(c.value)}</span></span>`).join('');
+
+  const contactHtml = (row1.length > 0 || row2.length > 0)
+    ? `<div style="margin-top:4px;font-size:13px">${renderRow(row1)}${row2.length > 0 ? `</div><div style="margin-top:2px;font-size:13px">${renderRow(row2)}` : ''}</div>`
+    : '';
 
   return `<div class="mx-auto max-w-[210mm] bg-white shadow-lg" style="font-family:Inter,sans-serif">
     <div class="mb-8">
@@ -85,23 +94,8 @@ export function buildMinimalHtml(resume: ResumeWithSections): string {
         ${pi.avatar ? `<img src="${esc(pi.avatar)}" alt="" class="h-12 w-12 shrink-0 rounded-full object-cover"/>` : ''}
         <div>
           <h1 class="text-xl font-medium text-zinc-900">${esc(pi.fullName || 'Your Name')}</h1>
-          <div class="mt-1 flex flex-wrap gap-3 text-sm text-zinc-500">
-            ${pi.jobTitle ? `<span>${esc(pi.jobTitle)}</span>` : ''}
-            ${pi.age ? `<span>${esc(pi.age)}</span>` : ''}
-            ${pi.politicalStatus ? `<span>${esc(pi.politicalStatus)}</span>` : ''}
-            ${pi.gender ? `<span>${esc(pi.gender)}</span>` : ''}
-            ${pi.ethnicity ? `<span>${esc(pi.ethnicity)}</span>` : ''}
-            ${pi.hometown ? `<span>${esc(pi.hometown)}</span>` : ''}
-            ${pi.maritalStatus ? `<span>${esc(pi.maritalStatus)}</span>` : ''}
-            ${pi.yearsOfExperience ? `<span>${esc(pi.yearsOfExperience)}</span>` : ''}
-            ${pi.educationLevel ? `<span>${esc(pi.educationLevel)}</span>` : ''}
-            ${pi.email ? `<span>${esc(pi.email)}</span>` : ''}
-            ${pi.phone ? `<span>${esc(pi.phone)}</span>` : ''}
-            ${pi.wechat ? `<span>${esc(pi.wechat)}</span>` : ''}
-            ${pi.location ? `<span>${esc(pi.location)}</span>` : ''}
-            ${pi.linkedin ? `<span>LinkedIn: ${esc(pi.linkedin)}</span>` : ''}
-            ${pi.github ? `<span>GitHub: ${esc(pi.github)}</span>` : ''}
-          </div>
+          ${pi.jobTitle ? `<p class="mt-1 text-sm text-zinc-500">${esc(pi.jobTitle)}</p>` : ''}
+          ${contactHtml}
         </div>
       </div>
     </div>

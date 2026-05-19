@@ -10,6 +10,7 @@ import type {
   CustomContent,
 } from '@/types/resume';
 import { esc, md, degreeField, getPersonalInfo, visibleSections, buildHighlights, buildQrCodesHtml, type ResumeWithSections, type Section } from '../utils';
+import { buildContactEntries } from '@/lib/template-renderer/contact-info';
 
 function buildCreativeSectionContent(section: Section, lang: string): string {
   const c = section.content as any;
@@ -86,9 +87,16 @@ export function buildCreativeHtml(resume: ResumeWithSections): string {
   const pi = getPersonalInfo(resume);
   const sections = visibleSections(resume);
   const lang = resume.language || 'en';
-  const contacts = [pi.age, pi.politicalStatus, pi.gender, pi.ethnicity, pi.hometown, pi.maritalStatus, pi.yearsOfExperience, pi.educationLevel, pi.email, pi.phone, pi.wechat, pi.location, pi.website].filter(Boolean);
   const GRADIENT = 'linear-gradient(135deg,#7c3aed 0%,#f97316 100%)';
   const PRIMARY = '#7c3aed';
+  const { row1, row2 } = buildContactEntries(pi);
+
+  const renderRow = (entries: typeof row1) =>
+    entries.map((c) => `<span style="display:inline-flex;align-items:center;gap:4px;margin:2px 8px 2px 0"><span style="color:rgba(255,255,255,0.6);font-size:12px">${c.htmlIcon}</span><span style="color:rgba(255,255,255,0.7)">${esc(c.value)}</span></span>`).join('');
+
+  const contactHtml = (row1.length > 0 || row2.length > 0)
+    ? `<div style="margin-top:4px;font-size:13px">${renderRow(row1)}${row2.length > 0 ? `</div><div style="margin-top:2px;font-size:13px">${renderRow(row2)}` : ''}</div>`
+    : '';
 
   return `<div class="mx-auto max-w-[210mm] overflow-hidden bg-white shadow-lg" style="font-family:Inter,sans-serif">
     <div class="relative px-8 py-10 text-white" style="background:${GRADIENT}">
@@ -100,7 +108,7 @@ export function buildCreativeHtml(resume: ResumeWithSections): string {
         <div>
           <h1 class="text-3xl font-extrabold tracking-tight">${esc(pi.fullName || 'Your Name')}</h1>
           ${pi.jobTitle ? `<p class="mt-1 text-lg font-light text-white/80">${esc(pi.jobTitle)}</p>` : ''}
-          ${contacts.length ? `<div class="mt-3 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-white/70">${contacts.map((c, i) => `<span class="flex items-center gap-1.5">${esc(c)}${i < contacts.length - 1 ? '<span class="text-white/30">|</span>' : ''}</span>`).join('')}</div>` : ''}
+          ${contactHtml}
         </div>
       </div>
     </div>

@@ -15,13 +15,12 @@ import type {
 } from '@/types/resume';
 import { AvatarImage } from '../avatar-image';
 import { degreeField, isSectionEmpty, md } from '../utils';
+import { ContactInfo } from '../contact-info';
 import { QrCodesPreview } from '../qr-codes-preview';
 
 export function AtsTemplate({ resume }: { resume: Resume }) {
   const personalInfo = resume.sections.find((s) => s.type === 'personal_info');
   const pi = (personalInfo?.content || {}) as PersonalInfoContent;
-
-  const contacts = [pi.age, pi.politicalStatus, pi.gender, pi.ethnicity, pi.hometown, pi.maritalStatus, pi.yearsOfExperience, pi.educationLevel, pi.email, pi.phone, pi.wechat, pi.location, pi.website].filter(Boolean);
 
   return (
     <div className="mx-auto max-w-[210mm] bg-white shadow-lg" style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}>
@@ -38,16 +37,7 @@ export function AtsTemplate({ resume }: { resume: Resume }) {
         <div className={pi.avatar ? '' : ''}>
           <h1 className="text-2xl font-bold text-black">{pi.fullName || 'Your Name'}</h1>
           {pi.jobTitle && <p className="mt-0.5 text-base text-zinc-800">{pi.jobTitle}</p>}
-          {contacts.length > 0 && (
-            <p className="mt-1 text-sm text-zinc-700">
-              {contacts.join(' | ')}
-            </p>
-          )}
-          {(pi.linkedin || pi.github) && (
-            <p className="mt-0.5 text-sm text-zinc-700">
-              {[pi.linkedin && `LinkedIn: ${pi.linkedin}`, pi.github && `GitHub: ${pi.github}`].filter(Boolean).join(' | ')}
-            </p>
-          )}
+          <ContactInfo pi={pi} iconColor="#525252" style={{ color: '#404040' }} />
         </div>
       </div>
 

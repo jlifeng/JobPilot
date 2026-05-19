@@ -15,6 +15,7 @@ import type {
 } from '@/types/resume';
 import { AvatarImage } from '../avatar-image';
 import { isSectionEmpty, md, degreeField } from '../utils';
+import { ContactInfo } from '../contact-info';
 import { QrCodesPreview } from '../qr-codes-preview';
 
 const GRADIENT = 'linear-gradient(135deg, #7c3aed 0%, #f97316 100%)';
@@ -24,7 +25,7 @@ export function CreativeTemplate({ resume }: { resume: Resume }) {
   const personalInfo = resume.sections.find((s) => s.type === 'personal_info');
   const pi = (personalInfo?.content || {}) as PersonalInfoContent;
 
-  const contacts = [pi.age, pi.politicalStatus, pi.gender, pi.ethnicity, pi.hometown, pi.maritalStatus, pi.yearsOfExperience, pi.educationLevel, pi.email, pi.phone, pi.wechat, pi.location, pi.website].filter(Boolean);
+  <ContactInfo pi={pi} align="left" iconColor="rgba(255,255,255,0.6)" style={{ color: 'rgba(255,255,255,0.7)' }} />
 
   return (
     <div className="mx-auto max-w-[210mm] overflow-hidden bg-white shadow-lg" style={{ fontFamily: 'Inter, sans-serif' }}>
@@ -44,16 +45,7 @@ export function CreativeTemplate({ resume }: { resume: Resume }) {
             {pi.jobTitle && (
               <p className="mt-1 text-lg font-light text-white/80">{pi.jobTitle}</p>
             )}
-            {contacts.length > 0 && (
-              <div className="mt-3 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-white/70">
-                {contacts.map((c, i) => (
-                  <span key={i} className="flex items-center gap-1.5">
-                    {c}
-                    {i < contacts.length - 1 && <span className="text-white/30">|</span>}
-                  </span>
-                ))}
-              </div>
-            )}
+            <ContactInfo pi={pi} align="left" iconColor="rgba(255,255,255,0.6)" style={{ color: 'rgba(255,255,255,0.7)' }} />
           </div>
         </div>
       </div>

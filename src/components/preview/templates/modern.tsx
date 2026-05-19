@@ -3,6 +3,7 @@
 import type { Resume, PersonalInfoContent, SummaryContent, WorkExperienceContent, EducationContent, SkillsContent, ProjectsContent, CertificationsContent, LanguagesContent, CustomContent, GitHubContent } from '@/types/resume';
 import { degreeField, isSectionEmpty, md } from '../utils';
 import { AvatarImage } from '../avatar-image';
+import { ContactInfo } from '../contact-info';
 import { QrCodesPreview } from '../qr-codes-preview';
 
 export function ModernTemplate({ resume }: { resume: Resume }) {
@@ -37,14 +38,7 @@ export function ModernTemplate({ resume }: { resume: Resume }) {
                 {pi.jobTitle}
               </p>
             )}
-            <div className="mt-3 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[13px] text-zinc-300">
-              {[pi.age, pi.politicalStatus, pi.gender, pi.ethnicity, pi.hometown, pi.maritalStatus, pi.yearsOfExperience, pi.educationLevel, pi.email, pi.phone, pi.wechat, pi.location, pi.website, pi.linkedin, pi.github, ...(pi.customLinks?.map(l => `${l.label}: ${l.url}`) || [])].filter(Boolean).map((item, i, arr) => (
-                <span key={i} className="flex items-center gap-1.5">
-                  {item}
-                  {i < arr.length - 1 && <span className="text-zinc-500">|</span>}
-                </span>
-              ))}
-            </div>
+            <ContactInfo pi={pi} align="left" iconColor="#e94560" style={{ color: '#d4d4d8' }} />
           </div>
         </div>
 

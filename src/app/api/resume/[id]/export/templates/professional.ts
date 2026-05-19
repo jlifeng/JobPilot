@@ -10,6 +10,7 @@ import type {
   GitHubContent,
 } from '@/types/resume';
 import { esc, md, degreeField, getPersonalInfo, visibleSections, buildHighlights, buildQrCodesHtml, type ResumeWithSections, type Section } from '../utils';
+import { buildContactEntries } from '@/lib/template-renderer/contact-info';
 
 function buildProfessionalSectionContent(section: Section, lang: string = 'en'): string {
   const c = section.content as any;
@@ -77,8 +78,15 @@ function buildProfessionalSectionContent(section: Section, lang: string = 'en'):
 export function buildProfessionalHtml(resume: ResumeWithSections): string {
   const pi = getPersonalInfo(resume);
   const sections = visibleSections(resume);
-  const contacts = [pi.age, pi.politicalStatus, pi.gender, pi.ethnicity, pi.hometown, pi.maritalStatus, pi.yearsOfExperience, pi.educationLevel, pi.email, pi.phone, pi.wechat, pi.location, pi.website].filter(Boolean);
   const BLUE = '#1e3a5f';
+  const { row1, row2 } = buildContactEntries(pi);
+
+  const renderRow = (entries: typeof row1) =>
+    entries.map((c) => `<span style="display:inline-flex;align-items:center;gap:4px;margin:2px 8px"><span style="color:${BLUE};font-size:12px">${c.htmlIcon}</span><span style="color:#6B7280">${esc(c.value)}</span></span>`).join('');
+
+  const contactHtml = (row1.length > 0 || row2.length > 0)
+    ? `<div style="margin-top:4px;font-size:13px;text-align:center">${renderRow(row1)}${row2.length > 0 ? `</div><div style="margin-top:2px;font-size:13px;text-align:center">${renderRow(row2)}` : ''}</div>`
+    : '';
 
   return `<div class="mx-auto max-w-[210mm] bg-white shadow-lg" style="font-family:Georgia,'Times New Roman',serif">
     <div class="mb-6 text-center">
@@ -89,7 +97,7 @@ export function buildProfessionalHtml(resume: ResumeWithSections): string {
           ${pi.jobTitle ? `<p class="mt-1 text-base font-light tracking-wider text-zinc-500 uppercase">${esc(pi.jobTitle)}</p>` : ''}
         </div>
       </div>
-      ${contacts.length ? `<div class="mt-3 flex flex-wrap items-center justify-center gap-x-1.5 text-sm text-zinc-500">${contacts.map((c, i) => `<span class="flex items-center gap-1.5">${esc(c)}${i < contacts.length - 1 ? '<span class="text-zinc-300">|</span>' : ''}</span>`).join('')}</div>` : ''}
+      ${contactHtml}
       <div class="mt-4 h-[2px] w-full" style="background:linear-gradient(90deg,transparent 0%,${BLUE} 20%,${BLUE} 80%,transparent 100%)"></div>
     </div>
     ${sections.map(s => `<div class="mb-5" data-section>
