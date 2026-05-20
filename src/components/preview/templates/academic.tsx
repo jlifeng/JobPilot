@@ -67,7 +67,7 @@ function AcademicSectionContent({ section, resume }: { section: any; resume: Res
   const content = section.content;
 
   if (section.type === 'summary') {
-    return <p className="text-sm leading-relaxed text-zinc-600 indent-8" dangerouslySetInnerHTML={{ __html: md((content as SummaryContent).text) }} />;
+    return <p className="text-sm leading-relaxed text-zinc-600" dangerouslySetInnerHTML={{ __html: md((content as SummaryContent).text) }} />;
   }
 
   if (section.type === 'work_experience') {
