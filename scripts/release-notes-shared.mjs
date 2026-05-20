@@ -1,4 +1,6 @@
 import { execFileSync } from "node:child_process";
+import { existsSync, readFileSync } from "node:fs";
+import path from "node:path";
 
 const SEMVER_TAG_PATTERN = /^v\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/u;
 const INTERNAL_TYPES = new Set(["docs", "chore", "ci", "build", "test", "refactor", "style"]);
@@ -381,12 +383,89 @@ function buildReleaseNotesMarkdown({
   return lines.join("\n");
 }
 
+/**
+ * Extract version section from CHANGELOG.md
+ * @param {string} changelogPath - Path to CHANGELOG.md
+ * @param {string} version - Version string (e.g., "1.1.5")
+ * @returns {string | null} - The section content or null if not found
+ */
+function extractChangelogSection(changelogPath, version) {
+  if (!existsSync(changelogPath)) {
+    return null;
+  }
+
+  const content = readFileSync(changelogPath, "utf8");
+  // Match version header: ## [1.1.5] or ## [1.1.5] - 2025-05-21
+  const versionPattern = new RegExp(
+    `^## \\[${version.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&")}\\][^\n]*\\n`,
+    "mu",
+  );
+  const match = versionPattern.exec(content);
+
+  if (!match) {
+    return null;
+  }
+
+  const startIndex = match.index + match[0].length;
+  // Find the next version header
+  const nextVersionPattern = /^## \[[\d.]+\]/mu;
+  const remainingContent = content.slice(startIndex);
+  const nextMatch = nextVersionPattern.exec(remainingContent);
+
+  const sectionContent = nextMatch
+    ? remainingContent.slice(0, nextMatch.index).trim()
+    : remainingContent.trim();
+
+  return sectionContent;
+}
+
+/**
+ * Build release notes from CHANGELOG.md
+ * @param {string} rootDir - Project root directory
+ * @param {string} currentTag - Current release tag (e.g., "v1.1.5")
+ * @param {string | null} repository - GitHub repository (e.g., "owner/repo")
+ * @returns {object} - Release notes object
+ */
 export function collectReleaseNotes(rootDir, currentTag, repository) {
   const previousTag = getPreviousReleaseTag(rootDir, currentTag);
+  const version = currentTag.replace(/^v/u, ""); // Remove 'v' prefix
+  const changelogPath = path.join(rootDir, "CHANGELOG.md");
+  const releaseDate = new Date().toISOString().slice(0, 10);
+
+  // Try to extract from CHANGELOG.md first
+  const changelogSection = extractChangelogSection(changelogPath, version);
+
+  if (changelogSection) {
+    // Build markdown from CHANGELOG content
+    const lines = [
+      `# JobPilot ${currentTag}`,
+      "",
+      `Release date: ${releaseDate} / 发布日期：${releaseDate}`,
+    ];
+
+    const compareLine = buildCompareLine(repository, previousTag, currentTag);
+    if (compareLine) {
+      lines.push(compareLine);
+    }
+
+    lines.push("");
+    lines.push(changelogSection);
+    lines.push("");
+
+    return {
+      previousTag,
+      commits: [],
+      sections: [],
+      releaseDate,
+      markdown: lines.join("\n"),
+      body: changelogSection,
+    };
+  }
+
+  // Fallback to git commits if CHANGELOG section not found
   const rangeSpec = previousTag ? `${previousTag}..${currentTag}` : currentTag;
   const commits = getCommitLines(rootDir, rangeSpec);
   const sections = previousTag ? buildSections(commits) : buildInitialReleaseSections();
-  const releaseDate = new Date().toISOString().slice(0, 10);
 
   return {
     previousTag,
