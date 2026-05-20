@@ -1,10 +1,11 @@
 import { Link, Outlet, createRootRoute, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Download, Loader2, Settings } from "lucide-react";
+import { Download, Info, Loader2, Settings } from "lucide-react";
 import { i18n } from "../i18n";
 import { SettingsDialog } from "../components/editor/settings-dialog";
 import { UpdateDialog } from "../components/app-update/update-dialog";
+import { AboutDialog } from "../components/about-dialog";
 import { Button } from "@/components/ui/button";
 import {
   getBootstrapContext,
@@ -112,6 +113,7 @@ function RootLayout() {
   const { t } = useTranslation();
   const context = rootRoute.useLoaderData();
   const [settingsDialogOpen, setSettingsDialogOpen] = useState(false);
+  const [aboutDialogOpen, setAboutDialogOpen] = useState(false);
   const location = useRouterState({ select: (s) => s.location });
   const isEditorSurface = location.pathname.startsWith("/editor/");
   const runtimeIsFallback = isBrowserFallbackRuntime(context);
@@ -209,6 +211,15 @@ function RootLayout() {
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8"
+                onClick={() => setAboutDialogOpen(true)}
+                aria-label={t("navAbout")}
+              >
+                <Info className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
                 onClick={() => setSettingsDialogOpen(true)}
                 aria-label={t("navSettings")}
               >
@@ -232,6 +243,10 @@ function RootLayout() {
       <SettingsDialog
         open={settingsDialogOpen}
         onClose={() => setSettingsDialogOpen(false)}
+      />
+      <AboutDialog
+        open={aboutDialogOpen}
+        onClose={() => setAboutDialogOpen(false)}
       />
       <UpdateDialog />
     </div>

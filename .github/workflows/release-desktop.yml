@@ -162,8 +162,21 @@ jobs:
           # Find all latest.json files in artifacts
           Get-ChildItem -Path "build-artifacts" -Recurse -Filter "latest.json" -Force |
             ForEach-Object {
-              # Use the artifact name (build-x86_64-pc-windows-msvc) as part of the filename
-              $artifactName = $_.FullName.Split([IO.Path]::DirectorySeparatorChar)[1]
+              # Extract artifact name from path: build-artifacts/<artifact-name>/...
+              # The path structure is: build-artifacts/build-x86_64-pc-windows-msvc/...
+              $pathParts = $_.FullName.Split([IO.Path]::DirectorySeparatorChar)
+              $buildArtifactsIndex = -1
+              for ($i = 0; $i -lt $pathParts.Length; $i++) {
+                if ($pathParts[$i] -eq "build-artifacts") {
+                  $buildArtifactsIndex = $i
+                  break
+                }
+              }
+              if ($buildArtifactsIndex -ge 0 -and $buildArtifactsIndex + 1 -lt $pathParts.Length) {
+                $artifactName = $pathParts[$buildArtifactsIndex + 1]
+              } else {
+                $artifactName = "unknown"
+              }
               Copy-Item $_.FullName -Destination (Join-Path $manifestDir "latest-$artifactName.json") -Force
             }
 
