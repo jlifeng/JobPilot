@@ -61,6 +61,11 @@ enum ImporterExecutionMode {
 }
 
 #[tauri::command]
+fn restart_app(app: tauri::AppHandle) {
+    app.restart();
+}
+
+#[tauri::command]
 fn get_bootstrap_context(app: tauri::AppHandle) -> BootstrapContext {
     BootstrapContext {
         app_name: app.package_info().name.clone(),
@@ -458,6 +463,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .invoke_handler(tauri::generate_handler![
+            restart_app,
             get_bootstrap_context,
             get_workspace_snapshot,
             get_domain_contract_summary,

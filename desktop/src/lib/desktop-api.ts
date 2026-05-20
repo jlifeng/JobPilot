@@ -1572,6 +1572,10 @@ export async function openExternalUrl(
   throw new Error("Unable to open URL in the current runtime.");
 }
 
+export async function restartApp(): Promise<void> {
+  await invoke("restart_app");
+}
+
 export function isBrowserFallbackRuntime(context: BootstrapContext): boolean {
   return context.runtimeMode === "browser_fallback";
 }

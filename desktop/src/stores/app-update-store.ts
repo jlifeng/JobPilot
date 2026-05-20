@@ -4,7 +4,7 @@ import {
   type Update,
 } from "@tauri-apps/plugin-updater";
 import { create } from "zustand";
-import { getBootstrapContext } from "../lib/desktop-api";
+import { getBootstrapContext, restartApp } from "../lib/desktop-api";
 
 interface CheckForUpdatesOptions {
   silent?: boolean;
@@ -237,6 +237,10 @@ export const useAppUpdateStore = create<AppUpdateStore>((set, get) => ({
         isDownloading: false,
         isInstalling: true,
       });
+
+      // On macOS, the updater plugin replaces the .app bundle but does not restart.
+      // We need to explicitly restart the app after installation completes.
+      await restartApp();
     } catch (error) {
       set({
         isDownloading: false,
