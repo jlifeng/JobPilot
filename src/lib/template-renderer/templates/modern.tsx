@@ -320,7 +320,7 @@ function ModernSectionContent({
             <div>
               <span className="text-sm font-semibold text-zinc-800">{item.name}</span>
               {item.issuer && (
-                <span className="text-sm text-zinc-500"> - {item.issuer}</span>
+                <span className="text-sm text-zinc-500"> / {item.issuer}</span>
               )}
             </div>
             {item.date && (
@@ -502,7 +502,7 @@ function buildModernSectionContentHtml(
           `<div class="flex items-baseline justify-between border-l-2 pl-4" style="border-color:${DARK_BLUE}">
         <div>
           <span class="text-sm font-semibold text-zinc-800">${esc(it.name)}</span>
-          ${it.issuer ? `<span class="text-sm text-zinc-500"> - ${esc(it.issuer)}</span>` : ''}
+          ${it.issuer ? `<span class="text-sm text-zinc-500"> / ${esc(it.issuer)}</span>` : ''}
         </div>
         ${it.date ? `<span class="shrink-0 text-xs text-zinc-400">${esc(it.date)}</span>` : ''}
       </div>`

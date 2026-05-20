@@ -438,7 +438,7 @@ function ModernMinimalSectionContent({
                 {item.name}
               </span>
               {item.issuer && (
-                <span className="text-sm" style={{ color: TEXT_SECONDARY }}> — {item.issuer}</span>
+                <span className="text-sm" style={{ color: TEXT_SECONDARY }}> / {item.issuer}</span>
               )}
             </div>
             {item.date && (
@@ -680,7 +680,7 @@ function buildModernMinimalSectionHtml(
     const itemsHtml = items.map((it) => `<div style="display:flex;align-items:baseline;justify-content:space-between">
       <div>
         <span style="font-size:14px;font-weight:600;color:${TEXT_PRIMARY}">${esc(it.name)}</span>
-        ${it.issuer ? `<span style="font-size:13px;color:${TEXT_SECONDARY}"> — ${esc(it.issuer)}</span>` : ''}
+        ${it.issuer ? `<span style="font-size:13px;color:${TEXT_SECONDARY}"> / ${esc(it.issuer)}</span>` : ''}
       </div>
       ${it.date ? `<span style="font-size:11px;color:${TEXT_SECONDARY}">${esc(it.date)}</span>` : ''}
     </div>`).join('');

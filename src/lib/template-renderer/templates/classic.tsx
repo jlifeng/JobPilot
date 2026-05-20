@@ -287,7 +287,7 @@ function ClassicSectionContent({
             </span>
             {(item.issuer || item.date) && (
               <span className="text-sm text-zinc-600">
-                {item.issuer && <> - {item.issuer}</>}
+                {item.issuer && <> / {item.issuer}</>}
                 {item.date && <> ({item.date})</>}
               </span>
             )}
@@ -471,7 +471,7 @@ function buildClassicSectionContentHtml(
     return `<div class="space-y-1">${items
       .map(
         (it) =>
-          `<div><span class="font-semibold text-zinc-800 text-sm">${esc(it.name)}</span><span class="text-sm text-zinc-600">${it.issuer ? ` - ${esc(it.issuer)}` : ''}${it.date ? ` (${esc(it.date)})` : ''}</span></div>`
+          `<div><span class="font-semibold text-zinc-800 text-sm">${esc(it.name)}</span><span class="text-sm text-zinc-600">${it.issuer ? ` / ${esc(it.issuer)}` : ''}${it.date ? ` (${esc(it.date)})` : ''}</span></div>`
       )
       .join('')}</div>`;
   }
