@@ -90,3 +90,66 @@ pnpm sync:desktop-version           # 同步 package.json 版本到 tauri.conf.j
 - `src/app/globals.css` 虽然在 `src/app/` 下，但 Desktop 也直接引用，不能删除
 - `desktop/src-tauri/src/storage.rs` 中的 `rolerover.db` 文件名是历史遗留，不要修改（影响数据迁移）
 - `pnpm-workspace.yaml` 定义了 `[., desktop]`，根 package 是共享代码容器
+
+## 发布流程
+
+### 1. 版本号更新
+
+```bash
+# 手动修改 package.json 中的 version 字段
+# 然后同步到 tauri.conf.json 和 Cargo.toml
+pnpm sync:desktop-version
+```
+
+### 2. 更新 CHANGELOG.md
+
+在 `CHANGELOG.md` 顶部添加新版本条目：
+
+```markdown
+## [1.1.5] - 2025-05-21
+
+### 新增
+
+- 功能描述
+
+### 修复
+
+- Bug 修复描述
+```
+
+同时更新底部的版本链接。
+
+### 3. 提交并打 Tag
+
+```bash
+git add -A
+git commit -m "chore: bump version to 1.1.5"
+git tag v1.1.5
+```
+
+### 4. 推送触发 CI
+
+```bash
+git push origin main
+git push origin v1.1.5
+```
+
+### 5. CI 自动执行
+
+推送 tag 后，`.github/workflows/release-desktop.yml` 自动触发：
+
+1. 构建 Windows (x86_64) 和 macOS (aarch64) 安装包
+2. 从 `CHANGELOG.md` 提取版本内容生成 Release Notes
+3. 创建 GitHub Draft Release
+4. 上传安装包和更新清单 (`latest.json`)
+
+### 6. 发布确认
+
+在 GitHub Releases 页面检查 Draft Release，确认无误后点击 "Publish release" 正式发布。
+
+### 关键文件
+
+- `CHANGELOG.md` — 版本更新日志，Release Notes 从此读取
+- `scripts/release-notes-shared.mjs` — 从 CHANGELOG.md 提取版本内容
+- `scripts/build-release-updater-manifest.mjs` — 生成 `latest.json` 更新清单
+- `.github/workflows/release-desktop.yml` — CI 发布流程
