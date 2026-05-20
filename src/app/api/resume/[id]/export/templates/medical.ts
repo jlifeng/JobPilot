@@ -26,9 +26,9 @@ function buildMedicalSectionContent(section: Section, lang: string): string {
   if (section.type === 'work_experience') {
     return `<div class="space-y-4">${((c as WorkExperienceContent).items || []).map((it: any) => `<div class="rounded-lg border p-3" style="border-color:${TEAL_500};background-color:${TEAL_50}">
       <div class="flex items-baseline justify-between"><div><span class="text-sm font-bold" style="color:${TEAL_800}">${esc(it.position)}</span>${it.company ? `<span class="text-sm text-gray-600"> | ${esc(it.company)}</span>` : ''}</div><span class="shrink-0 text-xs font-medium" style="color:${TEAL_500}">${esc(it.startDate)} - ${esc(it.endDate) || (it.current ? (lang === 'zh' ? '至今' : 'Present') : '')}</span></div>
-      ${it.description ? `<div class="mt-1 text-sm text-gray-600">${md(it.description)}</div>` : ''}
+      ${it.description ? `<div class="mt-1 text-sm text-gray-600"><span class="font-medium text-gray-700">${lang === 'zh' ? '职责' : 'Responsibilities'}:</span> ${md(it.description)}</div>` : ''}
       ${it.technologies?.length ? `<p class="mt-0.5 text-xs text-gray-400">${lang === 'zh' ? '技术栈' : 'Tech'}: ${esc(it.technologies.join(', '))}</p>` : ''}
-      ${it.highlights?.length ? `<ul class="mt-1.5 list-disc pl-4">${it.highlights.map((h: string) => `<li class="text-sm text-gray-600">${md(h)}</li>`).join('')}</ul>` : ''}
+      ${it.highlights?.length ? `<div class="mt-1.5"><p class="text-xs font-medium text-gray-500 mb-0.5">${lang === 'zh' ? '主要成就' : 'Key Achievements'}:</p><ul class="list-disc pl-4">${it.highlights.map((h: string) => `<li class="text-sm text-gray-600">${md(h)}</li>`).join('')}</ul></div>` : ''}
     </div>`).join('')}</div>`;
   }
 

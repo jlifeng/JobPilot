@@ -26,9 +26,9 @@ function buildJapaneseSectionContent(section: Section, lang: string): string {
         <span class="shrink-0 text-[10px] font-light" style="color:${ACCENT}">${esc(it.startDate)} &ndash; ${esc(it.endDate) || (it.current ? (lang === 'zh' ? '至今' : 'Present') : '')}</span>
       </div>
       ${it.company ? `<p class="mt-0.5 text-xs font-light" style="color:${ACCENT}">${esc(it.company)}${it.location ? `, ${esc(it.location)}` : ''}</p>` : ''}
-      ${it.description ? `<div class="mt-2 text-sm font-light leading-relaxed" style="color:#57534e">${md(it.description)}</div>` : ''}
+      ${it.description ? `<div class="mt-2 text-sm font-light leading-relaxed" style="color:#57534e"><span class="font-medium" style="color:${PRIMARY}">${lang === 'zh' ? '\u804c\u8d23' : 'Responsibilities'}:</span> ${md(it.description)}</div>` : ''}
       ${it.technologies?.length ? `<p class="mt-1 text-xs font-light" style="color:${ACCENT}">${esc(it.technologies.join(' \u00b7 '))}</p>` : ''}
-      ${it.highlights?.length ? `<ul class="mt-2 space-y-1">${it.highlights.filter(Boolean).map((h: string) => `<li class="flex items-start gap-3 text-sm font-light" style="color:#57534e"><span class="mt-2 inline-block h-px w-3 shrink-0" style="background-color:${ACCENT}"></span>${md(h)}</li>`).join('')}</ul>` : ''}
+      ${it.highlights?.length ? `<div class="mt-2"><p class="text-xs font-medium mb-0.5" style="color:${ACCENT}">${lang === 'zh' ? '\u4e3b\u8981\u6210\u5c31' : 'Key Achievements'}:</p><ul class="space-y-1">${it.highlights.filter(Boolean).map((h: string) => `<li class="flex items-start gap-3 text-sm font-light" style="color:#57534e"><span class="mt-2 inline-block h-px w-3 shrink-0" style="background-color:${ACCENT}"></span>${md(h)}</li>`).join('')}</ul></div>` : ''}
       <div class="mt-4 h-px" style="background-color:${ACCENT};opacity:0.2"></div>
     </div>`).join('')}</div>`;
   }

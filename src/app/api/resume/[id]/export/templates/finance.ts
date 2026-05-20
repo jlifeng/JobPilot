@@ -25,9 +25,9 @@ function buildFinanceSectionContent(section: Section, lang: string): string {
   if (section.type === 'work_experience') {
     return `<div class="space-y-4">${((c as WorkExperienceContent).items || []).map((it: any) => `<div>
       <div class="flex items-baseline justify-between"><div><span class="text-sm font-bold" style="color:${SLATE_800}">${esc(it.position)}</span>${it.company ? `<span class="text-sm text-slate-600">, ${esc(it.company)}</span>` : ''}</div><span class="shrink-0 text-xs italic text-slate-400">${esc(it.startDate)} - ${esc(it.endDate) || (it.current ? (lang === 'zh' ? '至今' : 'Present') : '')}</span></div>
-      ${it.description ? `<div class="mt-1 text-sm text-slate-600">${md(it.description)}</div>` : ''}
+      ${it.description ? `<div class="mt-1 text-sm text-slate-600"><span class="font-medium text-slate-700">${lang === 'zh' ? '职责' : 'Responsibilities'}:</span> ${md(it.description)}</div>` : ''}
       ${it.technologies?.length ? `<p class="mt-0.5 text-xs text-slate-400">${lang === 'zh' ? '技术栈' : 'Tech'}: ${esc(it.technologies.join(', '))}</p>` : ''}
-      ${it.highlights?.length ? `<ul class="mt-1 list-disc pl-5">${it.highlights.map((h: string) => `<li class="text-sm text-slate-600">${md(h)}</li>`).join('')}</ul>` : ''}
+      ${it.highlights?.length ? `<div class="mt-1"><p class="text-xs font-medium text-slate-500 mb-0.5">${lang === 'zh' ? '主要成就' : 'Key Achievements'}:</p><ul class="list-disc pl-5">${it.highlights.map((h: string) => `<li class="text-sm text-slate-600">${md(h)}</li>`).join('')}</ul></div>` : ''}
     </div>`).join('')}</div>`;
   }
 

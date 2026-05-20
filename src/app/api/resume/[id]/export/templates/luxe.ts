@@ -24,9 +24,9 @@ function buildLuxeSectionContent(section: Section, lang: string): string {
     return `<div class="space-y-5">${((c as WorkExperienceContent).items || []).map((it: any) => `<div class="border-l-2 pl-4" style="border-color:${GOLD}">
       <div class="flex items-baseline justify-between"><h3 class="text-sm font-bold" style="color:${TEXT}">${esc(it.position)}</h3><span class="shrink-0 text-xs italic" style="color:#a8a29e">${esc(it.startDate)} &ndash; ${esc(it.endDate) || (it.current ? (lang === 'zh' ? '至今' : 'Present') : '')}</span></div>
       ${it.company ? `<p class="text-sm" style="color:${GOLD}">${esc(it.company)}${it.location ? `, ${esc(it.location)}` : ''}</p>` : ''}
-      ${it.description ? `<div class="mt-1 text-sm" style="color:#44403c">${md(it.description)}</div>` : ''}
+      ${it.description ? `<div class="mt-1 text-sm" style="color:#44403c"><span class="font-medium" style="color:${TEXT}">${lang === 'zh' ? '职责' : 'Responsibilities'}:</span> ${md(it.description)}</div>` : ''}
       ${it.technologies?.length ? `<p class="mt-0.5 text-xs italic" style="color:#a8a29e">${lang === 'zh' ? '技术栈' : 'Tech'}: ${esc(it.technologies.join(', '))}</p>` : ''}
-      ${it.highlights?.length ? `<ul class="mt-1.5 list-none space-y-0.5">${it.highlights.filter(Boolean).map((h: string) => `<li class="flex items-start gap-2 text-sm" style="color:#44403c"><span class="mt-1.5 h-1.5 w-1.5 shrink-0 rotate-45" style="background-color:${GOLD}"></span>${md(h)}</li>`).join('')}</ul>` : ''}
+      ${it.highlights?.length ? `<div class="mt-1.5"><p class="text-xs font-medium mb-0.5" style="color:#a8a29e">${lang === 'zh' ? '主要成就' : 'Key Achievements'}:</p><ul class="list-none space-y-0.5">${it.highlights.filter(Boolean).map((h: string) => `<li class="flex items-start gap-2 text-sm" style="color:#44403c"><span class="mt-1.5 h-1.5 w-1.5 shrink-0 rotate-45" style="background-color:${GOLD}"></span>${md(h)}</li>`).join('')}</ul></div>` : ''}
     </div>`).join('')}</div>`;
   }
 

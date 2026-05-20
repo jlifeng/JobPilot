@@ -25,9 +25,9 @@ function buildSwissSectionContent(section: Section, lang: string): string {
       <div>
         <h3 class="text-sm font-bold" style="color:${TEXT}">${esc(it.position)}</h3>
         ${it.company ? `<p class="text-sm" style="color:${RED}">${esc(it.company)}</p>` : ''}
-        ${it.description ? `<div class="mt-1 text-sm" style="color:#3f3f46">${md(it.description)}</div>` : ''}
+        ${it.description ? `<div class="mt-1 text-sm" style="color:#3f3f46"><span class="font-medium" style="color:#18181b">${lang === 'zh' ? '职责' : 'Responsibilities'}:</span> ${md(it.description)}</div>` : ''}
         ${it.technologies?.length ? `<p class="mt-0.5 text-xs" style="color:#71717a">${lang === 'zh' ? '技术栈' : 'Tech'}: ${esc(it.technologies.join(', '))}</p>` : ''}
-        ${it.highlights?.length ? `<ul class="mt-1 list-none space-y-0.5">${it.highlights.filter(Boolean).map((h: string) => `<li class="flex items-start gap-2 text-sm" style="color:#3f3f46"><span class="mt-1.5 inline-block h-1 w-1 shrink-0" style="background-color:${RED}"></span>${md(h)}</li>`).join('')}</ul>` : ''}
+        ${it.highlights?.length ? `<div class="mt-1"><p class="text-xs font-medium mb-0.5" style="color:#71717a">${lang === 'zh' ? '主要成就' : 'Key Achievements'}:</p><ul class="list-none space-y-0.5">${it.highlights.filter(Boolean).map((h: string) => `<li class="flex items-start gap-2 text-sm" style="color:#3f3f46"><span class="mt-1.5 inline-block h-1 w-1 shrink-0" style="background-color:${RED}"></span>${md(h)}</li>`).join('')}</ul></div>` : ''}
       </div>
     </div>`).join('')}</div>`;
   }
