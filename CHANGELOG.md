@@ -5,6 +5,17 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 并且本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.1.4] - 2025-05-20
+
+### 新增
+
+- 关于对话框 — 导航栏新增"关于"按钮，显示应用版本号，支持手动检查更新
+
+### 修复
+
+- macOS 更新检测 — 修复 CI 发布流程中 PowerShell 路径解析 bug，导致 macOS 平台更新清单丢失
+- MSI 打包版本号 — 使用纯数字版本格式，兼容 Windows MSI 安装包
+
 ## [1.1.3] - 2025-05-19
 
 ### 新增
@@ -84,7 +95,8 @@
 - 中英双语 — 完整的国际化支持
 - 本地优先 — 数据存储在本地，隐私安全有保障
 
-[Unreleased]: https://github.com/jlifeng/JobPilot/compare/v1.1.3...HEAD
+[Unreleased]: https://github.com/jlifeng/JobPilot/compare/v1.1.4...HEAD
+[1.1.4]: https://github.com/jlifeng/JobPilot/compare/v1.1.3...v1.1.4
 [1.1.3]: https://github.com/jlifeng/JobPilot/compare/v1.1.2...v1.1.3
 [1.1.2]: https://github.com/jlifeng/JobPilot/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/jlifeng/JobPilot/compare/v1.0.0...v1.1.1
