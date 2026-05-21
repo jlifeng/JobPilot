@@ -19,8 +19,8 @@ import {
   User,
   X,
 } from "lucide-react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import { parseReasoningContent } from "../../lib/ai/reasoning-parser";
+import { MarkdownWithCopy } from "./markdown-with-copy";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -34,7 +34,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { parseReasoningContent } from "../../lib/ai/reasoning-parser";
 import { useEditorStore } from "../../stores/editor-store";
 import { useResumeStore } from "../../stores/resume-store";
 import {
@@ -867,7 +866,14 @@ export function AIChatContent({
                     onClick={() => {
                       setActiveSessionId(session.id);
                       setHistoryOpen(false);
+                      // 清除流式状态，避免切换 session 后显示残留内容
+                      setIsThinking(false);
+                      setStreamingText("");
+                      streamingTextRef.current = "";
+                      setStreamingToolCalls([]);
+                      streamingToolCallsRef.current = [];
                       setErrorMessage("");
+                      requestIdRef.current = null;
                     }}
                   >
                     <MessageSquare className="mt-0.5 h-4 w-4 shrink-0 text-zinc-400 dark:text-zinc-500" />
@@ -993,11 +999,9 @@ export function AIChatContent({
                         />
                       ) : null}
                       {parsedAssistantContent?.answerText ? (
-                        <div className="ai-markdown">
-                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                            {parsedAssistantContent.answerText}
-                          </ReactMarkdown>
-                        </div>
+                        <MarkdownWithCopy
+                          content={parsedAssistantContent.answerText}
+                        />
                       ) : null}
                     </div>
                   )}
@@ -1033,11 +1037,9 @@ export function AIChatContent({
                     />
                   ) : null}
                   {parsedStreamingContent.answerText ? (
-                    <div className="ai-markdown">
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                        {parsedStreamingContent.answerText}
-                      </ReactMarkdown>
-                    </div>
+                    <MarkdownWithCopy
+                      content={parsedStreamingContent.answerText}
+                    />
                   ) : null}
                 </div>
               </div>

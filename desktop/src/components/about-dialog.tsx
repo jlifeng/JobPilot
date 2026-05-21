@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Info, Loader2, RefreshCw, X } from "lucide-react";
+import { Github, Info, Loader2, RefreshCw, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAppUpdateStore } from "../stores/app-update-store";
+import { openExternalUrl } from "../lib/desktop-api";
 
 export function AboutDialog({
   open,
@@ -90,9 +91,20 @@ export function AboutDialog({
             <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
               JobPilot
             </h3>
-            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-              {t("aboutVersion")}: {currentVersion ?? t("notAvailable")}
-            </p>
+            <div className="mt-1 flex items-center justify-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
+              <span>{t("aboutVersion")}: {currentVersion ?? t("notAvailable")}</span>
+              <a
+                href="https://github.com/jlifeng/JobPilot"
+                onClick={(e) => {
+                  e.preventDefault();
+                  void openExternalUrl("https://github.com/jlifeng/JobPilot");
+                }}
+                className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-zinc-500 hover:text-zinc-700 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:text-zinc-200 dark:hover:bg-zinc-800 transition-colors"
+              >
+                <Github className="h-3.5 w-3.5 shrink-0" />
+                Star
+              </a>
+            </div>
           </div>
 
           {checkResult === "uptodate" && (
