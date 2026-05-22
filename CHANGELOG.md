@@ -5,12 +5,17 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 并且本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
-## [1.1.5] - 2025-05-22
+## [1.1.6] - 2026-05-22
 
 ### 新增
 
 - AI 深度思考 — 支持 Extended Thinking / Reasoning 功能，兼容 Anthropic 原生 API 和 OpenAI 兼容格式（DeepSeek 等），聊天面板顶部 Brain 图标切换开关
 - AI 设置手动保存 — 设置面板新增保存/取消按钮，固定在底部，保存后同步更新聊天面板模型列表
+
+## [1.1.5] - 2025-05-21
+
+### 新增
+
 - 工作经历标签 — 为所有模板的工作经历模块添加标签区分，描述前显示"职责/Responsibilities:"，成就列表前显示"主要成就/Key Achievements:"
 
 ### 修复
