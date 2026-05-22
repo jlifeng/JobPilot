@@ -261,7 +261,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
     } catch (error) {
       console.error("Failed to save AI settings:", error);
     }
-  }, [aiProvider, aiBaseURL, aiModel, resumeImportVisionModel]);
+  }, [aiProvider, aiBaseURL, aiModel, resumeImportVisionModel, exaPoolBaseURL]);
 
   const handleThemeChange = (value: ThemeMode) => {
     setTheme(value);

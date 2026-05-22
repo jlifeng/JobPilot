@@ -870,6 +870,7 @@ export function AIChatContent({
       selectedModel,
       isDirty,
       resumeId,
+      thinkingEnabled,
     ],
   );
 
