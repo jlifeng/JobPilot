@@ -315,6 +315,7 @@
       "qrUrlInvalid": "Please enter a valid URL",
       "addItem": "Add Item",
       "removeItem": "Remove Item",
+      "reorderItem": "Drag to reorder item",
       "clear": "Clear",
       "dateDisplay": "{month} {year}",
       "months": {

@@ -2038,7 +2038,7 @@ dependencies = [
 
 [[package]]
 name = "jobpilot-desktop"
-version = "1.1.5"
+version = "1.1.7"
 dependencies = [
  "futures-util",
  "keyring",

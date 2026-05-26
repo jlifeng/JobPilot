@@ -315,6 +315,7 @@
       "qrUrlInvalid": "请输入有效的链接地址",
       "addItem": "添加条目",
       "removeItem": "删除条目",
+      "reorderItem": "拖拽调整条目顺序",
       "clear": "清除",
       "dateDisplay": "{year}年{month}",
       "months": {

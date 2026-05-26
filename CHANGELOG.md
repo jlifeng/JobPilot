@@ -5,6 +5,16 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 并且本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.1.7] - 2026-05-26
+
+### 新增
+
+- 项目经历排序 — 简历编辑器支持在“项目经历”模块内拖拽调整多个项目的先后顺序，Web 与桌面端保持一致
+
+### 修复
+
+- 桌面 PDF 导出 — 修复 Windows/Chrome 下临时 HTML 过早清理可能导致导出的 PDF 变成 `ERR_FILE_NOT_FOUND` 错误页的问题
+
 ## [1.1.6] - 2026-05-22
 
 ### 新增
@@ -114,7 +124,9 @@
 - 中英双语 — 完整的国际化支持
 - 本地优先 — 数据存储在本地，隐私安全有保障
 
-[Unreleased]: https://github.com/jlifeng/JobPilot/compare/v1.1.5...HEAD
+[Unreleased]: https://github.com/jlifeng/JobPilot/compare/v1.1.7...HEAD
+[1.1.7]: https://github.com/jlifeng/JobPilot/compare/v1.1.6...v1.1.7
+[1.1.6]: https://github.com/jlifeng/JobPilot/compare/v1.1.5...v1.1.6
 [1.1.5]: https://github.com/jlifeng/JobPilot/compare/v1.1.4...v1.1.5
 [1.1.4]: https://github.com/jlifeng/JobPilot/compare/v1.1.3...v1.1.4
 [1.1.3]: https://github.com/jlifeng/JobPilot/compare/v1.1.2...v1.1.3
