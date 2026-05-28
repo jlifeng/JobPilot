@@ -68,17 +68,22 @@ const SECTION_ICONS: Record<string, React.FC<{ size?: number; color?: string }>>
   summary: Code2,
 };
 
-// Unicode fallbacks for HTML export (no React)
+// Inline SVG icons for HTML export (matching Lucide React icons used in preview)
+// Each icon is a 16x16 SVG with stroke-based paths identical to lucide-react components.
+function lucideSvg(paths: string): string {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${paths}</svg>`;
+}
+
 const SECTION_ICON_HTML: Record<string, string> = {
-  work_experience: '●',  // ●
-  projects: '■',         // ■
-  education: '▲',        // ▲
-  certifications: '★',   // ★
-  languages: '◆',        // ◆
-  skills: '●',
-  github: '●',
-  custom: '●',
-  summary: '●',
+  work_experience: lucideSvg('<path d="M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/><rect width="20" height="14" x="2" y="6" rx="2"/>'),  // Briefcase
+  projects: lucideSvg('<path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H20a2 2 0 0 1 2 2v2"/>'),  // FolderOpen
+  education: lucideSvg('<path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z"/><path d="M22 10v6"/><path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5"/>'),  // GraduationCap
+  certifications: lucideSvg('<circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/>'),  // Award
+  languages: lucideSvg('<path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/>'),  // Languages
+  skills: lucideSvg('<path d="m18 16 4-4-4-4"/><path d="m6 8-4 4 4 4"/><path d="m14.5 4-5 16"/>'),  // Code2
+  github: lucideSvg('<path d="m18 16 4-4-4-4"/><path d="m6 8-4 4 4 4"/><path d="m14.5 4-5 16"/>'),  // Code2
+  custom: lucideSvg('<path d="m18 16 4-4-4-4"/><path d="m6 8-4 4 4 4"/><path d="m14.5 4-5 16"/>'),  // Code2
+  summary: lucideSvg('<path d="m18 16 4-4-4-4"/><path d="m6 8-4 4 4 4"/><path d="m14.5 4-5 16"/>'),  // Code2
 };
 
 // ============================================================================
@@ -540,10 +545,10 @@ function buildModernMinimalSectionHtml(
   lang: string,
 ): string {
   const content = section.content as unknown as Record<string, unknown>;
-  const icon = SECTION_ICON_HTML[section.type] || '●';
+  const icon = SECTION_ICON_HTML[section.type] || lucideSvg('<path d="m18 16 4-4-4-4"/><path d="m6 8-4 4 4 4"/><path d="m14.5 4-5 16"/>');
 
   const sectionHeader = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
-    <span style="color:${ACCENT};font-size:14px">${icon}</span>
+    <span style="color:${ACCENT};display:inline-flex;flex-shrink:0">${icon}</span>
     <h2 style="font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:${TEXT_PRIMARY};margin:0">${esc(section.title)}</h2>
   </div>`;
 
@@ -627,7 +632,7 @@ function buildModernMinimalSectionHtml(
     const catsHtml = categories.map((cat) =>
       `<div style="margin-bottom:12px">
         <span style="font-size:14px;font-weight:600;color:${TEXT_PRIMARY}">${esc(cat.name)}</span>
-        <ul style="margin:4px 0 0 16px;padding:0">${(cat.skills || []).map((s) =>
+        <ul style="margin:4px 0 0 16px;padding:0;list-style-type:disc">${(cat.skills || []).map((s) =>
           `<li style="font-size:13px;color:${TEXT_SECONDARY}">${esc(s)}</li>`
         ).join('')}</ul>
       </div>`
