@@ -5,6 +5,15 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 并且本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.1.9] - 2026-05-28
+
+### 修复
+
+- macOS 更新重启 — 更新安装完成后通过 Tauri process 插件重新启动应用，并保留原生命令兜底
+- 桌面 PDF 导出 — 修复 Apple Silicon 上 Chrome/Edge headless 已生成 PDF 但进程不退出导致导出中卡住的问题
+- 现代极简模板导出 — 修复 Modern Minimal 模板预览与导出的样式一致性、图标、列表和分页表现
+- 技能列表导出 — 统一 Consultant、Classic、Professional 模板技能列表按独立条目渲染
+
 ## [1.1.8] - 2026-05-27
 
 ### 新增
@@ -136,7 +145,8 @@
 - 中英双语 — 完整的国际化支持
 - 本地优先 — 数据存储在本地，隐私安全有保障
 
-[Unreleased]: https://github.com/jlifeng/JobPilot/compare/v1.1.7...HEAD
+[Unreleased]: https://github.com/jlifeng/JobPilot/compare/v1.1.9...HEAD
+[1.1.9]: https://github.com/jlifeng/JobPilot/compare/v1.1.8...v1.1.9
 [1.1.8]: https://github.com/jlifeng/JobPilot/compare/v1.1.7...v1.1.8
 [1.1.7]: https://github.com/jlifeng/JobPilot/compare/v1.1.6...v1.1.7
 [1.1.6]: https://github.com/jlifeng/JobPilot/compare/v1.1.5...v1.1.6

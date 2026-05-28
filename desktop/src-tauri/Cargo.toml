@@ -1,6 +1,6 @@
 [package]
 name = "jobpilot-desktop"
-version = "1.1.8"
+version = "1.1.9"
 description = "Tauri desktop application for JobPilot"
 authors = ["JobPilot"]
 edition = "2021"
@@ -30,4 +30,3 @@ tauri-plugin-process = "2.3.1"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 keyring = "3"
-
