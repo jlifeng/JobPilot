@@ -4,12 +4,16 @@ RUN corepack enable && corepack prepare pnpm@latest --activate
 # --- Dependencies ---
 FROM base AS deps
 WORKDIR /app
+# Install build tools needed for native modules (better-sqlite3, sharp, etc.)
+RUN apk add --no-cache python3 make g++ gcc musl-dev
 COPY package.json pnpm-lock.yaml ./
+COPY .npmrc ./
 RUN pnpm install --frozen-lockfile
 
 # --- Build ---
 FROM base AS builder
 WORKDIR /app
+RUN apk add --no-cache python3 make g++ gcc musl-dev
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
