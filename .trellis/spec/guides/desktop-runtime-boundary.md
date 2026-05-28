@@ -570,8 +570,9 @@ Rules:
 1. Desktop export must reuse shared web export builders through `src/lib/export/index.ts` for HTML / TXT / DOCX generation, while the renderer delegates the final file write to native Tauri commands.
 2. `write_export_file` must normalize the requested path to the required extension, reject parentless or extension-mismatched destinations, create missing parent directories, and return the final resolved path plus `bytesWritten`.
 3. `write_pdf_export` must normalize to `.pdf`, write temporary HTML under `app_cache_dir()/exports`, resolve a local Chrome / Edge executable, invoke headless `--print-to-pdf`, delete the temp HTML, and fail explicitly when the browser command does not produce the requested output file.
-4. `desktop/src/lib/resume-export.ts` may inject the `fitToOnePage` scaling script only for the `pdf-one-page` variant; the normal PDF path must preserve the original rendered layout.
-5. Browser fallback must never claim native export success for `write_export_file` or `write_pdf_export`; export UI should keep these flows disabled or surface a direct write error instead of fabricating a receipt.
+4. `write_pdf_export` must not block renderer success on the browser process exiting naturally. The Rust command should poll the requested PDF path while the child process is running, treat a non-empty stable PDF file as success, terminate the still-running child process, then run the final file-size and `%PDF-` validation before returning the native receipt. This prevents Apple Silicon Chrome / Edge headless hangs from leaving `export-dialog.tsx` in `exporting` after the file has already landed.
+5. `desktop/src/lib/resume-export.ts` may inject the `fitToOnePage` scaling script only for the `pdf-one-page` variant; the normal PDF path must preserve the original rendered layout.
+6. Browser fallback must never claim native export success for `write_export_file` or `write_pdf_export`; export UI should keep these flows disabled or surface a direct write error instead of fabricating a receipt.
 
 ## Resume Import Contract
 
@@ -784,12 +785,13 @@ Rules:
 1. The native desktop runtime must wire `tauri-plugin-updater` during bootstrap even if the renderer does not expose a user-facing update button yet.
 2. `tauri.conf.json` must declare the production updater endpoint as the hosted GitHub Release feed, not localhost, and it must carry the current updater public key.
 3. Localhost updater smoke must flow through the generated `TAURI_CONFIG` override from `scripts/run-tauri-local-updater.mjs`; production config must not keep `dangerousInsecureTransportProtocol=true`.
-4. Root `package.json` is the single version source. `desktop/package.json`, `desktop/src-tauri/tauri.conf.json`, and `desktop/src-tauri/Cargo.toml` must be synchronized through `scripts/sync-desktop-version.mjs`.
-5. Tagged desktop releases use `vX.Y.Z` tags that match the root package version and create a draft GitHub Release containing installers, `.sig` files, and `latest.json`.
-6. `bundle.createUpdaterArtifacts` must be enabled so the native build emits signed updater payloads instead of only wiring the runtime plugin.
-7. `settings.tsx` must surface release blockers and warnings from the snapshot so PR6 can track truthful release posture inside the native shell.
-8. Browser fallback must return an explicitly blocked placeholder snapshot and must not imply real release readiness.
-9. `check_for_app_update` must fail explicitly when the feed is unreachable and must return parsed remote version metadata when the hosted feed or a temporary local smoke override is available.
+4. After `update.downloadAndInstall(...)` resolves, the renderer must relaunch through `@tauri-apps/plugin-process` instead of relying only on a custom command. `desktop/src-tauri/src/lib.rs` must register `tauri_plugin_process::init()`, `desktop/src-tauri/capabilities/default.json` must include `process:allow-restart`, and `desktop/src/lib/desktop-api.ts::restartApp()` may keep the custom `restart_app` command only as a fallback.
+5. Root `package.json` is the single version source. `desktop/package.json`, `desktop/src-tauri/tauri.conf.json`, and `desktop/src-tauri/Cargo.toml` must be synchronized through `scripts/sync-desktop-version.mjs`.
+6. Tagged desktop releases use `vX.Y.Z` tags that match the root package version and create a draft GitHub Release containing installers, `.sig` files, and `latest.json`.
+7. `bundle.createUpdaterArtifacts` must be enabled so the native build emits signed updater payloads instead of only wiring the runtime plugin.
+8. `settings.tsx` must surface release blockers and warnings from the snapshot so PR6 can track truthful release posture inside the native shell.
+9. Browser fallback must return an explicitly blocked placeholder snapshot and must not imply real release readiness.
+10. `check_for_app_update` must fail explicitly when the feed is unreachable and must return parsed remote version metadata when the hosted feed or a temporary local smoke override is available.
 
 ## UI Truthfulness Contract
 

@@ -2,6 +2,7 @@
 identifier = "desktop-core"
 description = "Allows invoking the desktop bootstrap commands exposed by the application."
 commands.allow = [
+  "restart_app",
   "get_bootstrap_context",
   "get_workspace_snapshot",
   "get_domain_contract_summary",

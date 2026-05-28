@@ -26,6 +26,7 @@ tauri-plugin-opener = "2.5.3"
 tauri-plugin-updater = "2.0.0-rc.4"
 uuid = { version = "1.18.1", features = ["v4"] }
 pdf-extract = "0.7"
+tauri-plugin-process = "2.3.1"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 keyring = "3"

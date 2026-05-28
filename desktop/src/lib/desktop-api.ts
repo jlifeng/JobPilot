@@ -1,5 +1,6 @@
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { relaunch } from "@tauri-apps/plugin-process";
 import type {
   CreateInterviewSessionInput,
   GenerateInterviewReportInput,
@@ -1576,7 +1577,11 @@ export async function openExternalUrl(
 }
 
 export async function restartApp(): Promise<void> {
-  await invoke("restart_app");
+  try {
+    await relaunch();
+  } catch {
+    await invoke("restart_app");
+  }
 }
 
 export function isBrowserFallbackRuntime(context: BootstrapContext): boolean {

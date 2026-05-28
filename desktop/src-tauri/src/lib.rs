@@ -7,7 +7,10 @@ mod settings;
 mod storage;
 mod workspace;
 
-use ai::{ConnectivityTestResult, FetchAiModelsResult, ParseMarkdownResumeInput, ParsedResumeData, ParsePdfResumeInput};
+use ai::{
+    ConnectivityTestResult, FetchAiModelsResult, ParseMarkdownResumeInput, ParsePdfResumeInput,
+    ParsedResumeData,
+};
 use domain::DomainContractSummary;
 use importer::{
     ImporterExecutionPlan, ImporterRunResult, ImporterState, LegacyDiscoveryInput, LegacyImporter,
@@ -22,8 +25,8 @@ use settings::{
 };
 use storage::{
     CreateDocumentInput, CreateInterviewSessionInput, DocumentDetail, DocumentListItem,
-    ImportDocumentInput, InterviewMessageItem, InterviewReportRecord,
-    InterviewSessionDetail, InterviewSessionListItem, SaveDocumentInput, StorageSnapshot,
+    ImportDocumentInput, InterviewMessageItem, InterviewReportRecord, InterviewSessionDetail,
+    InterviewSessionListItem, SaveDocumentInput, StorageSnapshot,
     TemplateValidationExportWriteResult, TemplateValidationSnapshot, UpdateDocumentInput,
     UpdateInterviewMessageMetadataInput,
 };
@@ -135,7 +138,10 @@ fn update_document_metadata(
 }
 
 #[tauri::command]
-fn save_document(app: tauri::AppHandle, input: SaveDocumentInput) -> Result<DocumentDetail, String> {
+fn save_document(
+    app: tauri::AppHandle,
+    input: SaveDocumentInput,
+) -> Result<DocumentDetail, String> {
     storage::save_document(&app, input)
 }
 
@@ -196,12 +202,12 @@ fn write_export_file(
 }
 
 #[tauri::command]
-fn write_pdf_export(
+async fn write_pdf_export(
     app: tauri::AppHandle,
     output_path: String,
     html: String,
 ) -> Result<TemplateValidationExportWriteResult, String> {
-    storage::write_pdf_export(&app, output_path, html)
+    storage::write_pdf_export(app, output_path, html).await
 }
 
 #[tauri::command]
@@ -264,10 +270,7 @@ fn write_secret_value(
 }
 
 #[tauri::command]
-fn read_secret_value(
-    app: tauri::AppHandle,
-    key: String,
-) -> Result<Option<String>, String> {
+fn read_secret_value(app: tauri::AppHandle, key: String) -> Result<Option<String>, String> {
     let workspace_root = resolve_workspace_root(&app)?;
     settings::read_secret_value(&workspace_root, &key)
 }
@@ -282,9 +285,7 @@ fn start_ai_prompt_stream(
 }
 
 #[tauri::command]
-fn list_interview_sessions(
-    app: tauri::AppHandle,
-) -> Result<Vec<InterviewSessionListItem>, String> {
+fn list_interview_sessions(app: tauri::AppHandle) -> Result<Vec<InterviewSessionListItem>, String> {
     storage::list_interview_sessions(&app)
 }
 
@@ -357,9 +358,7 @@ async fn test_ai_connectivity(
 }
 
 #[tauri::command]
-async fn test_exa_connectivity(
-    app: tauri::AppHandle,
-) -> Result<ConnectivityTestResult, String> {
+async fn test_exa_connectivity(app: tauri::AppHandle) -> Result<ConnectivityTestResult, String> {
     let workspace_root = resolve_workspace_root(&app)?;
     ai::test_exa_connectivity(&workspace_root).await
 }
@@ -461,6 +460,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .invoke_handler(tauri::generate_handler![
             restart_app,
