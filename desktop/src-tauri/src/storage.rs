@@ -28,6 +28,110 @@ const MAX_WINDOW_COORDINATE: i64 = 16_384;
 const PDF_EXPORT_OUTPUT_TIMEOUT_MS: u64 = 8_000;
 const PDF_EXPORT_STABLE_POLL_MS: u64 = 150;
 const PDF_EXPORT_STABLE_POLLS: usize = 3;
+const PDF_EXPORT_PROCESS_TIMEOUT_MS: u64 = 30_000;
+
+enum BrowserCommandResult {
+    Success(std::process::Output),
+    ProducedPdf,
+    TimedOut,
+    LaunchFailed(String),
+}
+
+fn observe_stable_pdf_output(
+    path: &Path,
+    last_size: &mut Option<u64>,
+    stable_polls: &mut usize,
+) -> bool {
+    let Ok(metadata) = fs::metadata(path) else {
+        return false;
+    };
+    let size = metadata.len();
+
+    if size == 0 {
+        return false;
+    }
+
+    if *last_size == Some(size) {
+        *stable_polls += 1;
+        return *stable_polls >= PDF_EXPORT_STABLE_POLLS;
+    }
+
+    *last_size = Some(size);
+    *stable_polls = 0;
+    false
+}
+
+fn run_command_with_timeout(
+    mut command: std::process::Command,
+    output_path: &Path,
+    timeout: Duration,
+) -> BrowserCommandResult {
+    match command
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+    {
+        Ok(mut child) => {
+            let start = Instant::now();
+            let mut last_size = None;
+            let mut stable_polls = 0;
+            loop {
+                match child.try_wait() {
+                    Ok(Some(status)) => {
+                        let mut stdout_buf = Vec::new();
+                        let mut stderr_buf = Vec::new();
+                        use std::io::Read;
+                        if let Some(mut out) = child.stdout.take() {
+                            let _ = out.read_to_end(&mut stdout_buf);
+                        }
+                        if let Some(mut err) = child.stderr.take() {
+                            let _ = err.read_to_end(&mut stderr_buf);
+                        }
+                        return BrowserCommandResult::Success(std::process::Output {
+                            status,
+                            stdout: stdout_buf,
+                            stderr: stderr_buf,
+                        });
+                    }
+                    Ok(None) => {
+                        if observe_stable_pdf_output(output_path, &mut last_size, &mut stable_polls)
+                        {
+                            let _ = child.kill();
+                            drop(child);
+                            return BrowserCommandResult::ProducedPdf;
+                        }
+
+                        if start.elapsed() > timeout {
+                            let _ = child.kill();
+                            // Explicitly drop the child handle without calling wait().
+                            // On macOS M1, Chrome headless can hang after --print-to-pdf,
+                            // and child.wait() after kill() blocks the thread indefinitely.
+                            // Dropping the handle closes piped FDs and lets the OS reap the
+                            // process. We then check if the PDF was produced downstream.
+                            drop(child);
+                            return if output_path.exists() {
+                                BrowserCommandResult::ProducedPdf
+                            } else {
+                                BrowserCommandResult::TimedOut
+                            };
+                        }
+                        std::thread::sleep(Duration::from_millis(100));
+                    }
+                    Err(_) => {
+                        let _ = child.kill();
+                        drop(child);
+                        return if output_path.exists() {
+                            BrowserCommandResult::ProducedPdf
+                        } else {
+                            BrowserCommandResult::TimedOut
+                        };
+                    }
+                }
+            }
+        }
+        Err(error) => BrowserCommandResult::LaunchFailed(error.to_string()),
+    }
+}
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -287,8 +391,8 @@ pub fn write_export_file(
     write_export_bytes(&resolved_output_path, bytes)
 }
 
-pub fn write_pdf_export(
-    app: &AppHandle,
+pub async fn write_pdf_export(
+    app: AppHandle,
     output_path: String,
     html: String,
 ) -> Result<TemplateValidationExportWriteResult, String> {
@@ -329,55 +433,69 @@ pub fn write_pdf_export(
     let html_url = file_url_from_path(&temp_html_path)?;
     let user_data_dir_str = path_to_string(&user_data_dir);
 
-    let mut command = Command::new(&browser_path);
-    #[cfg(target_os = "windows")]
-    command.creation_flags(0x08000000); // CREATE_NO_WINDOW
-    command
-        .arg("--headless=new")
-        .arg("--disable-gpu")
-        .arg("--allow-file-access-from-files")
-        .arg("--run-all-compositor-stages-before-draw")
-        .arg("--virtual-time-budget=12000")
-        .arg("--no-first-run")
-        .arg("--no-default-browser-check")
-        .arg("--no-pdf-header-footer")
-        .arg(format!("--user-data-dir={}", user_data_dir_str))
-        .arg(print_argument)
-        .arg(html_url);
+    let resolved_output_path_clone = resolved_output_path.clone();
+    let browser_path_clone = browser_path.clone();
 
-    #[cfg(target_os = "linux")]
-    command.arg("--no-sandbox");
+    tauri::async_runtime::spawn_blocking(move || {
+        let mut command = Command::new(&browser_path_clone);
+        #[cfg(target_os = "windows")]
+        command.creation_flags(0x08000000); // CREATE_NO_WINDOW
+        command
+            .arg("--headless=new")
+            .arg("--disable-gpu")
+            .arg("--allow-file-access-from-files")
+            .arg("--run-all-compositor-stages-before-draw")
+            .arg("--virtual-time-budget=12000")
+            .arg("--no-first-run")
+            .arg("--no-default-browser-check")
+            .arg("--no-pdf-header-footer")
+            .arg(format!("--user-data-dir={}", user_data_dir_str))
+            .arg(&print_argument)
+            .arg(&html_url);
 
-    let output = command.output().map_err(|error| {
-        format!(
-            "failed to launch browser {} for pdf export: {error}",
-            browser_path.display()
-        )
-    })?;
+        #[cfg(target_os = "linux")]
+        command.arg("--no-sandbox");
 
-    let stdout_text = String::from_utf8_lossy(&output.stdout).trim().to_string();
-    let stderr_text = String::from_utf8_lossy(&output.stderr).trim().to_string();
+        // Use a thread with timeout to prevent Chrome headless from hanging indefinitely
+        // (known issue on macOS M1 where Chrome may not exit after printing PDF)
+        let browser_result = run_command_with_timeout(
+            command,
+            &resolved_output_path_clone,
+            Duration::from_millis(PDF_EXPORT_PROCESS_TIMEOUT_MS),
+        );
 
-    if !output.status.success() {
-        return Err(format!(
-            "pdf export browser command failed (status: {}). stdout: {} stderr: {}",
-            output
-                .status
-                .code()
-                .map(|code| code.to_string())
-                .unwrap_or_else(|| "terminated".into()),
-            if stdout_text.is_empty() {
-                "<empty>"
-            } else {
-                &stdout_text
-            },
-            if stderr_text.is_empty() {
-                "<empty>"
-            } else {
-                &stderr_text
-            },
-        ));
-    }
+        match browser_result {
+            BrowserCommandResult::Success(output) => {
+                if !output.status.success() {
+                    // Chrome may report non-zero exit but still produce valid PDF
+                    let pdf_exists = resolved_output_path_clone.exists();
+                    if !pdf_exists {
+                        let stdout_text = String::from_utf8_lossy(&output.stdout).trim().to_string();
+                        let stderr_text = String::from_utf8_lossy(&output.stderr).trim().to_string();
+                        return Err(format!(
+                            "pdf export browser command failed (status: {}). stdout: {} stderr: {}",
+                            output.status.code().map(|code| code.to_string()).unwrap_or_else(|| "terminated".into()),
+                            if stdout_text.is_empty() { "<empty>" } else { &stdout_text },
+                            if stderr_text.is_empty() { "<empty>" } else { &stderr_text },
+                        ));
+                    }
+                }
+                Ok(())
+            }
+            BrowserCommandResult::ProducedPdf => Ok(()),
+            BrowserCommandResult::TimedOut => {
+                Err("pdf export timed out: browser did not exit within the timeout and no PDF was produced".into())
+            }
+            BrowserCommandResult::LaunchFailed(error) => {
+                Err(format!(
+                    "failed to launch browser {} for pdf export: {error}",
+                    browser_path_clone.display()
+                ))
+            }
+        }
+    })
+    .await
+    .map_err(|error| format!("pdf export task panicked: {error}"))??;
 
     let bytes_written = wait_for_pdf_export_output(&resolved_output_path)?;
     validate_pdf_export_output(&resolved_output_path)?;
@@ -918,7 +1036,11 @@ fn write_export_bytes(
 }
 
 fn resolve_pdf_browser_path() -> Result<PathBuf, String> {
-    for key in ["ROLEROVER_DESKTOP_BROWSER_PATH", "CHROME_PATH", "BROWSER_PATH"] {
+    for key in [
+        "ROLEROVER_DESKTOP_BROWSER_PATH",
+        "CHROME_PATH",
+        "BROWSER_PATH",
+    ] {
         if let Ok(value) = std::env::var(key) {
             let candidate = PathBuf::from(value.trim());
             if candidate.exists() {
@@ -1499,9 +1621,16 @@ pub fn create_interview_session(
     app: &AppHandle,
     input: CreateInterviewSessionInput,
 ) -> Result<InterviewSessionDetail, String> {
-    eprintln!("[DEBUG] create_interview_session called with {} rounds", input.rounds.len());
+    eprintln!(
+        "[DEBUG] create_interview_session called with {} rounds",
+        input.rounds.len()
+    );
     for (i, round) in input.rounds.iter().enumerate() {
-        eprintln!("[DEBUG] Round {}: interviewerType={}", i + 1, round.interviewer_type);
+        eprintln!(
+            "[DEBUG] Round {}: interviewerType={}",
+            i + 1,
+            round.interviewer_type
+        );
     }
 
     let job_description = input.job_description.trim().to_string();
@@ -1577,14 +1706,22 @@ pub fn create_interview_session(
 
     for (index, round) in input.rounds.iter().enumerate() {
         let interviewer_type = round.interviewer_type.trim().to_string();
-        eprintln!("[DEBUG] Round {}: interviewerType='{}'", index + 1, interviewer_type);
+        eprintln!(
+            "[DEBUG] Round {}: interviewerType='{}'",
+            index + 1,
+            interviewer_type
+        );
         if interviewer_type.is_empty() {
             return Err(format!("round {} is missing interviewerType", index + 1));
         }
 
         let interviewer_config_json = serde_json::to_string(&round.interviewer_config)
             .map_err(|error| format!("failed to serialize round interviewer config: {error}"))?;
-        eprintln!("[DEBUG] Round {}: interviewerConfig length={}", index + 1, interviewer_config_json.len());
+        eprintln!(
+            "[DEBUG] Round {}: interviewerConfig length={}",
+            index + 1,
+            interviewer_config_json.len()
+        );
         let round_id = Uuid::new_v4().to_string();
         let max_questions = round.max_questions.unwrap_or(8).clamp(1, 20);
 
@@ -1645,7 +1782,8 @@ pub fn update_interview_message_metadata(
         .map_err(|error| format!("failed to load interview message metadata: {error}"))?
         .ok_or_else(|| format!("interview message not found: {}", input.message_id))?;
 
-    let merged_metadata = merge_json_objects(parse_json_or_default(&existing.0, "{}"), input.metadata)?;
+    let merged_metadata =
+        merge_json_objects(parse_json_or_default(&existing.0, "{}"), input.metadata)?;
     let now = now_epoch_ms()? as i64;
     connection
         .execute(
@@ -1656,16 +1794,21 @@ pub fn update_interview_message_metadata(
             "#,
             params![
                 &input.message_id,
-                serde_json::to_string(&merged_metadata)
-                    .map_err(|error| format!("failed to serialize merged interview metadata: {error}"))?,
+                serde_json::to_string(&merged_metadata).map_err(|error| format!(
+                    "failed to serialize merged interview metadata: {error}"
+                ))?,
                 now
             ],
         )
         .map_err(|error| format!("failed to update interview message metadata: {error}"))?;
     touch_interview_round_and_session(&connection, &existing.1, now)?;
 
-    load_interview_message(&connection, &input.message_id)?
-        .ok_or_else(|| format!("interview message not found after update: {}", input.message_id))
+    load_interview_message(&connection, &input.message_id)?.ok_or_else(|| {
+        format!(
+            "interview message not found after update: {}",
+            input.message_id
+        )
+    })
 }
 
 pub fn get_interview_report(
@@ -1876,7 +2019,9 @@ pub fn save_interview_report(
             |_| Ok(true),
         )
         .optional()
-        .map_err(|error| format!("failed to validate interview session before saving report: {error}"))?
+        .map_err(|error| {
+            format!("failed to validate interview session before saving report: {error}")
+        })?
         .unwrap_or(false);
     if !session_exists {
         return Err(format!("interview session not found: {}", input.session_id));
@@ -1896,7 +2041,9 @@ pub fn save_interview_report(
         .map(|report| report.id)
         .unwrap_or_else(|| Uuid::new_v4().to_string());
     let improvement_suggestions_json = serde_json::to_string(&input.improvement_suggestions)
-        .map_err(|error| format!("failed to serialize interview improvement suggestions: {error}"))?;
+        .map_err(|error| {
+            format!("failed to serialize interview improvement suggestions: {error}")
+        })?;
 
     connection
         .execute(
@@ -1942,8 +2089,12 @@ pub fn save_interview_report(
         )
         .map_err(|error| format!("failed to touch interview session after report save: {error}"))?;
 
-    load_interview_report(&connection, &input.session_id)?
-        .ok_or_else(|| format!("interview report not found after save: {}", input.session_id))
+    load_interview_report(&connection, &input.session_id)?.ok_or_else(|| {
+        format!(
+            "interview report not found after save: {}",
+            input.session_id
+        )
+    })
 }
 
 fn load_interview_session_detail(
@@ -2200,7 +2351,9 @@ fn touch_interview_round_and_session(
             "UPDATE interview_sessions SET updated_at_epoch_ms = ?2 WHERE id = ?1",
             params![session_id, now],
         )
-        .map_err(|error| format!("failed to touch interview session for round {round_id}: {error}"))?;
+        .map_err(|error| {
+            format!("failed to touch interview session for round {round_id}: {error}")
+        })?;
 
     Ok(())
 }
@@ -2642,15 +2795,33 @@ fn create_default_sections(
     ];
 
     let title_prefix = if language == "zh" {
-        [("个人信息", 0), ("个人简介", 1), ("工作经历", 2), ("教育背景", 3), ("技能特长", 4)]
+        [
+            ("个人信息", 0),
+            ("个人简介", 1),
+            ("工作经历", 2),
+            ("教育背景", 3),
+            ("技能特长", 4),
+        ]
     } else {
-        [("Personal Info", 0), ("Summary", 1), ("Work Experience", 2), ("Education", 3), ("Skills", 4)]
+        [
+            ("Personal Info", 0),
+            ("Summary", 1),
+            ("Work Experience", 2),
+            ("Education", 3),
+            ("Skills", 4),
+        ]
     };
 
     for (idx, (section_type, default_title, _sort_order)) in default_sections.iter().enumerate() {
         let section_id = Uuid::new_v4().to_string();
-        let title = title_prefix.get(idx).map(|(t, _)| *t).unwrap_or(default_title);
-        let sort_order = title_prefix.get(idx).map(|(_, s)| *s).unwrap_or(*_sort_order) as i32;
+        let title = title_prefix
+            .get(idx)
+            .map(|(t, _)| *t)
+            .unwrap_or(default_title);
+        let sort_order = title_prefix
+            .get(idx)
+            .map(|(_, s)| *s)
+            .unwrap_or(*_sort_order) as i32;
 
         connection
             .execute(
@@ -2660,7 +2831,14 @@ fn create_default_sections(
                   content_json, created_at_epoch_ms, updated_at_epoch_ms
                 ) VALUES (?1, ?2, ?3, ?4, ?5, 1, '{}', ?6, ?6)
                 "#,
-                params![section_id, document_id, section_type, title, sort_order, now],
+                params![
+                    section_id,
+                    document_id,
+                    section_type,
+                    title,
+                    sort_order,
+                    now
+                ],
             )
             .map_err(|error| format!("failed to create default section: {error}"))?;
     }
@@ -2736,21 +2914,20 @@ pub fn update_document(
         updates.push("updated_at_epoch_ms = ?");
         params_vec.push(Box::new(now));
 
-        let query = format!(
-            "UPDATE documents SET {} WHERE id = ?",
-            updates.join(", ")
-        );
+        let query = format!("UPDATE documents SET {} WHERE id = ?", updates.join(", "));
 
         params_vec.push(Box::new(input.id.clone()));
 
-        let params_refs: Vec<&dyn rusqlite::ToSql> = params_vec.iter().map(|p| p.as_ref()).collect();
+        let params_refs: Vec<&dyn rusqlite::ToSql> =
+            params_vec.iter().map(|p| p.as_ref()).collect();
 
         connection
             .execute(&query, params_refs.as_slice())
             .map_err(|error| format!("failed to update document: {error}"))?;
     }
 
-    get_document(app, &input.id)?.ok_or_else(|| format!("document not found after update: {}", input.id))
+    get_document(app, &input.id)?
+        .ok_or_else(|| format!("document not found after update: {}", input.id))
 }
 
 pub fn delete_document(app: &AppHandle, document_id: &str) -> Result<bool, String> {
@@ -2769,10 +2946,7 @@ pub fn delete_document(app: &AppHandle, document_id: &str) -> Result<bool, Strin
     seed_workspace_defaults(&connection, &app_version)?;
 
     let rows_affected = connection
-        .execute(
-            "DELETE FROM documents WHERE id = ?1",
-            params![document_id],
-        )
+        .execute("DELETE FROM documents WHERE id = ?1", params![document_id])
         .map_err(|error| format!("failed to delete document: {error}"))?;
 
     Ok(rows_affected > 0)
@@ -2896,7 +3070,8 @@ pub fn duplicate_document(app: &AppHandle, document_id: &str) -> Result<Document
             .map_err(|error| format!("failed to copy section: {error}"))?;
     }
 
-    get_document(app, &new_document_id)?.ok_or_else(|| format!("duplicated document not found: {new_document_id}"))
+    get_document(app, &new_document_id)?
+        .ok_or_else(|| format!("duplicated document not found: {new_document_id}"))
 }
 
 pub fn import_document(
@@ -2974,7 +3149,8 @@ pub fn import_document(
             .map_err(|error| format!("failed to import section: {error}"))?;
     }
 
-    get_document(app, &document_id)?.ok_or_else(|| format!("imported document not found: {document_id}"))
+    get_document(app, &document_id)?
+        .ok_or_else(|| format!("imported document not found: {document_id}"))
 }
 
 pub fn rename_document(

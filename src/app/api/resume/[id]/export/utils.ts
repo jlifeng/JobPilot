@@ -55,7 +55,7 @@ export function md(text: unknown): string {
     }
     const lm = line.match(/^[-–•]\s+(.*)/);
     if (lm) {
-      if (!inList) { html += '<ul style="margin:2px 0;padding-left:1.5em;list-style-type:disc">'; inList = true; }
+      if (!inList) { html += '<ul style="margin:2px 0;padding-left:16px;list-style-type:disc">'; inList = true; }
       html += `<li>${lm[1]}</li>`;
     } else {
       if (inList) { html += '</ul>'; inList = false; }
@@ -146,7 +146,7 @@ export function buildExportThemeCSS(theme: typeof DEFAULT_THEME, template: strin
   const needsPadding = !BACKGROUND_TEMPLATES.has(template);
   const primaryIsDark = isDark(theme.primaryColor);
   return `
-    ${sel} > div {
+    ${sel} > div:not([data-no-theme-padding]) {
       font-family: ${theme.fontFamily}, 'Noto Sans SC', sans-serif !important;
       line-height: ${theme.lineSpacing} !important;
       ${needsPadding ? `padding-top: ${m.top}px !important; padding-right: ${m.right}px !important; padding-bottom: ${m.bottom}px !important; padding-left: ${m.left}px !important;` : ''}

@@ -68,17 +68,17 @@ const SECTION_ICONS: Record<string, React.FC<{ size?: number; color?: string }>>
   summary: Code2,
 };
 
-// Unicode fallbacks for HTML export (no React)
-const SECTION_ICON_HTML: Record<string, string> = {
-  work_experience: '●',  // ●
-  projects: '■',         // ■
-  education: '▲',        // ▲
-  certifications: '★',   // ★
-  languages: '◆',        // ◆
-  skills: '●',
-  github: '●',
-  custom: '●',
-  summary: '●',
+// Inline SVG icons matching Lucide React (24x24 viewBox, stroke-width 2)
+const SECTION_ICON_SVG: Record<string, string> = {
+  work_experience: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${ACCENT}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="7" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>`,
+  projects: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${ACCENT}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>`,
+  education: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${ACCENT}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z"/><path d="M22 10v6"/><path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5"/></svg>`,
+  certifications: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${ACCENT}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15.477 12.89 1.515 8.526a.5.5 0 0 1-.81.47l-3.58-2.687a1 1 0 0 0-1.197 0l-3.586 2.686a.5.5 0 0 1-.81-.469l1.514-8.526"/><circle cx="12" cy="8" r="6"/></svg>`,
+  languages: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${ACCENT}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/></svg>`,
+  skills: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${ACCENT}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 16 4-4-4-4"/><path d="m6 8-4 4 4 4"/><path d="m14.5 4-5 16"/></svg>`,
+  github: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${ACCENT}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 16 4-4-4-4"/><path d="m6 8-4 4 4 4"/><path d="m14.5 4-5 16"/></svg>`,
+  custom: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${ACCENT}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 16 4-4-4-4"/><path d="m6 8-4 4 4 4"/><path d="m14.5 4-5 16"/></svg>`,
+  summary: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${ACCENT}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 16 4-4-4-4"/><path d="m6 8-4 4 4 4"/><path d="m14.5 4-5 16"/></svg>`,
 };
 
 // ============================================================================
@@ -540,12 +540,9 @@ function buildModernMinimalSectionHtml(
   lang: string,
 ): string {
   const content = section.content as unknown as Record<string, unknown>;
-  const icon = SECTION_ICON_HTML[section.type] || '●';
+  const icon = SECTION_ICON_SVG[section.type] || SECTION_ICON_SVG.summary;
 
-  const sectionHeader = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
-    <span style="color:${ACCENT};font-size:14px">${icon}</span>
-    <h2 style="font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:${TEXT_PRIMARY};margin:0">${esc(section.title)}</h2>
-  </div>`;
+  const sectionHeader = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">${icon}<h2 style="font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:${TEXT_PRIMARY};margin:0">${esc(section.title)}</h2></div>`;
 
   // Summary
   if (section.type === 'summary') {
@@ -563,11 +560,8 @@ function buildModernMinimalSectionHtml(
       const techs = it.technologies?.length
         ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">${it.technologies.map((t) => `<span style="background:${TECH_BG};color:${ACCENT};border:1px solid ${TECH_BORDER};border-radius:9999px;padding:2px 8px;font-size:11px">${esc(t)}</span>`).join('')}</div>`
         : '';
-      const highlights = it.highlights?.length
-        ? `<div style="margin-top:6px"><p style="font-size:11px;font-weight:500;color:${TEXT_PRIMARY};margin:0 0 2px">${lang === 'zh' ? '主要成就' : 'Key Achievements'}:</p><ul style="margin:0 0 0 16px;padding:0">${buildHighlights(it.highlights, `font-size:13px;color:${TEXT_SECONDARY}`)}</ul></div>`
-        : '';
       const marginBottom = idx < items.length - 1 ? 'margin-bottom:16px' : '';
-      return `<div style="position:relative;display:flex;gap:16px;${marginBottom}">
+      return `<div style="position:relative;display:flex;gap:16px;${marginBottom};break-inside:avoid">
         <div style="position:absolute;left:85px;top:6px;z-index:10;width:6px;height:6px;border-radius:50%;background:${ACCENT}"></div>
         <div style="width:80px;shrink:0;padding-right:8px">
           <span style="font-size:11px;color:${TEXT_SECONDARY}">${esc(formatDate(it.startDate, it.endDate, it.current, lang))}</span>
@@ -578,8 +572,9 @@ function buildModernMinimalSectionHtml(
             ${it.company ? `<span style="font-size:13px;color:${ACCENT}">${esc(it.company)}</span>` : ''}
           </div>
           ${it.location ? `<p style="font-size:11px;color:${TEXT_SECONDARY};margin:2px 0 0">${esc(it.location)}</p>` : ''}
-          ${it.description ? `<p style="font-size:13px;color:${TEXT_SECONDARY};margin:4px 0 0"><span style="font-weight:500;color:${TEXT_PRIMARY}">${lang === 'zh' ? '职责' : 'Responsibilities'}:</span> ${md(it.description)}</p>` : ''}
-          ${techs}${highlights}
+          ${it.description ? `<p class="mt-1 text-sm" style="color:${TEXT_SECONDARY}"><span class="font-medium" style="color:${TEXT_PRIMARY}">${lang === 'zh' ? '职责' : 'Responsibilities'}:</span> <span>${md(it.description)}</span></p>` : ''}
+          ${techs}
+          ${it.highlights?.length ? `<div class="mt-1.5"><p class="text-xs font-medium mb-0.5" style="color:${TEXT_PRIMARY}">${lang === 'zh' ? '主要成就' : 'Key Achievements'}:</p><ul class="list-disc pl-4" style="margin:0;padding-inline-start:16px">${it.highlights.filter(Boolean).map((h) => `<li class="text-sm" style="color:${TEXT_SECONDARY}">${md(h)}</li>`).join('')}</ul></div>` : ''}
         </div>
       </div>`;
     }).join('');
@@ -604,7 +599,7 @@ function buildModernMinimalSectionHtml(
         ? `<ul style="margin:8px 0 0 16px;padding:0">${buildHighlights(it.highlights, `font-size:13px;color:${TEXT_SECONDARY}`)}</ul>`
         : '';
       const linkHtml = it.url ? `<a href="${esc(it.url)}" style="color:${ACCENT};text-decoration:none;font-size:12px">↗</a>` : '';
-      return `<div style="border:1px solid ${DIVIDER};border-radius:12px;padding:16px;background:white">
+      return `<div style="border:1px solid ${DIVIDER};border-radius:12px;padding:16px;background:white;break-inside:avoid">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
           <span style="font-size:14px;font-weight:600;color:${TEXT_PRIMARY}">${esc(it.name)}</span>
           ${linkHtml}
@@ -625,10 +620,10 @@ function buildModernMinimalSectionHtml(
   if (section.type === 'skills') {
     const categories = (content as unknown as SkillsContent).categories || [];
     const catsHtml = categories.map((cat) =>
-      `<div style="margin-bottom:12px">
+      `<div style="margin-bottom:12px;break-inside:avoid">
         <span style="font-size:14px;font-weight:600;color:${TEXT_PRIMARY}">${esc(cat.name)}</span>
-        <ul style="margin:4px 0 0 16px;padding:0">${(cat.skills || []).map((s) =>
-          `<li style="font-size:13px;color:${TEXT_SECONDARY}">${esc(s)}</li>`
+        <ul class="mt-1 list-disc pl-4" style="padding-inline-start:16px">${(cat.skills || []).map((s) =>
+          `<li class="text-sm" style="color:${TEXT_SECONDARY}">${esc(s)}</li>`
         ).join('')}</ul>
       </div>`
     ).join('');
@@ -642,7 +637,7 @@ function buildModernMinimalSectionHtml(
   // Education
   if (section.type === 'education') {
     const items = (content as unknown as EducationContent).items || [];
-    const itemsHtml = items.map((it) => `<div>
+    const itemsHtml = items.map((it) => `<div style="break-inside:avoid">
       <div style="display:flex;align-items:baseline;justify-content:space-between">
         <div>
           <span style="font-size:14px;font-weight:600;color:${TEXT_PRIMARY}">${esc(degreeField(it.degree, it.field))}</span>
@@ -663,7 +658,7 @@ function buildModernMinimalSectionHtml(
   // GitHub
   if (section.type === 'github') {
     const items = (content as unknown as GitHubContent).items || [];
-    const cardsHtml = items.map((it) => `<div style="border:1px solid ${DIVIDER};border-radius:12px;padding:12px">
+    const cardsHtml = items.map((it) => `<div style="border:1px solid ${DIVIDER};border-radius:12px;padding:12px;break-inside:avoid">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <span style="font-size:14px;font-weight:600;color:${TEXT_PRIMARY}">${esc(it.name)}</span>
         ${it.stars != null ? `<span style="font-size:11px;color:${TEXT_SECONDARY}">★ ${it.stars.toLocaleString()}</span>` : ''}
@@ -681,7 +676,7 @@ function buildModernMinimalSectionHtml(
   // Certifications
   if (section.type === 'certifications') {
     const items = (content as unknown as CertificationsContent).items || [];
-    const itemsHtml = items.map((it) => `<div style="display:flex;align-items:baseline;justify-content:space-between">
+    const itemsHtml = items.map((it) => `<div style="display:flex;align-items:baseline;justify-content:space-between;break-inside:avoid">
       <div>
         <span style="font-size:14px;font-weight:600;color:${TEXT_PRIMARY}">${esc(it.name)}</span>
         ${it.issuer ? `<span style="font-size:13px;color:${TEXT_SECONDARY}"> — ${esc(it.issuer)}</span>` : ''}
@@ -712,7 +707,7 @@ function buildModernMinimalSectionHtml(
   // Custom
   if (section.type === 'custom') {
     const items = (content as unknown as CustomContent).items || [];
-    const itemsHtml = items.map((it) => `<div>
+    const itemsHtml = items.map((it) => `<div style="break-inside:avoid">
       <div style="display:flex;align-items:baseline;justify-content:space-between">
         <div>
           <span style="font-size:14px;font-weight:600;color:${TEXT_PRIMARY}">${esc(it.title)}</span>
@@ -762,20 +757,18 @@ export function buildModernMinimalHtml(resume: CanonicalResume): string {
     ? `<div style="margin-top:${row1.length > 0 ? '2px' : '4px'};font-size:13px;color:${TEXT_SECONDARY}">${renderRow(row2, ACCENT)}</div>`
     : '';
 
-  return `<div style="max-width:794px;margin:0 auto;background:${BG_PAGE};padding:24px;font-family:Inter,sans-serif">
-    <div style="background:white;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,0.08);overflow:hidden">
-      <div style="padding:32px 32px 24px">
-        <div style="display:flex;align-items:flex-start;justify-content:space-between">
-          <div>
-            <h1 style="font-size:28px;font-weight:700;color:${TEXT_PRIMARY};margin:0">${esc(pi.fullName || 'Your Name')}</h1>
-            ${pi.jobTitle ? `<p style="font-size:16px;color:${TEXT_SECONDARY};margin:4px 0 0">${esc(pi.jobTitle)}</p>` : ''}
-          </div>
-          ${pi.avatar ? `<img src="${esc(pi.avatar)}" alt="" style="width:64px;height:64px;border-radius:50%;object-fit:cover;flex-shrink:0"/>` : ''}
+  return `<div data-no-theme-padding style="font-family:Inter,sans-serif;background:white">
+    <div style="padding:32px 32px 24px">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between">
+        <div>
+          <h1 style="font-size:28px;font-weight:700;color:${TEXT_PRIMARY};margin:0">${esc(pi.fullName || 'Your Name')}</h1>
+          ${pi.jobTitle ? `<p style="font-size:16px;color:${TEXT_SECONDARY};margin:4px 0 0">${esc(pi.jobTitle)}</p>` : ''}
         </div>
-        ${contactR1}${contactR2}
+        ${pi.avatar ? `<img src="${esc(pi.avatar)}" alt="" style="width:64px;height:64px;border-radius:50%;object-fit:cover;flex-shrink:0"/>` : ''}
       </div>
-      ${sections.map((s) => buildModernMinimalSectionHtml(s, lang)).join('')}
+      ${contactR1}${contactR2}
     </div>
+    ${sections.map((s) => buildModernMinimalSectionHtml(s, lang)).join('')}
   </div>`;
 }
 

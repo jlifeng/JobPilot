@@ -205,13 +205,18 @@ export async function generateHtml(resume: ResumeWithSections, forPdf = false): 
        @page { margin: ${needsEdgeToEdge ? '0' : `${pageMarginTop}mm 0 ${pageMarginBottom}mm 0`}; }
        html, body { background: ${bodyBg} !important; padding: 0 !important; margin: 0 !important; display: block !important; min-height: 100%; }
        .resume-export { width: 100%; }
-       .resume-export > div { box-shadow: none !important; overflow: visible !important; ${outerNeedsClone ? '-webkit-box-decoration-break: clone; box-decoration-break: clone;' : 'padding-top: 0 !important; padding-bottom: 0 !important;'} ${isSidebarDark ? 'min-height: auto !important; max-width: none !important; width: 100% !important; background: transparent !important;' : isBackground ? 'max-width: none !important; width: 100% !important;' : 'background: white !important;'} }
+       .resume-export > div:not([data-no-theme-padding]) { box-shadow: none !important; overflow: visible !important; ${outerNeedsClone ? '-webkit-box-decoration-break: clone; box-decoration-break: clone;' : 'padding-top: 0 !important; padding-bottom: 0 !important;'} ${isSidebarDark ? 'min-height: auto !important; max-width: none !important; width: 100% !important; background: transparent !important;' : isBackground ? 'max-width: none !important; width: 100% !important;' : 'background: white !important;'} }
+       .resume-export > div[data-no-theme-padding] { box-shadow: none !important; overflow: visible !important; max-width: none !important; width: 100% !important; }
        /* Smart pagination: allow sections to break across pages, keep individual items together.
           overflow:visible is critical — Chrome treats overflow:hidden as monolithic (no page fragmentation). */
        [data-section] { break-inside: auto !important; overflow: visible !important; }
        [data-section] * { overflow: visible !important; }
        [data-section] [class*="space-y"] { break-inside: auto !important; }
        [data-section] [class*="space-y"] > div, .item { break-inside: avoid !important; }
+       /* Keep list items and visual card containers intact across page breaks */
+       [data-section] li { break-inside: avoid !important; }
+       [data-section] div[style*="border-radius"][style*="padding"] { break-inside: avoid !important; }
+       [data-section] div[style*="border:"][style*="padding"] { break-inside: avoid !important; }
        h2, h3 { break-after: avoid !important; }
        p { orphans: 3; widows: 3; }
        ${isSidebarDark ? `/* Sidebar dark: body gradient = sidebar colour every page.

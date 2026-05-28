@@ -49,7 +49,7 @@ export function md(text: unknown): string {
     const lm = line.match(/^[-\u2013\u2022]\s+(.*)/);
     if (lm) {
       if (!inList) {
-        html += '<ul style="margin:2px 0;padding-left:1.5em;list-style-type:disc">';
+        html += '<ul style="margin:2px 0;padding-left:16px;list-style-type:disc">';
         inList = true;
       }
       html += `<li>${lm[1]}</li>`;
