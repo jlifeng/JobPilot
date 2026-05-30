@@ -14,7 +14,7 @@ import type {
   GitHubContent,
 } from '@/types/resume';
 import { AvatarImage } from '../avatar-image';
-import { degreeField, isSectionEmpty, md } from '../utils';
+import { degreeField, extractMarkdownBulletItems, isSectionEmpty, md } from '../utils';
 import { QrCodesPreview } from '../qr-codes-preview';
 
 const BG = '#111827';
@@ -22,6 +22,19 @@ const CYAN = '#22d3ee';
 const VIOLET = '#a78bfa';
 const TEXT = '#d1d5db';
 const TEXT_DIM = '#9ca3af';
+
+function NeonBulletList({ items, className = 'space-y-0.5', bulletColor = CYAN }: { items: string[]; className?: string; bulletColor?: string }) {
+  return (
+    <ul className={className}>
+      {items.map((item, index) => (
+        <li key={index} className="flex items-start gap-2 text-sm" style={{ color: TEXT }}>
+          <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: bulletColor, boxShadow: `0 0 6px ${bulletColor}` }} />
+          <span dangerouslySetInnerHTML={{ __html: md(item) }} />
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 export function NeonTemplate({ resume }: { resume: Resume }) {
   const personalInfo = resume.sections.find((s) => s.type === 'personal_info');
@@ -90,9 +103,14 @@ function NeonSectionContent({ section, resume }: { section: any; resume: Resume 
   const content = section.content;
 
   if (section.type === 'summary') {
+    const summaryText = (content as SummaryContent).text;
+    const summaryItems = extractMarkdownBulletItems(summaryText);
+
     return (
       <div className="rounded-lg p-4" style={{ border: `1px solid ${CYAN}20`, backgroundColor: `${CYAN}08` }}>
-        <p className="text-sm leading-relaxed" style={{ color: TEXT }} dangerouslySetInnerHTML={{ __html: md((content as SummaryContent).text) }} />
+        {summaryItems
+          ? <NeonBulletList items={summaryItems} />
+          : <p className="text-sm leading-relaxed" style={{ color: TEXT }} dangerouslySetInnerHTML={{ __html: md(summaryText) }} />}
       </div>
     );
   }
@@ -101,7 +119,10 @@ function NeonSectionContent({ section, resume }: { section: any; resume: Resume 
     const items = (content as WorkExperienceContent).items || [];
     return (
       <div className="space-y-4">
-        {items.map((item: any) => (
+        {items.map((item: any) => {
+          const responsibilityItems = extractMarkdownBulletItems(item.description);
+
+          return (
           <div key={item.id} className="rounded-lg p-4" style={{ border: `1px solid ${CYAN}20`, backgroundColor: `${CYAN}05` }}>
             <div className="flex items-baseline justify-between">
               <h3 className="text-sm font-bold" style={{ color: CYAN }}>{item.position}</h3>
@@ -110,7 +131,13 @@ function NeonSectionContent({ section, resume }: { section: any; resume: Resume 
               </span>
             </div>
             {item.company && <p className="text-sm font-medium" style={{ color: VIOLET }}>{item.company}</p>}
-            {item.description && <p className="mt-1 text-sm" style={{ color: TEXT }}><span className="font-medium" style={{ color: CYAN }}>{resume.language === 'zh' ? '职责' : 'Responsibilities'}:</span> <span dangerouslySetInnerHTML={{ __html: md(item.description) }} /></p>}
+            {item.description && responsibilityItems && (
+              <div className="mt-1">
+                <p className="mb-0.5 text-xs font-medium" style={{ color: CYAN }}>{resume.language === 'zh' ? '职责' : 'Responsibilities'}:</p>
+                <NeonBulletList items={responsibilityItems} />
+              </div>
+            )}
+            {item.description && !responsibilityItems && <p className="mt-1 text-sm" style={{ color: TEXT }}><span className="font-medium" style={{ color: CYAN }}>{resume.language === 'zh' ? '职责' : 'Responsibilities'}:</span> <span dangerouslySetInnerHTML={{ __html: md(item.description) }} /></p>}
             {item.technologies?.length > 0 && (
               <div className="mt-2 flex flex-wrap gap-1">
                 {item.technologies.map((t: string, i: number) => (
@@ -123,18 +150,11 @@ function NeonSectionContent({ section, resume }: { section: any; resume: Resume 
             {item.highlights?.length > 0 && (
               <div className="mt-1.5">
                 <p className="text-xs font-medium mb-0.5" style={{ color: VIOLET }}>{resume.language === 'zh' ? '主要成就' : 'Key Achievements'}:</p>
-                <ul className="space-y-0.5">
-                  {item.highlights.map((h: string, i: number) => (
-                    <li key={i} className="flex items-start gap-2 text-sm" style={{ color: TEXT }}>
-                      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: CYAN, boxShadow: `0 0 6px ${CYAN}` }} />
-                      <span dangerouslySetInnerHTML={{ __html: md(h) }} />
-                    </li>
-                  ))}
-                </ul>
+                <NeonBulletList items={item.highlights} />
               </div>
             )}
           </div>
-        ))}
+        )})}
       </div>
     );
   }
@@ -151,16 +171,7 @@ function NeonSectionContent({ section, resume }: { section: any; resume: Resume 
             </div>
             <p className="text-sm" style={{ color: TEXT }}>{degreeField(item.degree, item.field)}</p>
             {item.gpa && <p className="text-xs" style={{ color: VIOLET }}>GPA: {item.gpa}</p>}
-            {item.highlights?.length > 0 && (
-              <ul className="mt-1 space-y-0.5">
-                {item.highlights.map((h: string, i: number) => (
-                  <li key={i} className="flex items-start gap-2 text-sm" style={{ color: TEXT }}>
-                    <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: VIOLET, boxShadow: `0 0 6px ${VIOLET}` }} />
-                    <span dangerouslySetInnerHTML={{ __html: md(h) }} />
-                  </li>
-                ))}
-              </ul>
-            )}
+            {item.highlights?.length > 0 && <NeonBulletList items={item.highlights} className="mt-1 space-y-0.5" bulletColor={VIOLET} />}
           </div>
         ))}
       </div>
@@ -219,16 +230,7 @@ function NeonSectionContent({ section, resume }: { section: any; resume: Resume 
                 ))}
               </div>
             )}
-            {item.highlights?.length > 0 && (
-              <ul className="mt-1.5 space-y-0.5">
-                {item.highlights.map((h: string, i: number) => (
-                  <li key={i} className="flex items-start gap-2 text-sm" style={{ color: TEXT }}>
-                    <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: CYAN, boxShadow: `0 0 6px ${CYAN}` }} />
-                    <span dangerouslySetInnerHTML={{ __html: md(h) }} />
-                  </li>
-                ))}
-              </ul>
-            )}
+            {item.highlights?.length > 0 && <NeonBulletList items={item.highlights} className="mt-1.5 space-y-0.5" />}
           </div>
         ))}
       </div>

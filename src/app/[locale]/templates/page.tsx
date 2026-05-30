@@ -10,14 +10,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { TEMPLATES } from '@/lib/constants';
 import { useResume } from '@/hooks/use-resume';
 import { Link, useRouter } from '@/i18n/routing';
-import { useFingerprint } from '@/hooks/use-fingerprint';
 import { ResumePreview } from '@/components/preview/resume-preview';
 import { TourOverlay, type TourStepConfig } from '@/components/tour/tour-overlay';
 import { useTourStore, hasCompletedTour } from '@/stores/tour-store';
 import { templateLabelsMap as templateLabelKeys } from '@/lib/template-labels';
+import { TEMPLATE_MATRIX_GROUPS } from '@/lib/template-matrix';
 import type { Resume } from '@/types/resume';
 
 const TEMPLATES_TOUR_STEPS: TourStepConfig[] = [
@@ -226,10 +225,10 @@ export default function TemplatesPage() {
   const t = useTranslations();
   const router = useRouter();
   const { createResume } = useResume();
-  const { fingerprint } = useFingerprint();
   const [previewTemplate, setPreviewTemplate] = useState<string | null>(null);
   const [creatingTemplate, setCreatingTemplate] = useState<string | null>(null);
   const startTour = useTourStore((s) => s.startTour);
+  const firstTemplate = TEMPLATE_MATRIX_GROUPS[0]?.templates[0];
 
   useEffect(() => {
     if (hasCompletedTour('templates')) return;
@@ -268,70 +267,81 @@ export default function TemplatesPage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {TEMPLATES.map((template, idx) => {
-          const mockResume = buildMockResume(template);
-          const label = t(templateLabelKeys[template]);
-          const isCreating = creatingTemplate === template;
-          const isFirst = idx === 0;
-
-          return (
-            <div
-              key={template}
-              className="group flex flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white transition-shadow hover:shadow-lg dark:border-zinc-700 dark:bg-zinc-900"
-            >
-              {/* Template name */}
-              <div className="border-b border-zinc-100 px-4 py-3 text-center dark:border-zinc-800">
-                <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
-                  {label}
-                </h3>
-              </div>
-
-              {/* Scaled preview */}
-              <div className="relative h-[320px] overflow-hidden bg-zinc-50 dark:bg-zinc-950">
-                <div
-                  className="absolute left-1/2 top-0 origin-top"
-                  style={{
-                    width: '794px',
-                    transform: 'translateX(-50%) scale(0.28)',
-                  }}
-                >
-                  <ResumePreview resume={mockResume} />
-                </div>
-              </div>
-
-              {/* Buttons */}
-              <div className="flex gap-2 border-t border-zinc-100 px-4 py-3 dark:border-zinc-800">
-                <Button
-                  {...(isFirst ? { 'data-tour': 'tpl-preview' } : {})}
-                  variant="outline"
-                  size="sm"
-                  className="flex-1 cursor-pointer gap-1.5"
-                  onClick={() => setPreviewTemplate(template)}
-                >
-                  <Eye className="h-3.5 w-3.5" />
-                  {t('templates.preview')}
-                </Button>
-                <Button
-                  {...(isFirst ? { 'data-tour': 'tpl-use' } : {})}
-                  size="sm"
-                  className="flex-1 cursor-pointer gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
-                  onClick={() => handleUseTemplate(template)}
-                  disabled={isCreating}
-                >
-                  {isCreating ? (
-                    <>
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      {t('templates.creating')}
-                    </>
-                  ) : (
-                    t('templates.useTemplate')
-                  )}
-                </Button>
-              </div>
+      <div className="space-y-10">
+        {TEMPLATE_MATRIX_GROUPS.map((group) => (
+          <section key={group.id}>
+            <div className="mb-4">
+              <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+                {t(group.titleKey)}
+              </h2>
+              <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                {t(group.descriptionKey)}
+              </p>
             </div>
-          );
-        })}
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {group.templates.map((template) => {
+                const mockResume = buildMockResume(template);
+                const label = t(templateLabelKeys[template]);
+                const isCreating = creatingTemplate === template;
+                const isFirst = template === firstTemplate;
+
+                return (
+                  <div
+                    key={template}
+                    className="group flex flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white transition-shadow hover:shadow-lg dark:border-zinc-700 dark:bg-zinc-900"
+                  >
+                    <div className="border-b border-zinc-100 px-4 py-3 text-center dark:border-zinc-800">
+                      <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
+                        {label}
+                      </h3>
+                    </div>
+
+                    <div className="relative h-[320px] overflow-hidden bg-zinc-50 dark:bg-zinc-950">
+                      <div
+                        className="absolute left-1/2 top-0 origin-top"
+                        style={{
+                          width: '794px',
+                          transform: 'translateX(-50%) scale(0.28)',
+                        }}
+                      >
+                        <ResumePreview resume={mockResume} />
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2 border-t border-zinc-100 px-4 py-3 dark:border-zinc-800">
+                      <Button
+                        {...(isFirst ? { 'data-tour': 'tpl-preview' } : {})}
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 cursor-pointer gap-1.5"
+                        onClick={() => setPreviewTemplate(template)}
+                      >
+                        <Eye className="h-3.5 w-3.5" />
+                        {t('templates.preview')}
+                      </Button>
+                      <Button
+                        {...(isFirst ? { 'data-tour': 'tpl-use' } : {})}
+                        size="sm"
+                        className="flex-1 cursor-pointer gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
+                        onClick={() => handleUseTemplate(template)}
+                        disabled={isCreating}
+                      >
+                        {isCreating ? (
+                          <>
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            {t('templates.creating')}
+                          </>
+                        ) : (
+                          t('templates.useTemplate')
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        ))}
       </div>
 
       {/* Full-size preview dialog */}

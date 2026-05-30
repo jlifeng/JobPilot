@@ -267,6 +267,232 @@
 | P2 | `designer` | 设计创意 | 迁移统一渲染，控制视觉复杂度 |
 | P2 | `compact` | 高信息密度 | 迁移统一渲染，优化长内容 |
 
+## 当前实施进展
+
+更新日期：2026-05-30。
+
+### 已完成
+
+1. 模板矩阵分组已落地到模板选择页。
+   - 新增统一矩阵配置：`src/lib/template-matrix.ts`
+   - Web 模板页已使用矩阵分组：`src/app/[locale]/templates/page.tsx`
+   - Desktop 模板页已使用矩阵分组：`desktop/src/routes/templates.tsx`
+   - 中英文文案已补充：`messages/zh.json`、`messages/en.json`
+
+2. 第一批主矩阵模板已完成统一渲染迁移。
+
+| 模板 ID | 矩阵定位 | 当前状态 |
+|---|---|---|
+| `minimal` | ATS/通用极简 | 已迁移统一渲染 |
+| `modern-minimal` | 技术/产品通用 | 已在统一渲染，已修复项目/教育亮点 bullet 和项目时间右对齐 |
+| `professional` | 商务正式 | 已在统一渲染，已修复技能分类导出与预览不一致 |
+| `consultant` | 咨询/金融 | 已在统一渲染 |
+| `ats` | 招聘系统解析 | 已迁移统一渲染 |
+| `developer` | 技术工程 | 已迁移统一渲染 |
+| `engineer` | 技术工程变体 | 已迁移统一渲染，和 `developer` 形成差异化 |
+| `academic` | 学术/应届 | 已迁移统一渲染 |
+| `executive` | 管理高管 | 已迁移统一渲染 |
+| `designer` | 设计创意 | 已迁移统一渲染 |
+| `creative` | 设计创意变体 | 已迁移统一渲染，保留创意视觉但控制 PDF 稳定性 |
+| `compact` | 高信息密度 | 已迁移统一渲染 |
+
+3. 第二层矩阵候选已迁移一批，作为后续扩展和对照模板。
+
+| 模板 ID | 矩阵定位 | 当前状态 |
+|---|---|---|
+| `classic` | 通用基础 | 已在统一渲染 |
+| `modern` | 通用现代 | 已在统一渲染 |
+| `formal` | 通用/专业资格 | 已迁移统一渲染 |
+| `euro` | 国际化/商务 | 已迁移统一渲染 |
+| `nordic` | 国际化/克制现代 | 已迁移统一渲染 |
+| `timeline` | 经历叙事 | 已迁移统一渲染 |
+| `elegant` | 商务优雅 | 已迁移统一渲染 |
+| `finance` | 咨询/金融/商务 | 已迁移统一渲染 |
+| `medical` | 医疗/专业资格 | 已迁移统一渲染 |
+| `legal` | 法律/专业资格 | 已迁移统一渲染 |
+| `scientist` | 科研/学术 | 已迁移统一渲染 |
+| `teacher` | 教师/教育/应届 | 已迁移统一渲染 |
+| `clean` | ATS/通用投递 | 已迁移统一渲染 |
+| `corporate` | 商务/管理 | 已迁移统一渲染 |
+| `two-column` | 高信息密度/双栏 | 已迁移统一渲染，验证侧栏 section 先于主内容 |
+| `sidebar` | 长经历/侧栏组织 | 已迁移统一渲染，验证侧栏技能标签和主栏内容顺序 |
+| `swiss` | 商务/国际化 | 已迁移统一渲染，保留瑞士风格网格与红色强调 |
+
+4. 基础回归测试已覆盖统一模板关键差异。
+   - `src/lib/template-renderer/__tests__/template-renderer.test.ts`
+   - 覆盖预览/导出 section 顺序与基础内容 parity
+   - 覆盖技能模块的不同展示策略：列表、逗号行内、分号行内、管道分隔、标签 pill
+   - 覆盖 `modern-minimal` 项目/教育亮点 bullet、项目时间右对齐、无头像左对齐和个人信息顺序
+   - 覆盖 `two-column`、`sidebar` 的侧栏/主栏 section 顺序
+   - 覆盖 `swiss` 红色 bullet 行和严格网格结构
+   - 覆盖 `modern-minimal`、`developer`、`clean` 的长项目名称、长技术栈和多亮点抽检
+
+5. 已执行过的验证命令。
+   - `pnpm exec tsx "src/lib/template-renderer/__tests__/template-renderer.test.ts"`
+   - `pnpm exec eslint ...` 针对统一模板相关文件
+   - `pnpm type-check`
+   - `pnpm build:desktop-shell`
+   - `git diff --check`
+   - `pnpm lint`
+
+说明：`pnpm lint` 当前脚本退出码为 0；Desktop 阻塞面无 error，纯 Web reference 区域仍有既有 lint 旧债，脚本已标记为 observation-only。
+
+6. 过渡期质量打磨已推进到 legacy 模板列表结构一致性。
+   - 已对 `startup`、`card`、`zigzag`、`ribbon`、`mosaic` 修复工作经历中“职责 / Responsibilities”和“主要成就 / Key Achievements”的列表结构对齐问题。
+   - 已对 `magazine`、`artistic`、`retro`、`japanese`、`berlin` 复用各自模板原生 bullet 风格，统一工作经历中职责、主要成就和个人简介的无序列表符号。
+   - 已补齐 `medical` 的统一渲染和 legacy 渲染中“主要成就”标题、工作经历列表结构，以及个人简介列表符号一致性。
+   - 这部分修复属于迁移完成前的过渡性维护，目标是在未完成 unified migration 之前，先把用户可见的预览 / 导出漂移压到可接受范围。
+
+### 当前代码状态
+
+当前已进入统一渲染的模板目录包含 29 个模板：
+
+```text
+academic
+ats
+classic
+clean
+compact
+consultant
+corporate
+creative
+designer
+developer
+elegant
+engineer
+euro
+executive
+finance
+formal
+legal
+medical
+minimal
+modern
+modern-minimal
+nordic
+professional
+scientist
+sidebar
+swiss
+teacher
+timeline
+two-column
+```
+
+补充说明：
+
+- 这 29 个 unified template 中，`modern-minimal` 是原生统一渲染模板，不属于 legacy 50 个同名模板配对；
+- 其余 28 个 unified template 对应 legacy 50 个模板中的同名迁移结果；
+- 因此当前状态可以理解为：`29 个统一模板可用`，其中 `28 个已完成 legacy 同名迁移`，`22 个 legacy 模板仍未迁移`。
+
+当前仍未迁移到统一渲染、继续依赖 legacy preview/export 双轨实现的模板如下：
+
+```text
+architect
+artistic
+berlin
+blocks
+bold
+card
+coder
+gradient
+infographic
+japanese
+luxe
+magazine
+material
+metro
+mosaic
+neon
+retro
+ribbon
+rose
+startup
+watercolor
+zigzag
+```
+
+当前维护策略应明确分成两条线：
+
+1. 已迁移的 29 个模板：
+   - 只改 `src/lib/template-renderer/templates/<template-id>.tsx`
+   - 预览和导出统一从 unified template 出发
+   - 旧 preview/export 文件仅作为 fallback 和历史对照，不再作为主维护入口
+
+2. 未迁移的 22 个模板：
+   - 仍需同时关注 `src/components/preview/templates/*.tsx` 和 `src/app/api/resume/[id]/export/templates/*.ts`
+   - 凡是 bullet、字段顺序、时间布局、技能展示类问题，必须同时修 preview 和 export，避免再次漂移
+   - 如果某模板开始频繁进入质量修复队列，应优先考虑将其迁移到 unified renderer，而不是长期在 legacy 双轨上打补丁
+
+### 主矩阵模板抽检进展
+
+截至 2026-05-30，已完成两轮 unified 模板人工视觉快速抽检，共覆盖 13 / 29 个模板：
+
+1. 第一轮抽检已覆盖：
+   - `ats`
+   - `minimal`
+   - `modern-minimal`
+   - `professional`
+   - `developer`
+
+2. 第二轮抽检已覆盖：
+   - `academic`
+   - `executive`
+   - `clean`
+   - `finance`
+   - `corporate`
+   - `two-column`
+   - `sidebar`
+   - `swiss`
+
+当前抽检结论：
+
+- 上述 13 个模板的 preview / export 主结构肉眼一致，未见明显块级错位；
+- `modern-minimal` 的项目时间右对齐、项目亮点 bullet、技能层级显示正常；
+- `two-column`、`sidebar` 的侧栏 / 主栏结构在预览和导出中保持一致；
+- `executive`、`finance`、`corporate`、`swiss` 的头部强调色和分区层级在导出中基本保持住模板气质；
+- `ats`、`minimal`、`academic`、`clean` 这类偏投递 / 学术模板的信息密度与行高比较稳定，没有明显拥挤或松散失衡；
+- 本轮结论仍属于“快速视觉取样”，尚未替代招聘平台导入抽检、多页内容抽检和极端长文本抽检。
+
+### 剩余 22 个 legacy 模板处置建议（第一版）
+
+这部分属于规划性建议，主要依据当前矩阵覆盖情况、近几轮质量修复频率和模板差异度，不等同于最终下线决定。
+
+1. 建议继续迁移到 unified renderer 的模板：
+   - `blocks`
+   - `coder`
+   - `startup`
+   - `architect`
+   - `card`
+   - `magazine`
+   - `artistic`
+   - `retro`
+   - `japanese`
+   - `berlin`
+
+2. 建议保留为低优先级风格模板，后续按需迁移：
+   - `infographic`
+   - `material`
+   - `metro`
+   - `mosaic`
+   - `ribbon`
+   - `zigzag`
+   - `watercolor`
+   - `neon`
+   - `rose`
+   - `luxe`
+
+3. 建议作为“合并 / 下线候选”继续观察的模板：
+   - `bold`
+   - `gradient`
+
+补充判断依据：
+
+- `blocks`、`coder` 能补高信息密度 / 技术工程方向的历史风格空位；
+- `startup`、`architect`、`card` 仍有相对明确的场景辨识度，不只是换色皮肤；
+- `magazine`、`artistic`、`retro`、`japanese`、`berlin` 已经积累过列表样式修复，继续长期维持 legacy 双轨的成本偏高，更适合迁移收口；
+- `bold`、`gradient` 当前与现有主矩阵的差异更多停留在装饰层，和高质量矩阵目标的重合度偏低，适合先观察是否真的需要保留。
+
 ## 统一设计原则
 
 ### 个人信息区
@@ -343,13 +569,48 @@
 
 建议顺序：
 
-1. `minimal`
-2. `ats`
-3. `developer`
-4. `academic`
-5. `executive`
-6. `designer`
-7. `compact`
+1. `minimal`：已完成。
+2. `ats`：已完成。
+3. `developer`：已完成。
+4. `academic`：已完成。
+5. `executive`：已完成。
+6. `designer`：已完成。
+7. `compact`：已完成。
+8. `finance`、`medical`、`teacher`：已完成，作为行业/专业模板补充。
+9. `clean`、`corporate`：已完成，作为通用和商务变体补充。
+
+本轮迁移完成状态：
+
+1. `two-column`：已完成，补齐高信息密度矩阵，和 `compact` 形成双模板选择。
+2. `sidebar`：已完成，用于长经历和侧栏信息组织的对照验证。
+3. `engineer`：已完成，补齐技术工程变体，重点检查项目经历、技术栈和亮点。
+4. `creative`：已完成，补齐设计/创意矩阵，控制视觉复杂度和 PDF 稳定性。
+5. `swiss`：已完成，补齐商务/国际化变体，和 `consultant`、`finance` 做风格区分。
+
+当前运行机制结论：
+
+- 旧预览模板仍保留在 `src/components/preview/templates/`，目前目录下仍有 50 个旧预览实现；
+- 旧导出模板仍保留在 `src/app/api/resume/[id]/export/templates/`，目前目录下仍有 50 个旧导出实现；
+- 运行时已经优先使用统一渲染：预览在 `src/components/preview/resume-preview.tsx` 先通过 `getUnifiedTemplate(resume.template)` 查找统一模板，命中后渲染 `unifiedTemplate.PreviewComponent`；
+- 导出在 `src/app/api/resume/[id]/export/builders.ts` 先通过 `getUnifiedTemplate(resume.template)` 查找统一模板，命中后调用 `unifiedTemplate.buildHtml(toCanonicalResume(resume))`；
+- 未迁移的模板继续 fallback 到旧预览和旧导出实现，因此旧代码目前仍承担兼容兜底和迁移对照作用；
+- 对已迁移的 29 个模板，后续修改主体样式、字段顺序、项目经历、技能展示时，应优先修改 `src/lib/template-renderer/templates/<template-id>.tsx`，不再分别修改旧预览和旧导出两套文件。
+
+后续旧代码清理策略：
+
+- 不建议一次性删除全部旧模板，因为仍有未迁移模板依赖 fallback；
+- 可在完成人工视觉抽检和导出抽检后，分批删除已迁移 29 个模板对应的旧预览/旧导出实现；
+- 删除旧实现时必须同步清理 `src/components/preview/resume-preview.tsx` 和 `src/app/api/resume/[id]/export/builders.ts` 中对应的 legacy import、映射和分支；
+- 每批清理后至少执行模板测试、`pnpm type-check`、`pnpm build:desktop-shell` 和 `git diff --check`；
+- 清理完成前，文档和开发约定应明确：统一模板是已迁移模板的唯一维护入口，旧文件只作为 fallback 和历史对照。
+
+每迁移一个模板，都应同步完成：
+
+- 在 `src/lib/template-renderer/templates/` 新增统一模板；
+- 在 `src/lib/template-renderer/index.ts` 注册；
+- 在 `src/lib/template-renderer/__tests__/template-renderer.test.ts` 增加 parity 测试；
+- 根据技能展示方式补充专项断言；
+- 执行模板测试、targeted ESLint、`pnpm type-check`、`pnpm build:desktop-shell`、`git diff --check`。
 
 ### 阶段三：模板质量打磨
 
@@ -368,6 +629,47 @@
 - 多页 PDF 不破坏布局；
 - 招聘平台导入后颜色和文本可解析。
 
+下一步质量打磨建议：
+
+1. 收敛个人信息展示策略。
+   - 已迁移模板分为两类：使用 `ContactInfo` 公共组件的模板优先保持公共排序；强视觉/侧栏模板保留定制 label/value 或网格布局，但必须保证预览和导出一致。
+   - 保留模板气质差异：ATS/学术可更克制，商务/管理可保留头像和图标，侧栏模板可保留纵向 label/value。
+   - 民族、婚姻状况默认仍作为低优先级补充字段，不作为核心信息。
+
+2. 收敛项目经历展示策略。
+   - 技术类模板优先保证项目名称与时间同一行，时间右对齐。
+   - 技术栈优先使用可换行标签或清晰行内文本，不要让长技术栈挤压标题。
+   - 亮点统一使用 bullet，并确保预览和导出一致。
+
+3. 收敛技能模块展示策略。
+   - 技术/创意模板可使用 pill 标签。
+   - 商务/金融模板可使用分类名 + 逗号行内文本。
+   - ATS/通用模板优先使用列表或简单文本，减少复杂装饰。
+   - 任一模板的预览与导出必须保持同一种技能展示策略。
+
+4. 对已迁移模板做视觉抽检。
+   - 已补自动抽检：`modern-minimal`、`developer`、`clean` 的长项目名、长技术栈、多亮点。
+   - 已完成人工快速抽检：`ats`、`minimal`、`modern-minimal`、`professional`、`developer`、`academic`、`executive`、`clean`、`finance`、`corporate`、`two-column`、`sidebar`、`swiss`。
+   - 后续人工视觉抽检优先：`medical`、`teacher`、`consultant`、`designer`、`creative`、`compact`、`classic`、`modern`、`formal`、`euro`、`nordic`、`timeline`、`elegant`、`engineer`、`legal`、`scientist`。
+   - 检查长姓名、长邮箱、长项目名、长技术栈、多项目、多教育经历、多技能分类。
+   - 检查无头像、有头像两种状态。
+
+近期质量打磨补充结论：
+
+1. 列表类内容已经成为当前模板一致性的最高频问题。
+   - 典型区域包括：个人简介、工作经历职责、主要成就、项目亮点、教育亮点、荣誉奖项。
+   - 对未迁移模板，不能再依赖 `md(...)` 的默认 `<ul>` 输出作为最终样式；只要模板本身有自定义 bullet 风格，就应该提取到本地 helper，在 preview/export 两侧复用。
+
+2. “先迁移再优化”与“先做用户可见修复”需要并行。
+   - 对主矩阵模板，优先统一渲染迁移；
+   - 对暂不迁移但用户频繁使用的 legacy 模板，可以先做结构一致性补丁，降低日常回归成本；
+   - 这类补丁应被视为临时质量收口，不应替代 unified migration。
+
+3. 当前阶段最值得优先抽检的 legacy 模板是已经做过过渡修复的一组。
+   - `startup`、`card`、`zigzag`、`ribbon`、`mosaic`
+   - `magazine`、`artistic`、`retro`、`japanese`、`berlin`
+   - 它们已经积累过列表修复，后续如果决定继续保留，应优先纳入 unified migration 候选池。
+
 ### 阶段四：产品化模板选择
 
 目标：
@@ -385,6 +687,40 @@
 - 管理高管；
 - 设计创意；
 - 高信息密度。
+
+后续产品化建议：
+
+1. 模板选择页继续保留矩阵分组，但每组只推荐 2-4 个主模板，其他模板作为“更多风格”。
+2. 为模板增加更明确的适用描述，例如“适合网申解析”“适合技术项目多”“适合管理岗成果展示”。
+3. 增加默认推荐顺序：`ats`、`minimal`、`modern-minimal`、`professional`、`developer`。
+4. 不急于新增模板数量，优先把已迁移模板做稳定。
+
+## 阶段性完成定义
+
+需要明确区分两个目标：
+
+### 目标 A：高质量模板矩阵完成
+
+满足以下条件即可视为“矩阵规划阶段基本完成”：
+
+- 模板选择页已经按矩阵分组展示；
+- 主矩阵模板已经具备稳定推荐集；
+- 统一渲染模板数量足以覆盖主流程；
+- 预览 / 导出一致性的主要问题集中在少数 legacy 模板，而不是主矩阵模板；
+- 已迁移模板具备测试和基本视觉抽检。
+
+按当前状态看，目标 A 已经进入“可收口但仍需抽检”的阶段。
+
+### 目标 B：历史模板库全量统一渲染
+
+满足以下条件才算完成：
+
+- legacy 50 个模板全部迁移到 unified renderer；
+- 旧 preview / export 双轨实现全部删除；
+- fallback 逻辑只保留极少数历史兼容分支；
+- 所有模板的维护入口都统一到 `src/lib/template-renderer/templates/`。
+
+按当前状态看，目标 B 仍有 22 个 legacy 模板未完成，不应与目标 A 混为一谈。
 
 ## 验收标准
 
@@ -408,6 +744,44 @@
 - 重做模板库页面；
 - 批量迁移全部 50 个模板；
 - 为每个行业定制独立数据结构。
+
+## 下一阶段待办
+
+优先级建议如下：
+
+| 优先级 | 任务 | 说明 |
+|---|---|---|
+| P0 | 完成剩余 16 个 unified 模板的人工视觉抽检 | 当前已完成 13 / 29，优先补 `medical`、`teacher`、`consultant`、`designer`、`creative`、`compact` |
+| P0 | 做招聘平台导入抽检 | 优先检查颜色、列表、时间、字段顺序、长文本解析 |
+| P0 | 锁定剩余 22 个 legacy 模板处置策略 | 当前已形成第一版分层建议，下一步需结合模板使用频率和产品取舍定稿 |
+| P1 | 从剩余 22 个模板里挑下一批 unified migration 候选 | 第一优先级建议：`blocks`、`coder`、`startup`、`architect`、`card`、`magazine`、`artistic`、`retro`、`japanese`、`berlin` |
+| P1 | 把高频 legacy 列表修复经验沉淀到迁移 checklist | 重点是 summary / responsibilities / highlights / honors 四类 bullet 区域 |
+| P2 | 分批删除已迁移 29 个模板对应的旧 preview/export 实现 | 前提是人工抽检通过，并完成 legacy import / mapping 清理 |
+
+下一轮不建议再无差别追求模板数量，优先顺序应为：
+
+1. 把 29 个 unified 模板的视觉和导出稳定性做扎实；
+2. 对剩余 22 个 legacy 模板做产品层面的取舍；
+3. 只迁移那些真正值得保留、且已经被验证有持续维护价值的模板。
+
+## 后续恢复工作入口
+
+继续开发时优先阅读：
+
+1. `docs/template-unified-renderer-migration-guide.md`
+2. `src/lib/template-renderer/index.ts`
+3. `src/lib/template-renderer/__tests__/template-renderer.test.ts`
+4. 目标模板的旧预览实现：`src/components/preview/templates/<template-id>.tsx`
+5. 目标模板的旧导出实现：`src/app/api/resume/[id]/export/templates/<template-id>.ts`
+
+推荐恢复命令：
+
+```bash
+pnpm exec tsx "src/lib/template-renderer/__tests__/template-renderer.test.ts"
+pnpm type-check
+pnpm build:desktop-shell
+git diff --check
+```
 
 ## 建议结论
 

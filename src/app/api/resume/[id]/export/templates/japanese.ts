@@ -9,15 +9,26 @@ import type {
   CustomContent,
   GitHubContent,
 } from '@/types/resume';
-import { esc, md, degreeField, getPersonalInfo, visibleSections, buildQrCodesHtml, type ResumeWithSections, type Section } from '../utils';
+import { esc, md, degreeField, extractMarkdownBulletItems, getPersonalInfo, visibleSections, buildQrCodesHtml, type ResumeWithSections, type Section } from '../utils';
 
 const PRIMARY = '#1c1917';
 const ACCENT = '#a8a29e';
 
+function buildJapaneseBulletList(items: string[] | undefined, className = 'space-y-1'): string {
+  if (!items?.length) return '';
+  return `<ul class="${className}">${items.filter(Boolean).map((item: string) => `<li class="flex items-start gap-3 text-sm font-light" style="color:#57534e"><span class="mt-2 inline-block h-px w-3 shrink-0" style="background-color:${ACCENT}"></span>${md(item)}</li>`).join('')}</ul>`;
+}
+
 function buildJapaneseSectionContent(section: Section, lang: string): string {
   const c = section.content as any;
 
-  if (section.type === 'summary') return `<div class="text-sm font-light leading-loose" style="color:#57534e">${md((c as SummaryContent).text)}</div>`;
+  if (section.type === 'summary') {
+    const summaryItems = extractMarkdownBulletItems((c as SummaryContent).text);
+    if (summaryItems?.length) {
+      return buildJapaneseBulletList(summaryItems);
+    }
+    return `<div class="text-sm font-light leading-loose" style="color:#57534e">${md((c as SummaryContent).text)}</div>`;
+  }
 
   if (section.type === 'work_experience') {
     return `<div class="space-y-6">${((c as WorkExperienceContent).items || []).map((it: any) => `<div>
@@ -26,9 +37,9 @@ function buildJapaneseSectionContent(section: Section, lang: string): string {
         <span class="shrink-0 text-[10px] font-light" style="color:${ACCENT}">${esc(it.startDate)} &ndash; ${esc(it.endDate) || (it.current ? (lang === 'zh' ? '至今' : 'Present') : '')}</span>
       </div>
       ${it.company ? `<p class="mt-0.5 text-xs font-light" style="color:${ACCENT}">${esc(it.company)}${it.location ? `, ${esc(it.location)}` : ''}</p>` : ''}
-      ${it.description ? `<div class="mt-2 text-sm font-light leading-relaxed" style="color:#57534e"><span class="font-medium" style="color:${PRIMARY}">${lang === 'zh' ? '\u804c\u8d23' : 'Responsibilities'}:</span> ${md(it.description)}</div>` : ''}
+      ${(() => { const responsibilityItems = extractMarkdownBulletItems(it.description); if (responsibilityItems?.length) { return `<div class="mt-2"><p class="mb-0.5 text-xs font-medium" style="color:${ACCENT}">${lang === 'zh' ? '\u804c\u8d23' : 'Responsibilities'}:</p>${buildJapaneseBulletList(responsibilityItems)}</div>`; } return it.description ? `<div class="mt-2 text-sm font-light leading-relaxed" style="color:#57534e"><span class="font-medium" style="color:${PRIMARY}">${lang === 'zh' ? '\u804c\u8d23' : 'Responsibilities'}:</span> ${md(it.description)}</div>` : ''; })()}
       ${it.technologies?.length ? `<p class="mt-1 text-xs font-light" style="color:${ACCENT}">${esc(it.technologies.join(' \u00b7 '))}</p>` : ''}
-      ${it.highlights?.length ? `<div class="mt-2"><p class="text-xs font-medium mb-0.5" style="color:${ACCENT}">${lang === 'zh' ? '\u4e3b\u8981\u6210\u5c31' : 'Key Achievements'}:</p><ul class="space-y-1">${it.highlights.filter(Boolean).map((h: string) => `<li class="flex items-start gap-3 text-sm font-light" style="color:#57534e"><span class="mt-2 inline-block h-px w-3 shrink-0" style="background-color:${ACCENT}"></span>${md(h)}</li>`).join('')}</ul></div>` : ''}
+      ${it.highlights?.length ? `<div class="mt-2"><p class="mb-0.5 text-xs font-medium" style="color:${ACCENT}">${lang === 'zh' ? '\u4e3b\u8981\u6210\u5c31' : 'Key Achievements'}:</p>${buildJapaneseBulletList(it.highlights)}</div>` : ''}
       <div class="mt-4 h-px" style="background-color:${ACCENT};opacity:0.2"></div>
     </div>`).join('')}</div>`;
   }
@@ -41,7 +52,7 @@ function buildJapaneseSectionContent(section: Section, lang: string): string {
       </div>
       ${it.institution ? `<p class="mt-0.5 text-xs font-light" style="color:${ACCENT}">${esc(it.institution)}${it.location ? `, ${esc(it.location)}` : ''}</p>` : ''}
       ${it.gpa ? `<p class="mt-1 text-xs font-light" style="color:${ACCENT}">GPA: ${esc(it.gpa)}</p>` : ''}
-      ${it.highlights?.length ? `<ul class="mt-2 space-y-1">${it.highlights.filter(Boolean).map((h: string) => `<li class="flex items-start gap-3 text-sm font-light" style="color:#57534e"><span class="mt-2 inline-block h-px w-3 shrink-0" style="background-color:${ACCENT}"></span>${md(h)}</li>`).join('')}</ul>` : ''}
+      ${it.highlights?.length ? buildJapaneseBulletList(it.highlights, 'mt-2 space-y-1') : ''}
     </div>`).join('')}</div>`;
   }
 
@@ -59,7 +70,7 @@ function buildJapaneseSectionContent(section: Section, lang: string): string {
       </div>
       ${it.description ? `<div class="mt-1 text-sm font-light leading-relaxed" style="color:#57534e">${md(it.description)}</div>` : ''}
       ${it.technologies?.length ? `<p class="mt-1 text-xs font-light" style="color:${ACCENT}">${esc(it.technologies.join(' \u00b7 '))}</p>` : ''}
-      ${it.highlights?.length ? `<ul class="mt-2 space-y-1">${it.highlights.filter(Boolean).map((h: string) => `<li class="flex items-start gap-3 text-sm font-light" style="color:#57534e"><span class="mt-2 inline-block h-px w-3 shrink-0" style="background-color:${ACCENT}"></span>${md(h)}</li>`).join('')}</ul>` : ''}
+      ${it.highlights?.length ? buildJapaneseBulletList(it.highlights, 'mt-2 space-y-1') : ''}
     </div>`).join('')}</div>`;
   }
 

@@ -27,8 +27,10 @@ import {
   getPersonalInfo,
   visibleSections,
   buildHighlights,
+  markdownListStyle,
 } from '../template-contract';
 import { ContactInfo, buildContactEntries } from '../contact-info';
+import { CertificationList, buildCertificationListHtml } from '../certifications-list';
 import { AvatarImage } from '@/components/preview/avatar-image';
 
 const BLUE = '#1e3a5f';
@@ -131,7 +133,7 @@ function ProfessionalSectionContent({
             {item.description && (
               <p className="mt-1 text-sm text-zinc-600">
                 <span className="font-medium text-zinc-700">{lang === 'zh' ? '职责' : 'Responsibilities'}:</span>{' '}
-                <span dangerouslySetInnerHTML={{ __html: md(item.description) }} />
+                <span dangerouslySetInnerHTML={{ __html: md(item.description, { listStyle: markdownListStyle('1.25rem') }) }} />
               </p>
             )}
             {item.technologies?.length > 0 && (
@@ -260,19 +262,7 @@ function ProfessionalSectionContent({
 
   if (section.type === 'certifications') {
     const items = (content as unknown as CertificationsContent).items || [];
-    return (
-      <div className="space-y-1.5">
-        {items.map((item) => (
-          <div key={item.id} className="flex items-baseline justify-between text-sm">
-            <div>
-              <span className="font-semibold" style={{ color: BLUE }}>{item.name}</span>
-              {item.issuer && <span className="text-zinc-600"> — {item.issuer}</span>}
-            </div>
-            {item.date && <span className="shrink-0 text-xs italic text-zinc-400">{item.date}</span>}
-          </div>
-        ))}
-      </div>
-    );
+    return <CertificationList items={items} titleClassName="font-semibold" issuerClassName="text-zinc-600" dateClassName="shrink-0 text-xs italic text-zinc-400" titleStyle={{ color: BLUE }} />;
   }
 
   if (section.type === 'languages') {
@@ -360,7 +350,7 @@ function buildProfessionalSectionHtml(section: CanonicalResume['sections'][numbe
     const items = (content as unknown as WorkExperienceContent).items || [];
     return `<div class="space-y-4">${items.map((it) => `<div>
       <div class="flex items-baseline justify-between"><div><span class="text-sm font-bold" style="color:${BLUE}">${esc(it.position)}</span>${it.company ? `<span class="text-sm text-zinc-600"> — ${esc(it.company)}</span>` : ''}${it.location ? `<span class="text-sm text-zinc-400"> (${esc(it.location)})</span>` : ''}</div><span class="shrink-0 text-xs text-zinc-400 italic">${esc(dateRange(it.startDate, it.endDate, it.current, lang))}</span></div>
-      ${it.description ? `<p class="mt-1 text-sm text-zinc-600"><span class="font-medium text-zinc-700">${lang === 'zh' ? '职责' : 'Responsibilities'}:</span> <span>${md(it.description)}</span></p>` : ''}
+      ${it.description ? `<p class="mt-1 text-sm text-zinc-600"><span class="font-medium text-zinc-700">${lang === 'zh' ? '职责' : 'Responsibilities'}:</span> <span>${md(it.description, { listStyle: markdownListStyle('1.25rem') })}</span></p>` : ''}
       ${it.technologies?.length ? `<p class="mt-0.5 text-xs text-zinc-400">${lang === 'zh' ? '技术栈' : 'Tech'}: ${esc(it.technologies.join(', '))}</p>` : ''}
       ${it.highlights?.length ? `<div class="mt-1"><p class="text-xs font-medium text-zinc-500 mb-0.5">${lang === 'zh' ? '主要成就' : 'Key Achievements'}:</p><ul class="list-disc pl-5">${buildHighlights(it.highlights, 'text-sm text-zinc-600')}</ul></div>` : ''}
     </div>`).join('')}</div>`;
@@ -405,9 +395,7 @@ function buildProfessionalSectionHtml(section: CanonicalResume['sections'][numbe
 
   if (section.type === 'certifications') {
     const items = (content as unknown as CertificationsContent).items || [];
-    return `<div class="space-y-1.5">${items.map((it) =>
-      `<div class="flex items-baseline justify-between text-sm"><div><span class="font-semibold" style="color:${BLUE}">${esc(it.name)}</span>${it.issuer ? `<span class="text-zinc-600"> — ${esc(it.issuer)}</span>` : ''}</div>${it.date ? `<span class="shrink-0 text-xs text-zinc-400 italic">${esc(it.date)}</span>` : ''}</div>`
-    ).join('')}</div>`;
+    return buildCertificationListHtml(items, { titleClass: 'font-semibold', issuerClass: 'text-zinc-600', dateClass: 'shrink-0 text-xs text-zinc-400 italic', titleStyle: `color:${BLUE}` });
   }
 
   if (section.type === 'languages') {

@@ -14,12 +14,16 @@ import type {
   GitHubContent,
 } from '@/types/resume';
 import { AvatarImage } from '../avatar-image';
-import { degreeField, isSectionEmpty, md } from '../utils';
+import { degreeField, extractMarkdownBulletItems, isSectionEmpty, md } from '../utils';
 import { QrCodesPreview } from '../qr-codes-preview';
 
 const PRIMARY = '#1e293b';
 const ACCENT = '#8b5cf6';
 const ALT_BG = '#f5f3ff';
+
+function ZigzagBulletList({ items, className = 'list-disc pl-4' }: { items: string[]; className?: string }) {
+  return <ul className={className}>{items.map((item, index) => <li key={index} className="text-sm text-zinc-600" dangerouslySetInnerHTML={{ __html: md(item) }} />)}</ul>;
+}
 
 export function ZigzagTemplate({ resume }: { resume: Resume }) {
   const personalInfo = resume.sections.find((s) => s.type === 'personal_info');
@@ -93,6 +97,10 @@ function ZigzagSectionContent({ section, resume }: { section: any; resume: Resum
   const content = section.content;
 
   if (section.type === 'summary') {
+    const summaryItems = extractMarkdownBulletItems((content as SummaryContent).text);
+    if (summaryItems) {
+      return <ZigzagBulletList items={summaryItems} className="list-disc pl-4" />;
+    }
     return <p className="text-sm leading-relaxed text-zinc-600" dangerouslySetInnerHTML={{ __html: md((content as SummaryContent).text) }} />;
   }
 
@@ -100,7 +108,9 @@ function ZigzagSectionContent({ section, resume }: { section: any; resume: Resum
     const items = (content as WorkExperienceContent).items || [];
     return (
       <div className="space-y-3 text-left">
-        {items.map((item: any) => (
+        {items.map((item: any) => {
+          const responsibilityItems = extractMarkdownBulletItems(item.description);
+          return (
           <div key={item.id}>
             <div className="flex items-baseline justify-between">
               <div>
@@ -109,7 +119,8 @@ function ZigzagSectionContent({ section, resume }: { section: any; resume: Resum
               </div>
               <span className="shrink-0 text-xs text-zinc-400">{item.startDate} – {item.endDate || (item.current ? (resume.language === 'zh' ? '至今' : 'Present') : '')}</span>
             </div>
-            {item.description && <p className="mt-1 text-sm text-zinc-600"><span className="font-medium text-zinc-700">{resume.language === 'zh' ? '职责' : 'Responsibilities'}:</span> <span dangerouslySetInnerHTML={{ __html: md(item.description) }} /></p>}
+            {item.description && responsibilityItems && <div className="mt-1"><p className="text-xs font-medium text-zinc-500 mb-0.5">{resume.language === 'zh' ? '职责' : 'Responsibilities'}:</p><ZigzagBulletList items={responsibilityItems} /></div>}
+            {item.description && !responsibilityItems && <p className="mt-1 text-sm text-zinc-600"><span className="font-medium text-zinc-700">{resume.language === 'zh' ? '职责' : 'Responsibilities'}:</span> <span dangerouslySetInnerHTML={{ __html: md(item.description) }} /></p>}
             {item.technologies?.length > 0 && (
               <div className="mt-1 flex flex-wrap gap-1">
                 {item.technologies.map((t: string, i: number) => (
@@ -122,15 +133,11 @@ function ZigzagSectionContent({ section, resume }: { section: any; resume: Resum
             {item.highlights?.length > 0 && (
               <div className="mt-1">
                 <p className="text-xs font-medium text-zinc-500 mb-0.5">{resume.language === 'zh' ? '主要成就' : 'Key Achievements'}:</p>
-                <ul className="list-disc pl-4">
-                  {item.highlights.map((h: string, i: number) => (
-                    <li key={i} className="text-sm text-zinc-600" dangerouslySetInnerHTML={{ __html: md(h) }} />
-                  ))}
-                </ul>
+                <ZigzagBulletList items={item.highlights} />
               </div>
             )}
           </div>
-        ))}
+        )})}
       </div>
     );
   }
@@ -148,11 +155,7 @@ function ZigzagSectionContent({ section, resume }: { section: any; resume: Resum
             <p className="text-sm text-zinc-600">{degreeField(item.degree, item.field)}</p>
             {item.gpa && <p className="text-xs text-zinc-500">GPA: {item.gpa}</p>}
             {item.highlights?.length > 0 && (
-              <ul className="mt-1 list-disc pl-4">
-                {item.highlights.map((h: string, i: number) => (
-                  <li key={i} className="text-sm text-zinc-600" dangerouslySetInnerHTML={{ __html: md(h) }} />
-                ))}
-              </ul>
+              <ZigzagBulletList items={item.highlights} className="mt-1 list-disc pl-4" />
             )}
           </div>
         ))}
@@ -205,11 +208,7 @@ function ZigzagSectionContent({ section, resume }: { section: any; resume: Resum
               </div>
             )}
             {item.highlights?.length > 0 && (
-              <ul className="mt-1 list-disc pl-4">
-                {item.highlights.map((h: string, i: number) => (
-                  <li key={i} className="text-sm text-zinc-600" dangerouslySetInnerHTML={{ __html: md(h) }} />
-                ))}
-              </ul>
+              <ZigzagBulletList items={item.highlights} className="mt-1 list-disc pl-4" />
             )}
           </div>
         ))}

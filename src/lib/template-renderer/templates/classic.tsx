@@ -29,6 +29,7 @@ import {
   visibleSections,
 } from '../template-contract';
 import { ContactInfo, buildContactEntries } from '../contact-info';
+import { CertificationList, buildCertificationListHtml } from '../certifications-list';
 
 // ============================================================================
 // Preview Component (React)
@@ -284,23 +285,7 @@ function ClassicSectionContent({
 
   if (section.type === 'certifications') {
     const items = (content as unknown as CertificationsContent).items || [];
-    return (
-      <div className="space-y-1">
-        {items.map((item) => (
-          <div key={item.id}>
-            <span className="font-semibold text-zinc-800 text-sm">
-              {item.name}
-            </span>
-            {(item.issuer || item.date) && (
-              <span className="text-sm text-zinc-600">
-                {item.issuer && <> - {item.issuer}</>}
-                {item.date && <> ({item.date})</>}
-              </span>
-            )}
-          </div>
-        ))}
-      </div>
-    );
+    return <CertificationList items={items} titleClassName="font-semibold text-zinc-800" issuerClassName="text-zinc-600" />;
   }
 
   if (section.type === 'languages') {
@@ -474,12 +459,7 @@ function buildClassicSectionContentHtml(
 
   if (section.type === 'certifications') {
     const items = (content as unknown as CertificationsContent).items || [];
-    return `<div class="space-y-1">${items
-      .map(
-        (it) =>
-          `<div><span class="font-semibold text-zinc-800 text-sm">${esc(it.name)}</span><span class="text-sm text-zinc-600">${it.issuer ? ` - ${esc(it.issuer)}` : ''}${it.date ? ` (${esc(it.date)})` : ''}</span></div>`
-      )
-      .join('')}</div>`;
+    return buildCertificationListHtml(items, { titleClass: 'font-semibold text-zinc-800', issuerClass: 'text-zinc-600' });
   }
 
   if (section.type === 'languages') {

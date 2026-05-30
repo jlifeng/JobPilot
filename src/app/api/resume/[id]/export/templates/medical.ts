@@ -9,7 +9,7 @@ import type {
   CustomContent,
   GitHubContent,
 } from '@/types/resume';
-import { esc, md, degreeField, getPersonalInfo, visibleSections, buildQrCodesHtml, type ResumeWithSections, type Section } from '../utils';
+import { esc, md, degreeField, extractMarkdownBulletItems, getPersonalInfo, visibleSections, buildQrCodesHtml, type ResumeWithSections, type Section } from '../utils';
 import { buildContactEntries } from '@/lib/template-renderer/contact-info';
 
 const TEAL_800 = '#115e59';
@@ -20,6 +20,10 @@ function buildMedicalSectionContent(section: Section, lang: string): string {
   const c = section.content as any;
 
   if (section.type === 'summary') {
+    const summaryItems = extractMarkdownBulletItems((c as SummaryContent).text);
+    if (summaryItems?.length) {
+      return `<ul class="list-disc pl-4">${summaryItems.map((item: string) => `<li class="text-sm text-gray-600">${md(item)}</li>`).join('')}</ul>`;
+    }
     return `<div class="text-sm leading-relaxed text-gray-600">${md((c as SummaryContent).text)}</div>`;
   }
 

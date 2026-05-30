@@ -684,7 +684,45 @@
     "preview": "Preview",
     "useTemplate": "Use This Template",
     "creating": "Creating...",
-    "nav": "Template Gallery"
+    "nav": "Template Gallery",
+    "matrix": {
+      "atsGeneral": {
+        "title": "ATS & General Applications",
+        "description": "Reliable choices for job boards, ATS parsing, and safe general-purpose applications."
+      },
+      "techEngineering": {
+        "title": "Tech & Engineering",
+        "description": "Emphasizes projects, technical stacks, and engineering impact for software, data, AI, and architecture roles."
+      },
+      "businessConsulting": {
+        "title": "Consulting, Finance & Business",
+        "description": "Formal, restrained, and dense layouts for consulting, finance, strategy, operations, and business roles."
+      },
+      "academicResearch": {
+        "title": "Campus, Academic & Research",
+        "description": "Highlights education, research, competitions, publications, and certifications."
+      },
+      "medicalLegal": {
+        "title": "Medical & Legal",
+        "description": "Designed for credential-led professions where qualifications and institutional experience matter."
+      },
+      "executive": {
+        "title": "Management & Executive",
+        "description": "For managers, leads, and senior operators who need to show business influence."
+      },
+      "creative": {
+        "title": "Design & Creative",
+        "description": "More visual presence for design, brand, content, and portfolio-oriented roles."
+      },
+      "dense": {
+        "title": "High Information Density",
+        "description": "For candidates with many roles, projects, or details who need more content on each page."
+      },
+      "visual": {
+        "title": "Expressive Styles",
+        "description": "Additional visual directions and layout variations for more personalized resumes."
+      }
+    }
   },
   "tour": {
     "next": "Next",

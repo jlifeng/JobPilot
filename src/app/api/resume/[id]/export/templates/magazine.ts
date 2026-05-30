@@ -9,17 +9,26 @@ import type {
   CustomContent,
   GitHubContent,
 } from '@/types/resume';
-import { esc, md, degreeField, getPersonalInfo, visibleSections, buildHighlights, buildQrCodesHtml, type ResumeWithSections, type Section } from '../utils';
+import { esc, md, degreeField, extractMarkdownBulletItems, getPersonalInfo, visibleSections, buildQrCodesHtml, type ResumeWithSections, type Section } from '../utils';
 
 const PRIMARY = '#1a1a1a';
 const ACCENT = '#dc2626';
 const SECONDARY = '#78716c';
+
+function buildMagazineBulletList(items: string[] | undefined, className = 'space-y-0.5'): string {
+  if (!items?.length) return '';
+  return `<ul class="${className}">${items.filter(Boolean).map((item: string) => `<li class="flex items-start gap-2 text-sm" style="color:${SECONDARY}"><span class="mt-1.5 h-1.5 w-1.5 shrink-0 rotate-45" style="background-color:${ACCENT}"></span>${md(item)}</li>`).join('')}</ul>`;
+}
 
 function buildMagazineSectionContent(section: Section, lang: string): string {
   const c = section.content as any;
 
   if (section.type === 'summary') {
     const text = (c as SummaryContent).text || '';
+    const summaryItems = extractMarkdownBulletItems(text);
+    if (summaryItems?.length) {
+      return buildMagazineBulletList(summaryItems);
+    }
     const first = text.length > 0 ? text[0] : '';
     const rest = text.length > 0 ? text.slice(1) : '';
     return `<p class="text-sm leading-relaxed" style="color:${SECONDARY}">${first ? `<span class="float-left mr-1 text-3xl font-black leading-none" style="color:${ACCENT}">${esc(first)}</span>` : ''}${md(rest)}</p>`;
@@ -29,9 +38,9 @@ function buildMagazineSectionContent(section: Section, lang: string): string {
     return `<div class="space-y-4">${((c as WorkExperienceContent).items || []).map((it: any) => `<div class="border-l-2 pl-4" style="border-color:${ACCENT}">
       <div class="flex items-baseline justify-between"><h3 class="text-sm font-bold" style="color:${PRIMARY}">${esc(it.position)}</h3><span class="shrink-0 text-xs font-medium" style="color:${ACCENT}">${esc(it.startDate)} - ${esc(it.endDate) || (it.current ? (lang === 'zh' ? '至今' : 'Present') : '')}</span></div>
       ${it.company ? `<p class="text-sm font-medium italic" style="color:${SECONDARY}">${esc(it.company)}${it.location ? `, ${esc(it.location)}` : ''}</p>` : ''}
-      ${it.description ? `<div class="mt-1 text-sm" style="color:${SECONDARY}"><span class="font-medium" style="color:${PRIMARY}">${lang === 'zh' ? '职责' : 'Responsibilities'}:</span> ${md(it.description)}</div>` : ''}
+      ${(() => { const responsibilityItems = extractMarkdownBulletItems(it.description); if (responsibilityItems?.length) { return `<div class="mt-1.5"><p class="mb-0.5 text-xs font-medium" style="color:${PRIMARY}">${lang === 'zh' ? '职责' : 'Responsibilities'}:</p>${buildMagazineBulletList(responsibilityItems)}</div>`; } return it.description ? `<div class="mt-1 text-sm" style="color:${SECONDARY}"><span class="font-medium" style="color:${PRIMARY}">${lang === 'zh' ? '职责' : 'Responsibilities'}:</span> ${md(it.description)}</div>` : ''; })()}
       ${it.technologies?.length ? `<p class="mt-1 text-xs italic" style="color:${ACCENT}">${esc(it.technologies.join(', '))}</p>` : ''}
-      ${it.highlights?.length ? `<div class="mt-1.5"><p class="text-xs font-medium mb-0.5" style="color:${ACCENT}">${lang === 'zh' ? '主要成就' : 'Key Achievements'}:</p><ul class="space-y-0.5">${it.highlights.filter(Boolean).map((h: string) => `<li class="flex items-start gap-2 text-sm" style="color:${SECONDARY}"><span class="mt-1.5 h-1.5 w-1.5 shrink-0 rotate-45" style="background-color:${ACCENT}"></span>${md(h)}</li>`).join('')}</ul></div>` : ''}
+      ${it.highlights?.length ? `<div class="mt-1.5"><p class="mb-0.5 text-xs font-medium" style="color:${PRIMARY}">${lang === 'zh' ? '主要成就' : 'Key Achievements'}:</p>${buildMagazineBulletList(it.highlights)}</div>` : ''}
     </div>`).join('')}</div>`;
   }
 
@@ -40,7 +49,7 @@ function buildMagazineSectionContent(section: Section, lang: string): string {
       <div class="flex items-baseline justify-between"><h3 class="text-sm font-bold" style="color:${PRIMARY}">${esc(it.institution)}</h3><span class="text-xs" style="color:${SECONDARY}">${esc(it.startDate)} - ${esc(it.endDate) || (lang === 'zh' ? '至今' : 'Present')}</span></div>
       <p class="text-sm" style="color:${SECONDARY}">${esc(degreeField(it.degree, it.field))}${it.location ? ` — ${esc(it.location)}` : ''}</p>
       ${it.gpa ? `<p class="text-xs" style="color:${SECONDARY}">GPA: ${esc(it.gpa)}</p>` : ''}
-      ${it.highlights?.length ? `<ul class="mt-1 space-y-0.5">${it.highlights.filter(Boolean).map((h: string) => `<li class="flex items-start gap-2 text-sm" style="color:${SECONDARY}"><span class="mt-1.5 h-1.5 w-1.5 shrink-0 rotate-45" style="background-color:${ACCENT}"></span>${md(h)}</li>`).join('')}</ul>` : ''}
+      ${it.highlights?.length ? buildMagazineBulletList(it.highlights, 'mt-1 space-y-0.5') : ''}
     </div>`).join('')}</div>`;
   }
 
@@ -55,7 +64,7 @@ function buildMagazineSectionContent(section: Section, lang: string): string {
       <div class="flex items-baseline justify-between"><h3 class="text-sm font-bold" style="color:${PRIMARY}">${esc(it.name)}</h3>${it.startDate ? `<span class="text-xs" style="color:${SECONDARY}">${esc(it.startDate)} - ${it.endDate ? esc(it.endDate) : (lang === 'zh' ? '至今' : 'Present')}</span>` : ''}</div>
       ${it.description ? `<div class="mt-0.5 text-sm" style="color:${SECONDARY}">${md(it.description)}</div>` : ''}
       ${it.technologies?.length ? `<p class="mt-1 text-xs italic" style="color:${ACCENT}">${esc(it.technologies.join(', '))}</p>` : ''}
-      ${it.highlights?.length ? `<ul class="mt-1 space-y-0.5">${it.highlights.filter(Boolean).map((h: string) => `<li class="flex items-start gap-2 text-sm" style="color:${SECONDARY}"><span class="mt-1.5 h-1.5 w-1.5 shrink-0 rotate-45" style="background-color:${ACCENT}"></span>${md(h)}</li>`).join('')}</ul>` : ''}
+      ${it.highlights?.length ? buildMagazineBulletList(it.highlights, 'mt-1 space-y-0.5') : ''}
     </div>`).join('')}</div>`;
   }
 

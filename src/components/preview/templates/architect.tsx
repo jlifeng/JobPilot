@@ -2,7 +2,7 @@
 
 import type { Resume, PersonalInfoContent, SummaryContent, WorkExperienceContent, EducationContent, SkillsContent, ProjectsContent, CertificationsContent, LanguagesContent, GitHubContent, CustomContent } from '@/types/resume';
 import { AvatarImage } from '../avatar-image';
-import { degreeField, isSectionEmpty, md } from '../utils';
+import { degreeField, extractMarkdownBulletItems, isSectionEmpty, md } from '../utils';
 import { QrCodesPreview } from '../qr-codes-preview';
 
 const PRIMARY = '#1e3a5f';
@@ -10,6 +10,19 @@ const ACCENT = '#1d4ed8';
 const GRID = '#dbeafe';
 const BODY_TEXT = '#374151';
 const MUTED = '#6b7280';
+
+function ArchitectBulletList({ items, className = 'space-y-0.5' }: { items: string[]; className?: string }) {
+  return (
+    <ul className={className}>
+      {items.map((item, index) => (
+        <li key={index} className="flex items-start gap-2 text-sm" style={{ color: BODY_TEXT }}>
+          <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rotate-45" style={{ backgroundColor: ACCENT }} />
+          <span dangerouslySetInnerHTML={{ __html: md(item) }} />
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 export function ArchitectTemplate({ resume }: { resume: Resume }) {
   const personalInfo = resume.sections.find((s) => s.type === 'personal_info');
@@ -93,15 +106,20 @@ function ArchitectSectionContent({ section, resume }: { section: any; resume: Re
   const content = section.content;
 
   if (section.type === 'summary') {
-    return (
-      <p className="border-l-2 pl-4 text-sm leading-relaxed" style={{ color: BODY_TEXT, borderColor: GRID }} dangerouslySetInnerHTML={{ __html: md((content as SummaryContent).text) }} />
-    );
+    const summaryText = (content as SummaryContent).text;
+    const summaryItems = extractMarkdownBulletItems(summaryText);
+    return summaryItems
+      ? <div className="border-l-2 pl-4" style={{ borderColor: GRID }}><ArchitectBulletList items={summaryItems} /></div>
+      : <p className="border-l-2 pl-4 text-sm leading-relaxed" style={{ color: BODY_TEXT, borderColor: GRID }} dangerouslySetInnerHTML={{ __html: md(summaryText) }} />;
   }
 
   if (section.type === 'work_experience') {
     return (
       <div className="space-y-4">
-        {((content as WorkExperienceContent).items || []).map((item: any) => (
+        {((content as WorkExperienceContent).items || []).map((item: any) => {
+          const responsibilityItems = extractMarkdownBulletItems(item.description);
+
+          return (
           <div key={item.id} className="border-l-2 pl-4" style={{ borderColor: ACCENT }}>
             <div className="flex items-baseline justify-between">
               <div>
@@ -116,7 +134,13 @@ function ArchitectSectionContent({ section, resume }: { section: any; resume: Re
                 {item.startDate} - {item.endDate || (item.current ? (resume.language === 'zh' ? '至今' : 'Present') : '')}
               </span>
             </div>
-            {item.description && <p className="mt-1 text-sm" style={{ color: BODY_TEXT }}><span className="font-medium" style={{ color: PRIMARY }}>{resume.language === 'zh' ? '职责' : 'Responsibilities'}:</span> <span dangerouslySetInnerHTML={{ __html: md(item.description) }} /></p>}
+            {item.description && responsibilityItems && (
+              <div className="mt-1">
+                <p className="text-xs font-medium" style={{ color: MUTED }}>{resume.language === 'zh' ? '职责' : 'Responsibilities'}:</p>
+                <ArchitectBulletList items={responsibilityItems} className="mt-0.5 space-y-0.5" />
+              </div>
+            )}
+            {item.description && !responsibilityItems && <p className="mt-1 text-sm" style={{ color: BODY_TEXT }}><span className="font-medium" style={{ color: PRIMARY }}>{resume.language === 'zh' ? '职责' : 'Responsibilities'}:</span> <span dangerouslySetInnerHTML={{ __html: md(item.description) }} /></p>}
             {item.technologies?.length > 0 && (
               <div className="mt-1 flex flex-wrap gap-1.5">
                 {item.technologies.map((t: string, i: number) => (
@@ -133,18 +157,11 @@ function ArchitectSectionContent({ section, resume }: { section: any; resume: Re
             {item.highlights?.length > 0 && (
               <div className="mt-1.5">
                 <p className="text-xs font-medium" style={{ color: MUTED }}>{resume.language === 'zh' ? '主要成就' : 'Key Achievements'}:</p>
-                <ul className="mt-0.5 space-y-0.5">
-                  {item.highlights.map((h: string, i: number) => (
-                    <li key={i} className="flex items-start gap-2 text-sm" style={{ color: BODY_TEXT }}>
-                      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rotate-45" style={{ backgroundColor: ACCENT }} />
-                      <span dangerouslySetInnerHTML={{ __html: md(h) }} />
-                    </li>
-                  ))}
-                </ul>
+                <ArchitectBulletList items={item.highlights} className="mt-0.5 space-y-0.5" />
               </div>
             )}
           </div>
-        ))}
+        )})}
       </div>
     );
   }
@@ -167,16 +184,7 @@ function ArchitectSectionContent({ section, resume }: { section: any; resume: Re
               </span>
             </div>
             {item.gpa && <p className="text-xs" style={{ color: MUTED }}>GPA: {item.gpa}</p>}
-            {item.highlights?.length > 0 && (
-              <ul className="mt-1 space-y-0.5">
-                {item.highlights.map((h: string, i: number) => (
-                  <li key={i} className="flex items-start gap-2 text-sm" style={{ color: BODY_TEXT }}>
-                    <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rotate-45" style={{ backgroundColor: ACCENT }} />
-                    <span dangerouslySetInnerHTML={{ __html: md(h) }} />
-                  </li>
-                ))}
-              </ul>
-            )}
+            {item.highlights?.length > 0 && <ArchitectBulletList items={item.highlights} className="mt-1 space-y-0.5" />}
           </div>
         ))}
       </div>
@@ -228,16 +236,7 @@ function ArchitectSectionContent({ section, resume }: { section: any; resume: Re
                 ))}
               </div>
             )}
-            {item.highlights?.length > 0 && (
-              <ul className="mt-1.5 space-y-0.5">
-                {item.highlights.map((h: string, i: number) => (
-                  <li key={i} className="flex items-start gap-2 text-sm" style={{ color: BODY_TEXT }}>
-                    <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rotate-45" style={{ backgroundColor: ACCENT }} />
-                    <span dangerouslySetInnerHTML={{ __html: md(h) }} />
-                  </li>
-                ))}
-              </ul>
-            )}
+            {item.highlights?.length > 0 && <ArchitectBulletList items={item.highlights} className="mt-1.5 space-y-0.5" />}
           </div>
         ))}
       </div>

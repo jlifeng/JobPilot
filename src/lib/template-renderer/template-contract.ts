@@ -18,11 +18,36 @@ import type {
   SectionContent,
 } from './types';
 
+interface MarkdownOptions {
+  listStyle?: string;
+}
+
+export function markdownListStyle(paddingLeft: string): string {
+  return `margin:2px 0;padding-left:${paddingLeft};list-style-type:disc`;
+}
+
+export function extractMarkdownBulletItems(text: unknown): string[] | null {
+  if (text == null) return null;
+  const lines = String(text).split('\n');
+  const items: string[] = [];
+
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line) continue;
+
+    const match = line.match(/^[-\u2013\u2022]\s+(.*)/);
+    if (!match) return null;
+    items.push(match[1]);
+  }
+
+  return items.length > 0 ? items : null;
+}
+
 /**
  * Lightweight markdown to HTML converter for resume text fields.
  * Supports: **bold**, `code`, line breaks, and "- item" lists.
  */
-export function md(text: unknown): string {
+export function md(text: unknown, options: MarkdownOptions = {}): string {
   if (text == null) return '';
   let s = String(text);
   // Escape HTML
@@ -37,6 +62,7 @@ export function md(text: unknown): string {
   const lines = s.split('\n');
   let html = '';
   let inList = false;
+  const listStyle = options.listStyle ?? markdownListStyle('16px');
   for (const raw of lines) {
     const line = raw.trim();
     if (!line) {
@@ -49,7 +75,7 @@ export function md(text: unknown): string {
     const lm = line.match(/^[-\u2013\u2022]\s+(.*)/);
     if (lm) {
       if (!inList) {
-        html += '<ul style="margin:2px 0;padding-left:16px;list-style-type:disc">';
+        html += `<ul style="${listStyle}">`;
         inList = true;
       }
       html += `<li>${lm[1]}</li>`;

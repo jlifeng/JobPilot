@@ -14,12 +14,25 @@ import type {
   GitHubContent,
 } from '@/types/resume';
 import { AvatarImage } from '../avatar-image';
-import { degreeField, isSectionEmpty, md } from '../utils';
+import { degreeField, extractMarkdownBulletItems, isSectionEmpty, md } from '../utils';
 import { QrCodesPreview } from '../qr-codes-preview';
 
 const PRIMARY = '#78350f';
 const ACCENT = '#92400e';
 const BG = '#fefce8';
+
+function RetroBulletList({ items, className = 'space-y-0.5' }: { items: string[]; className?: string }) {
+  return (
+    <ul className={className}>
+      {items.map((item, index) => (
+        <li key={index} className="flex items-start gap-2 text-sm" style={{ color: '#57534e' }}>
+          <span className="mt-1 shrink-0 text-xs" style={{ color: PRIMARY }}>{'\u2022'}</span>
+          <span dangerouslySetInnerHTML={{ __html: md(item) }} />
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 export function RetroTemplate({ resume }: { resume: Resume }) {
   const personalInfo = resume.sections.find((s) => s.type === 'personal_info');
@@ -89,6 +102,10 @@ function RetroSectionContent({ section, resume }: { section: any; resume: Resume
   const content = section.content;
 
   if (section.type === 'summary') {
+    const summaryItems = extractMarkdownBulletItems((content as SummaryContent).text);
+    if (summaryItems) {
+      return <RetroBulletList items={summaryItems} />;
+    }
     return (
       <p className="text-center text-sm italic leading-relaxed" style={{ color: ACCENT }}>
         &ldquo;<span dangerouslySetInnerHTML={{ __html: md((content as SummaryContent).text) }} />&rdquo;
@@ -100,36 +117,34 @@ function RetroSectionContent({ section, resume }: { section: any; resume: Resume
     const items = (content as WorkExperienceContent).items || [];
     return (
       <div className="space-y-4">
-        {items.map((item: any) => (
-          <div key={item.id}>
-            <div className="flex items-baseline justify-between">
-              <h3 className="text-sm font-bold" style={{ color: PRIMARY }}>{item.position}</h3>
-              <span className="shrink-0 text-xs" style={{ color: ACCENT, fontFamily: "'Courier New', monospace" }}>
-                {item.startDate} - {item.endDate || (item.current ? (resume.language === 'zh' ? '至今' : 'Present') : '')}
-              </span>
-            </div>
-            {item.company && <p className="text-sm italic" style={{ color: ACCENT }}>{item.company}</p>}
-            {item.description && <p className="mt-1 text-sm" style={{ color: '#57534e' }}><span className="font-medium" style={{ color: PRIMARY }}>{resume.language === 'zh' ? '\u804c\u8d23' : 'Responsibilities'}:</span> <span dangerouslySetInnerHTML={{ __html: md(item.description) }} /></p>}
-            {item.technologies?.length > 0 && (
-              <p className="mt-1 text-xs italic" style={{ color: ACCENT }}>
-                Technologies: {item.technologies.join(', ')}
-              </p>
-            )}
-            {item.highlights?.length > 0 && (
-              <div className="mt-1.5">
-                <p className="text-xs font-medium mb-0.5" style={{ color: PRIMARY }}>{resume.language === 'zh' ? '\u4e3b\u8981\u6210\u5c31' : 'Key Achievements'}:</p>
-                <ul className="space-y-0.5">
-                  {item.highlights.map((h: string, i: number) => (
-                    <li key={i} className="flex items-start gap-2 text-sm" style={{ color: '#57534e' }}>
-                      <span className="mt-1 shrink-0 text-xs" style={{ color: PRIMARY }}>{'\u2022'}</span>
-                      <span dangerouslySetInnerHTML={{ __html: md(h) }} />
-                    </li>
-                  ))}
-                </ul>
+        {items.map((item: any) => {
+          const responsibilityItems = extractMarkdownBulletItems(item.description);
+
+          return (
+            <div key={item.id}>
+              <div className="flex items-baseline justify-between">
+                <h3 className="text-sm font-bold" style={{ color: PRIMARY }}>{item.position}</h3>
+                <span className="shrink-0 text-xs" style={{ color: ACCENT, fontFamily: "'Courier New', monospace" }}>
+                  {item.startDate} - {item.endDate || (item.current ? (resume.language === 'zh' ? '至今' : 'Present') : '')}
+                </span>
               </div>
-            )}
-          </div>
-        ))}
+              {item.company && <p className="text-sm italic" style={{ color: ACCENT }}>{item.company}</p>}
+              {item.description && responsibilityItems && <div className="mt-1.5"><p className="mb-0.5 text-xs font-medium" style={{ color: PRIMARY }}>{resume.language === 'zh' ? '\u804c\u8d23' : 'Responsibilities'}:</p><RetroBulletList items={responsibilityItems} /></div>}
+              {item.description && !responsibilityItems && <p className="mt-1 text-sm" style={{ color: '#57534e' }}><span className="font-medium" style={{ color: PRIMARY }}>{resume.language === 'zh' ? '\u804c\u8d23' : 'Responsibilities'}:</span> <span dangerouslySetInnerHTML={{ __html: md(item.description) }} /></p>}
+              {item.technologies?.length > 0 && (
+                <p className="mt-1 text-xs italic" style={{ color: ACCENT }}>
+                  Technologies: {item.technologies.join(', ')}
+                </p>
+              )}
+              {item.highlights?.length > 0 && (
+                <div className="mt-1.5">
+                  <p className="mb-0.5 text-xs font-medium" style={{ color: PRIMARY }}>{resume.language === 'zh' ? '\u4e3b\u8981\u6210\u5c31' : 'Key Achievements'}:</p>
+                  <RetroBulletList items={item.highlights} />
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     );
   }
@@ -146,16 +161,7 @@ function RetroSectionContent({ section, resume }: { section: any; resume: Resume
             </div>
             <p className="text-sm" style={{ color: '#57534e' }}>{degreeField(item.degree, item.field)}</p>
             {item.gpa && <p className="text-xs" style={{ color: ACCENT }}>GPA: {item.gpa}</p>}
-            {item.highlights?.length > 0 && (
-              <ul className="mt-1 space-y-0.5">
-                {item.highlights.map((h: string, i: number) => (
-                  <li key={i} className="flex items-start gap-2 text-sm" style={{ color: '#57534e' }}>
-                    <span className="mt-1 shrink-0 text-xs" style={{ color: PRIMARY }}>{'\u2022'}</span>
-                    <span dangerouslySetInnerHTML={{ __html: md(h) }} />
-                  </li>
-                ))}
-              </ul>
-            )}
+            {item.highlights?.length > 0 && <RetroBulletList items={item.highlights} className="mt-1 space-y-0.5" />}
           </div>
         ))}
       </div>
@@ -202,16 +208,7 @@ function RetroSectionContent({ section, resume }: { section: any; resume: Resume
                 Technologies: {item.technologies.join(', ')}
               </p>
             )}
-            {item.highlights?.length > 0 && (
-              <ul className="mt-1 space-y-0.5">
-                {item.highlights.map((h: string, i: number) => (
-                  <li key={i} className="flex items-start gap-2 text-sm" style={{ color: '#57534e' }}>
-                    <span className="mt-1 shrink-0 text-xs" style={{ color: PRIMARY }}>{'\u2022'}</span>
-                    <span dangerouslySetInnerHTML={{ __html: md(h) }} />
-                  </li>
-                ))}
-              </ul>
-            )}
+            {item.highlights?.length > 0 && <RetroBulletList items={item.highlights} className="mt-1 space-y-0.5" />}
           </div>
         ))}
       </div>

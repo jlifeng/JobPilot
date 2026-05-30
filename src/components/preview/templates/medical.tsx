@@ -2,13 +2,17 @@
 
 import type { Resume, PersonalInfoContent, SummaryContent, WorkExperienceContent, EducationContent, SkillsContent, ProjectsContent, CertificationsContent, LanguagesContent, CustomContent, GitHubContent } from '@/types/resume';
 import { AvatarImage } from '../avatar-image';
-import { degreeField, isSectionEmpty, md } from '../utils';
+import { degreeField, extractMarkdownBulletItems, isSectionEmpty, md } from '../utils';
 import { QrCodesPreview } from '../qr-codes-preview';
 import { ContactInfo } from '../contact-info';
 
 const TEAL_800 = '#115e59';
 const TEAL_500 = '#0d9488';
 const TEAL_50 = '#f0fdfa';
+
+function MedicalBulletList({ items, className = 'list-disc pl-4' }: { items: string[]; className?: string }) {
+  return <ul className={className}>{items.map((item, index) => <li key={index} className="text-sm text-gray-600" dangerouslySetInnerHTML={{ __html: md(item) }} />)}</ul>;
+}
 
 export function MedicalTemplate({ resume }: { resume: Resume }) {
   const personalInfo = resume.sections.find((s) => s.type === 'personal_info');
@@ -58,6 +62,10 @@ function MedicalSectionContent({ section, resume }: { section: any; resume: Resu
   const content = section.content;
 
   if (section.type === 'summary') {
+    const summaryItems = extractMarkdownBulletItems((content as SummaryContent).text);
+    if (summaryItems) {
+      return <MedicalBulletList items={summaryItems} className="list-disc pl-4" />;
+    }
     return <p className="text-sm leading-relaxed text-gray-600" dangerouslySetInnerHTML={{ __html: md((content as SummaryContent).text) }} />;
   }
 

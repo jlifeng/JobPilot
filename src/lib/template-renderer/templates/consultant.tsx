@@ -26,8 +26,10 @@ import {
   getPersonalInfo,
   buildHighlights,
   visibleSections,
+  markdownListStyle,
 } from '../template-contract';
 import { ContactInfo, buildContactEntries } from '../contact-info';
+import { CertificationList, buildCertificationListHtml } from '../certifications-list';
 
 const GRAY_700 = '#374151';
 const BLUE_600 = '#2563eb';
@@ -113,7 +115,7 @@ function ConsultantSectionContent({
             {item.description && (
               <p className="mt-1 text-sm text-gray-600">
                 <span className="font-semibold" style={{ color: GRAY_700 }}>{lang === 'zh' ? '职责' : 'Responsibilities'}:</span>{' '}
-                <span dangerouslySetInnerHTML={{ __html: md(item.description) }} />
+                <span dangerouslySetInnerHTML={{ __html: md(item.description, { listStyle: markdownListStyle('1.25rem') }) }} />
               </p>
             )}
             {item.technologies?.length > 0 && (
@@ -214,16 +216,7 @@ function ConsultantSectionContent({
 
   if (section.type === 'certifications') {
     const items = (content as unknown as CertificationsContent).items || [];
-    return (
-      <div className="space-y-1.5">
-        {items.map((item) => (
-          <div key={item.id}>
-            <span className="text-sm font-bold" style={{ color: GRAY_700 }}>{item.name}</span>
-            {(item.issuer || item.date) && <span className="text-sm text-gray-500">{item.issuer && <> — {item.issuer}</>}{item.date && <> ({item.date})</>}</span>}
-          </div>
-        ))}
-      </div>
-    );
+    return <CertificationList items={items} titleClassName="font-bold" issuerClassName="text-gray-500" dateClassName="shrink-0 text-xs font-medium" titleStyle={{ color: GRAY_700 }} dateStyle={{ color: BLUE_600 }} />;
   }
 
   if (section.type === 'languages') {
@@ -336,7 +329,7 @@ function buildConsultantSectionHtml(
     const items = (content as unknown as WorkExperienceContent).items || [];
     return `<div class="space-y-4">${items.map((it) => `<div>
       <div class="flex items-baseline justify-between"><div><span class="text-sm font-bold" style="color:${GRAY_700}">${esc(it.position)}</span>${it.company ? `<span class="text-sm text-gray-500"> | ${esc(it.company)}</span>` : ''}${it.location ? `<span class="text-sm text-gray-400">, ${esc(it.location)}</span>` : ''}</div><span class="shrink-0 text-xs font-medium" style="color:${BLUE_600}">${esc(it.startDate)} - ${esc(it.endDate) || (it.current ? (lang === 'zh' ? '至今' : 'Present') : '')}</span></div>
-      ${it.description ? `<p class="mt-1 text-sm text-gray-600"><span class="font-semibold" style="color:${GRAY_700}">${lang === 'zh' ? '职责' : 'Responsibilities'}:</span> <span>${md(it.description)}</span></p>` : ''}
+      ${it.description ? `<p class="mt-1 text-sm text-gray-600"><span class="font-semibold" style="color:${GRAY_700}">${lang === 'zh' ? '职责' : 'Responsibilities'}:</span> <span>${md(it.description, { listStyle: markdownListStyle('1.25rem') })}</span></p>` : ''}
       ${it.technologies?.length ? `<p class="mt-0.5 text-xs text-gray-400">${lang === 'zh' ? '技术栈' : 'Tech'}: ${esc(it.technologies.join(', '))}</p>` : ''}
       ${it.highlights?.length ? `<div class="mt-1.5"><p class="text-xs font-semibold" style="color:${GRAY_700}">${lang === 'zh' ? '主要成就' : 'Key Achievements'}:</p><ul class="mt-0.5 space-y-0.5" style="padding-left:1.25rem;list-style-type:disc">${buildHighlights(it.highlights, 'text-sm text-gray-600')}</ul></div>` : ''}
     </div>`).join('')}</div>`;
@@ -370,9 +363,7 @@ function buildConsultantSectionHtml(
 
   if (section.type === 'certifications') {
     const items = (content as unknown as CertificationsContent).items || [];
-    return `<div class="space-y-1.5">${items.map((it) =>
-      `<div><span class="text-sm font-bold" style="color:${GRAY_700}">${esc(it.name)}</span><span class="text-sm text-gray-500">${it.issuer ? ` — ${esc(it.issuer)}` : ''}${it.date ? ` (${esc(it.date)})` : ''}</span></div>`
-    ).join('')}</div>`;
+    return buildCertificationListHtml(items, { titleClass: 'font-bold', issuerClass: 'text-gray-500', dateClass: 'shrink-0 text-xs font-medium', titleStyle: `color:${GRAY_700}`, dateStyle: `color:${BLUE_600}` });
   }
 
   if (section.type === 'languages') {

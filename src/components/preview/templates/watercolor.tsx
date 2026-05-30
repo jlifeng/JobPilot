@@ -14,7 +14,7 @@ import type {
   GitHubContent,
 } from '@/types/resume';
 import { AvatarImage } from '../avatar-image';
-import { degreeField, isSectionEmpty, md } from '../utils';
+import { degreeField, extractMarkdownBulletItems, isSectionEmpty, md } from '../utils';
 import { QrCodesPreview } from '../qr-codes-preview';
 
 const PRIMARY = '#4c1d95';
@@ -22,6 +22,19 @@ const ACCENT = '#c084fc';
 const WASH = '#f5f3ff';
 const TEXT = '#6b7280';
 const TEXT_DARK = '#374151';
+
+function WatercolorBulletList({ items, className = 'space-y-0.5' }: { items: string[]; className?: string }) {
+  return (
+    <ul className={className}>
+      {items.map((item, index) => (
+        <li key={index} className="flex items-start gap-2 text-sm" style={{ color: TEXT }}>
+          <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: ACCENT }} />
+          <span dangerouslySetInnerHTML={{ __html: md(item) }} />
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 export function WatercolorTemplate({ resume }: { resume: Resume }) {
   const personalInfo = resume.sections.find((s) => s.type === 'personal_info');
@@ -87,9 +100,14 @@ function WatercolorSectionContent({ section, lang }: { section: any; lang?: stri
   const content = section.content;
 
   if (section.type === 'summary') {
+    const summaryText = (content as SummaryContent).text;
+    const summaryItems = extractMarkdownBulletItems(summaryText);
+
     return (
       <div className="rounded-xl p-4" style={{ backgroundColor: WASH }}>
-        <p className="text-sm leading-relaxed" style={{ color: TEXT_DARK }} dangerouslySetInnerHTML={{ __html: md((content as SummaryContent).text) }} />
+        {summaryItems
+          ? <WatercolorBulletList items={summaryItems} />
+          : <p className="text-sm leading-relaxed" style={{ color: TEXT_DARK }} dangerouslySetInnerHTML={{ __html: md(summaryText) }} />}
       </div>
     );
   }
@@ -98,7 +116,10 @@ function WatercolorSectionContent({ section, lang }: { section: any; lang?: stri
     const items = (content as WorkExperienceContent).items || [];
     return (
       <div className="space-y-4">
-        {items.map((item: any) => (
+        {items.map((item: any) => {
+          const responsibilityItems = extractMarkdownBulletItems(item.description);
+
+          return (
           <div key={item.id} className="rounded-xl p-4" style={{ backgroundColor: `${WASH}` }}>
             <div className="flex items-baseline justify-between">
               <h3 className="text-sm font-bold" style={{ color: PRIMARY }}>{item.position}</h3>
@@ -107,7 +128,13 @@ function WatercolorSectionContent({ section, lang }: { section: any; lang?: stri
               </span>
             </div>
             {item.company && <p className="text-sm font-medium" style={{ color: ACCENT }}>{item.company}</p>}
-            {item.description && <p className="mt-1 text-sm" style={{ color: TEXT }}><span className="font-medium" style={{ color: TEXT_DARK }}>{lang === 'zh' ? '职责' : 'Responsibilities'}:</span> <span dangerouslySetInnerHTML={{ __html: md(item.description) }} /></p>}
+            {item.description && responsibilityItems && (
+              <div className="mt-1">
+                <p className="mb-0.5 text-xs font-medium" style={{ color: TEXT_DARK }}>{lang === 'zh' ? '职责' : 'Responsibilities'}:</p>
+                <WatercolorBulletList items={responsibilityItems} />
+              </div>
+            )}
+            {item.description && !responsibilityItems && <p className="mt-1 text-sm" style={{ color: TEXT }}><span className="font-medium" style={{ color: TEXT_DARK }}>{lang === 'zh' ? '职责' : 'Responsibilities'}:</span> <span dangerouslySetInnerHTML={{ __html: md(item.description) }} /></p>}
             {item.technologies?.length > 0 && (
               <div className="mt-2 flex flex-wrap gap-1">
                 {item.technologies.map((t: string, i: number) => (
@@ -120,18 +147,11 @@ function WatercolorSectionContent({ section, lang }: { section: any; lang?: stri
             {item.highlights?.length > 0 && (
               <div className="mt-1.5">
                 <p className="text-xs font-medium mb-0.5" style={{ color: TEXT }}>{lang === 'zh' ? '主要成就' : 'Key Achievements'}:</p>
-                <ul className="space-y-0.5">
-                  {item.highlights.map((h: string, i: number) => (
-                    <li key={i} className="flex items-start gap-2 text-sm" style={{ color: TEXT }}>
-                      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: ACCENT }} />
-                      <span dangerouslySetInnerHTML={{ __html: md(h) }} />
-                    </li>
-                  ))}
-                </ul>
+                <WatercolorBulletList items={item.highlights} />
               </div>
             )}
           </div>
-        ))}
+        )})}
       </div>
     );
   }
@@ -148,16 +168,7 @@ function WatercolorSectionContent({ section, lang }: { section: any; lang?: stri
             </div>
             <p className="text-sm" style={{ color: TEXT_DARK }}>{degreeField(item.degree, item.field)}</p>
             {item.gpa && <p className="text-xs" style={{ color: ACCENT }}>GPA: {item.gpa}</p>}
-            {item.highlights?.length > 0 && (
-              <ul className="mt-1 space-y-0.5">
-                {item.highlights.map((h: string, i: number) => (
-                  <li key={i} className="flex items-start gap-2 text-sm" style={{ color: TEXT }}>
-                    <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: ACCENT }} />
-                    <span dangerouslySetInnerHTML={{ __html: md(h) }} />
-                  </li>
-                ))}
-              </ul>
-            )}
+            {item.highlights?.length > 0 && <WatercolorBulletList items={item.highlights} className="mt-1 space-y-0.5" />}
           </div>
         ))}
       </div>
@@ -212,16 +223,7 @@ function WatercolorSectionContent({ section, lang }: { section: any; lang?: stri
                 ))}
               </div>
             )}
-            {item.highlights?.length > 0 && (
-              <ul className="mt-1.5 space-y-0.5">
-                {item.highlights.map((h: string, i: number) => (
-                  <li key={i} className="flex items-start gap-2 text-sm" style={{ color: TEXT }}>
-                    <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: ACCENT }} />
-                    <span dangerouslySetInnerHTML={{ __html: md(h) }} />
-                  </li>
-                ))}
-              </ul>
-            )}
+            {item.highlights?.length > 0 && <WatercolorBulletList items={item.highlights} className="mt-1.5 space-y-0.5" />}
           </div>
         ))}
       </div>

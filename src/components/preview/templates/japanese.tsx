@@ -14,12 +14,25 @@ import type {
   GitHubContent,
 } from '@/types/resume';
 import { AvatarImage } from '../avatar-image';
-import { degreeField, isSectionEmpty, md } from '../utils';
+import { degreeField, extractMarkdownBulletItems, isSectionEmpty, md } from '../utils';
 import { QrCodesPreview } from '../qr-codes-preview';
 
 const PRIMARY = '#1c1917';
 const ACCENT = '#44403c';
 const SUBTLE = '#f5f5f4';
+
+function JapaneseBulletList({ items, className = 'space-y-1' }: { items: string[]; className?: string }) {
+  return (
+    <ul className={className}>
+      {items.map((item, index) => (
+        <li key={index} className="flex items-start gap-3 text-sm font-light" style={{ color: PRIMARY }}>
+          <span className="mt-2 inline-block h-px w-3 shrink-0" style={{ backgroundColor: ACCENT }} />
+          <span dangerouslySetInnerHTML={{ __html: md(item) }} />
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 export function JapaneseTemplate({ resume }: { resume: Resume }) {
   const personalInfo = resume.sections.find((s) => s.type === 'personal_info');
@@ -75,39 +88,41 @@ function JapaneseSectionContent({ section, lang }: { section: any; lang?: string
   const content = section.content;
 
   if (section.type === 'summary') {
+    const summaryItems = extractMarkdownBulletItems((content as SummaryContent).text);
+    if (summaryItems) {
+      return <JapaneseBulletList items={summaryItems} />;
+    }
     return <p className="text-sm font-light leading-loose" style={{ color: PRIMARY }} dangerouslySetInnerHTML={{ __html: md((content as SummaryContent).text) }} />;
   }
 
   if (section.type === 'work_experience') {
     return (
       <div className="space-y-6">
-        {((content as WorkExperienceContent).items || []).map((item: any) => (
-          <div key={item.id}>
-            <div className="flex items-baseline justify-between">
-              <h3 className="text-sm font-normal" style={{ color: PRIMARY }}>{item.position}</h3>
-              <span className="shrink-0 text-[10px] font-light" style={{ color: ACCENT }}>{item.startDate} &ndash; {item.endDate || (item.current ? (lang === 'zh' ? '至今' : 'Present') : '')}</span>
-            </div>
-            {item.company && <p className="mt-0.5 text-xs font-light" style={{ color: ACCENT }}>{item.company}{item.location ? `, ${item.location}` : ''}</p>}
-            {item.description && <p className="mt-2 text-sm font-light leading-relaxed" style={{ color: PRIMARY }}><span className="font-medium">{lang === 'zh' ? '职责' : 'Responsibilities'}:</span> <span dangerouslySetInnerHTML={{ __html: md(item.description) }} /></p>}
-            {item.technologies?.length > 0 && (
-              <p className="mt-1 text-xs font-light" style={{ color: ACCENT }}>{item.technologies.join(' \u00b7 ')}</p>
-            )}
-            {item.highlights?.length > 0 && (
-              <div className="mt-2">
-                <p className="text-xs font-medium mb-1" style={{ color: ACCENT }}>{lang === 'zh' ? '\u4e3b\u8981\u6210\u5c31' : 'Key Achievements'}:</p>
-                <ul className="space-y-1">
-                  {item.highlights.map((h: string, i: number) => (
-                    <li key={i} className="flex items-start gap-3 text-sm font-light" style={{ color: PRIMARY }}>
-                      <span className="mt-2 inline-block h-px w-3 shrink-0" style={{ backgroundColor: ACCENT }} />
-                      <span dangerouslySetInnerHTML={{ __html: md(h) }} />
-                    </li>
-                  ))}
-                </ul>
+        {((content as WorkExperienceContent).items || []).map((item: any) => {
+          const responsibilityItems = extractMarkdownBulletItems(item.description);
+
+          return (
+            <div key={item.id}>
+              <div className="flex items-baseline justify-between">
+                <h3 className="text-sm font-normal" style={{ color: PRIMARY }}>{item.position}</h3>
+                <span className="shrink-0 text-[10px] font-light" style={{ color: ACCENT }}>{item.startDate} &ndash; {item.endDate || (item.current ? (lang === 'zh' ? '至今' : 'Present') : '')}</span>
               </div>
-            )}
-            <div className="mt-4 h-px" style={{ backgroundColor: ACCENT, opacity: 0.2 }} />
-          </div>
-        ))}
+              {item.company && <p className="mt-0.5 text-xs font-light" style={{ color: ACCENT }}>{item.company}{item.location ? `, ${item.location}` : ''}</p>}
+              {item.description && responsibilityItems && <div className="mt-2"><p className="mb-1 text-xs font-medium" style={{ color: ACCENT }}>{lang === 'zh' ? '职责' : 'Responsibilities'}:</p><JapaneseBulletList items={responsibilityItems} /></div>}
+              {item.description && !responsibilityItems && <p className="mt-2 text-sm font-light leading-relaxed" style={{ color: PRIMARY }}><span className="font-medium">{lang === 'zh' ? '职责' : 'Responsibilities'}:</span> <span dangerouslySetInnerHTML={{ __html: md(item.description) }} /></p>}
+              {item.technologies?.length > 0 && (
+                <p className="mt-1 text-xs font-light" style={{ color: ACCENT }}>{item.technologies.join(' \u00b7 ')}</p>
+              )}
+              {item.highlights?.length > 0 && (
+                <div className="mt-2">
+                  <p className="mb-1 text-xs font-medium" style={{ color: ACCENT }}>{lang === 'zh' ? '\u4e3b\u8981\u6210\u5c31' : 'Key Achievements'}:</p>
+                  <JapaneseBulletList items={item.highlights} />
+                </div>
+              )}
+              <div className="mt-4 h-px" style={{ backgroundColor: ACCENT, opacity: 0.2 }} />
+            </div>
+          );
+        })}
       </div>
     );
   }
@@ -123,16 +138,7 @@ function JapaneseSectionContent({ section, lang }: { section: any; lang?: string
             </div>
             {item.institution && <p className="mt-0.5 text-xs font-light" style={{ color: ACCENT }}>{item.institution}{item.location ? `, ${item.location}` : ''}</p>}
             {item.gpa && <p className="mt-1 text-xs font-light" style={{ color: ACCENT }}>GPA: {item.gpa}</p>}
-            {item.highlights?.length > 0 && (
-              <ul className="mt-2 space-y-1">
-                {item.highlights.map((h: string, i: number) => (
-                  <li key={i} className="flex items-start gap-3 text-sm font-light" style={{ color: PRIMARY }}>
-                    <span className="mt-2 inline-block h-px w-3 shrink-0" style={{ backgroundColor: ACCENT }} />
-                    <span dangerouslySetInnerHTML={{ __html: md(h) }} />
-                  </li>
-                ))}
-              </ul>
-            )}
+            {item.highlights?.length > 0 && <JapaneseBulletList items={item.highlights} className="mt-2 space-y-1" />}
           </div>
         ))}
       </div>
@@ -167,16 +173,7 @@ function JapaneseSectionContent({ section, lang }: { section: any; lang?: string
             {item.technologies?.length > 0 && (
               <p className="mt-1 text-xs font-light" style={{ color: ACCENT }}>{item.technologies.join(' \u00b7 ')}</p>
             )}
-            {item.highlights?.length > 0 && (
-              <ul className="mt-2 space-y-1">
-                {item.highlights.map((h: string, i: number) => (
-                  <li key={i} className="flex items-start gap-3 text-sm font-light" style={{ color: PRIMARY }}>
-                    <span className="mt-2 inline-block h-px w-3 shrink-0" style={{ backgroundColor: ACCENT }} />
-                    <span dangerouslySetInnerHTML={{ __html: md(h) }} />
-                  </li>
-                ))}
-              </ul>
-            )}
+            {item.highlights?.length > 0 && <JapaneseBulletList items={item.highlights} className="mt-2 space-y-1" />}
           </div>
         ))}
       </div>

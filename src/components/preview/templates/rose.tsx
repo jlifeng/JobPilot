@@ -14,13 +14,26 @@ import type {
   GitHubContent,
 } from '@/types/resume';
 import { AvatarImage } from '../avatar-image';
-import { degreeField, isSectionEmpty, md } from '../utils';
+import { degreeField, extractMarkdownBulletItems, isSectionEmpty, md } from '../utils';
 import { QrCodesPreview } from '../qr-codes-preview';
 
 const PRIMARY = '#881337';
 const ACCENT = '#be185d';
 const ROSE_50 = '#fff1f2';
 const ROSE_100 = '#ffe4e6';
+
+function RoseBulletList({ items, className = 'space-y-0.5' }: { items: string[]; className?: string }) {
+  return (
+    <ul className={className}>
+      {items.map((item, index) => (
+        <li key={index} className="flex items-start gap-2 text-sm text-zinc-600">
+          <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: ACCENT }} />
+          <span dangerouslySetInnerHTML={{ __html: md(item) }} />
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 export function RoseTemplate({ resume }: { resume: Resume }) {
   const personalInfo = resume.sections.find((s) => s.type === 'personal_info');
@@ -83,16 +96,21 @@ function RoseSectionContent({ section, resume }: { section: any; resume: Resume 
   const content = section.content;
 
   if (section.type === 'summary') {
-    return (
-      <p className="rounded-xl px-4 py-3 text-sm italic leading-relaxed" style={{ backgroundColor: ROSE_50, color: '#57534e' }}
-        dangerouslySetInnerHTML={{ __html: md((content as SummaryContent).text) }} />
-    );
+    const summaryText = (content as SummaryContent).text;
+    const summaryItems = extractMarkdownBulletItems(summaryText);
+    return summaryItems
+      ? <div className="rounded-xl px-4 py-3" style={{ backgroundColor: ROSE_50 }}><RoseBulletList items={summaryItems} /></div>
+      : <p className="rounded-xl px-4 py-3 text-sm italic leading-relaxed" style={{ backgroundColor: ROSE_50, color: '#57534e' }}
+        dangerouslySetInnerHTML={{ __html: md(summaryText) }} />;
   }
 
   if (section.type === 'work_experience') {
     return (
       <div className="space-y-4">
-        {((content as WorkExperienceContent).items || []).map((item: any) => (
+        {((content as WorkExperienceContent).items || []).map((item: any) => {
+          const responsibilityItems = extractMarkdownBulletItems(item.description);
+
+          return (
           <div key={item.id} className="rounded-xl border p-4" style={{ borderColor: ROSE_100 }}>
             <div className="flex items-baseline justify-between">
               <h3 className="text-sm font-semibold" style={{ color: PRIMARY }}>{item.position}</h3>
@@ -101,7 +119,13 @@ function RoseSectionContent({ section, resume }: { section: any; resume: Resume 
               </span>
             </div>
             {item.company && <p className="text-sm" style={{ color: ACCENT }}>{item.company}</p>}
-            {item.description && <p className="mt-1 text-sm text-zinc-600"><span className="font-medium text-zinc-700">{resume.language === 'zh' ? '职责' : 'Responsibilities'}:</span> <span dangerouslySetInnerHTML={{ __html: md(item.description) }} /></p>}
+            {item.description && responsibilityItems && (
+              <div className="mt-1">
+                <p className="mb-0.5 text-xs font-medium" style={{ color: PRIMARY }}>{resume.language === 'zh' ? '职责' : 'Responsibilities'}:</p>
+                <RoseBulletList items={responsibilityItems} />
+              </div>
+            )}
+            {item.description && !responsibilityItems && <p className="mt-1 text-sm text-zinc-600"><span className="font-medium text-zinc-700">{resume.language === 'zh' ? '职责' : 'Responsibilities'}:</span> <span dangerouslySetInnerHTML={{ __html: md(item.description) }} /></p>}
             {item.technologies?.length > 0 && (
               <div className="mt-1.5 flex flex-wrap gap-1">
                 {item.technologies.map((t: string, i: number) => (
@@ -112,18 +136,11 @@ function RoseSectionContent({ section, resume }: { section: any; resume: Resume 
             {item.highlights?.length > 0 && (
               <div className="mt-1.5">
                 <p className="text-xs font-medium text-zinc-500 mb-0.5">{resume.language === 'zh' ? '主要成就' : 'Key Achievements'}:</p>
-                <ul className="space-y-0.5">
-                  {item.highlights.map((h: string, i: number) => (
-                    <li key={i} className="flex items-start gap-2 text-sm text-zinc-600">
-                      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: ACCENT }} />
-                      <span dangerouslySetInnerHTML={{ __html: md(h) }} />
-                    </li>
-                  ))}
-                </ul>
+                <RoseBulletList items={item.highlights} />
               </div>
             )}
           </div>
-        ))}
+        )})}
       </div>
     );
   }
@@ -139,16 +156,7 @@ function RoseSectionContent({ section, resume }: { section: any; resume: Resume 
             </div>
             {item.institution && <p className="text-sm" style={{ color: ACCENT }}>{item.institution}</p>}
             {item.gpa && <p className="text-xs" style={{ color: '#a8a29e' }}>GPA: {item.gpa}</p>}
-            {item.highlights?.length > 0 && (
-              <ul className="mt-1 space-y-0.5">
-                {item.highlights.map((h: string, i: number) => (
-                  <li key={i} className="flex items-start gap-2 text-sm text-zinc-600">
-                    <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: ACCENT }} />
-                    <span dangerouslySetInnerHTML={{ __html: md(h) }} />
-                  </li>
-                ))}
-              </ul>
-            )}
+            {item.highlights?.length > 0 && <RoseBulletList items={item.highlights} className="mt-1 space-y-0.5" />}
           </div>
         ))}
       </div>
@@ -197,16 +205,7 @@ function RoseSectionContent({ section, resume }: { section: any; resume: Resume 
                 ))}
               </div>
             )}
-            {item.highlights?.length > 0 && (
-              <ul className="mt-1.5 space-y-0.5">
-                {item.highlights.map((h: string, i: number) => (
-                  <li key={i} className="flex items-start gap-2 text-sm text-zinc-600">
-                    <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: ACCENT }} />
-                    <span dangerouslySetInnerHTML={{ __html: md(h) }} />
-                  </li>
-                ))}
-              </ul>
-            )}
+            {item.highlights?.length > 0 && <RoseBulletList items={item.highlights} className="mt-1.5 space-y-0.5" />}
           </div>
         ))}
       </div>

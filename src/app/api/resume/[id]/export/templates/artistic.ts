@@ -9,16 +9,25 @@ import type {
   CustomContent,
   GitHubContent,
 } from '@/types/resume';
-import { esc, md, degreeField, getPersonalInfo, visibleSections, buildQrCodesHtml, type ResumeWithSections, type Section } from '../utils';
+import { esc, md, degreeField, extractMarkdownBulletItems, getPersonalInfo, visibleSections, buildQrCodesHtml, type ResumeWithSections, type Section } from '../utils';
 
 const PRIMARY = '#1e1b4b';
 const ACCENT = '#f43f5e';
 const HIGHLIGHT = '#fbbf24';
 
+function buildArtisticBulletList(items: string[] | undefined, className = 'space-y-0.5'): string {
+  if (!items?.length) return '';
+  return `<ul class="${className}">${items.filter(Boolean).map((item: string) => `<li class="flex items-start gap-2 text-sm text-zinc-600"><span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" style="background-color:${HIGHLIGHT}"></span>${md(item)}</li>`).join('')}</ul>`;
+}
+
 function buildArtisticSectionContent(section: Section, lang: string): string {
   const c = section.content as any;
 
   if (section.type === 'summary') {
+    const summaryItems = extractMarkdownBulletItems((c as SummaryContent).text);
+    if (summaryItems?.length) {
+      return `<div class="rounded-lg p-4" style="border:2px dashed ${ACCENT}30;background-color:${PRIMARY}05">${buildArtisticBulletList(summaryItems)}</div>`;
+    }
     return `<div class="rounded-lg p-4" style="border:2px dashed ${ACCENT}30;background-color:${PRIMARY}05"><div class="text-sm leading-relaxed text-zinc-600 italic">${md((c as SummaryContent).text)}</div></div>`;
   }
 
@@ -27,9 +36,9 @@ function buildArtisticSectionContent(section: Section, lang: string): string {
       <div class="absolute -left-1.5 top-4 h-3 w-3 rounded-full" style="background-color:${ACCENT}"></div>
       <div class="flex items-baseline justify-between"><h3 class="text-sm font-bold" style="color:${PRIMARY}">${esc(it.position)}</h3><span class="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold text-white" style="background-color:${ACCENT}">${esc(it.startDate)} - ${esc(it.endDate) || (it.current ? (lang === 'zh' ? '至今' : 'Present') : '')}</span></div>
       ${it.company ? `<p class="text-sm font-medium" style="color:${ACCENT}">${esc(it.company)}${it.location ? `, ${esc(it.location)}` : ''}</p>` : ''}
-      ${it.description ? `<div class="mt-1 text-sm text-zinc-600"><span class="font-medium text-zinc-700">${lang === 'zh' ? '职责' : 'Responsibilities'}:</span> ${md(it.description)}</div>` : ''}
+      ${(() => { const responsibilityItems = extractMarkdownBulletItems(it.description); if (responsibilityItems?.length) { return `<div class="mt-1.5"><p class="text-xs font-medium text-zinc-500">${lang === 'zh' ? '职责' : 'Responsibilities'}:</p>${buildArtisticBulletList(responsibilityItems, 'mt-0.5 space-y-0.5')}</div>`; } return it.description ? `<div class="mt-1 text-sm text-zinc-600"><span class="font-medium text-zinc-700">${lang === 'zh' ? '职责' : 'Responsibilities'}:</span> ${md(it.description)}</div>` : ''; })()}
       ${it.technologies?.length ? `<div class="mt-2 flex flex-wrap gap-1">${it.technologies.map((t: string, i: number) => `<span class="rounded-full px-2 py-0.5 text-[10px] font-medium text-white" style="background-color:${i % 2 === 0 ? ACCENT : PRIMARY}">${esc(t)}</span>`).join('')}</div>` : ''}
-      ${it.highlights?.length ? `<div class="mt-1.5"><p class="text-xs font-medium text-zinc-500 mb-0.5">${lang === 'zh' ? '主要成就' : 'Key Achievements'}:</p><ul class="space-y-0.5">${it.highlights.filter(Boolean).map((h: string) => `<li class="flex items-start gap-2 text-sm text-zinc-600"><span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" style="background-color:${HIGHLIGHT}"></span>${md(h)}</li>`).join('')}</ul></div>` : ''}
+      ${it.highlights?.length ? `<div class="mt-1.5"><p class="text-xs font-medium text-zinc-500">${lang === 'zh' ? '主要成就' : 'Key Achievements'}:</p>${buildArtisticBulletList(it.highlights, 'mt-0.5 space-y-0.5')}</div>` : ''}
     </div>`).join('')}</div>`;
   }
 
@@ -38,7 +47,7 @@ function buildArtisticSectionContent(section: Section, lang: string): string {
       <div class="flex items-baseline justify-between"><h3 class="text-sm font-bold" style="color:${PRIMARY}">${esc(it.institution)}</h3><span class="text-xs text-zinc-400">${esc(it.startDate)} - ${esc(it.endDate) || (lang === 'zh' ? '至今' : 'Present')}</span></div>
       <p class="text-sm text-zinc-600">${esc(degreeField(it.degree, it.field))}${it.location ? ` — ${esc(it.location)}` : ''}</p>
       ${it.gpa ? `<p class="text-xs text-zinc-500">GPA: ${esc(it.gpa)}</p>` : ''}
-      ${it.highlights?.length ? `<ul class="mt-1 space-y-0.5">${it.highlights.filter(Boolean).map((h: string) => `<li class="flex items-start gap-2 text-sm text-zinc-600"><span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" style="background-color:${HIGHLIGHT}"></span>${md(h)}</li>`).join('')}</ul>` : ''}
+      ${it.highlights?.length ? buildArtisticBulletList(it.highlights, 'mt-1 space-y-0.5') : ''}
     </div>`).join('')}</div>`;
   }
 
@@ -56,7 +65,7 @@ function buildArtisticSectionContent(section: Section, lang: string): string {
       <div class="flex items-baseline justify-between"><h3 class="text-sm font-bold" style="color:${PRIMARY}">${esc(it.name)}</h3>${it.startDate ? `<span class="text-xs text-zinc-400">${esc(it.startDate)} - ${it.endDate ? esc(it.endDate) : (lang === 'zh' ? '至今' : 'Present')}</span>` : ''}</div>
       ${it.description ? `<div class="mt-0.5 text-sm text-zinc-600">${md(it.description)}</div>` : ''}
       ${it.technologies?.length ? `<div class="mt-2 flex flex-wrap gap-1">${it.technologies.map((t: string, i: number) => `<span class="rounded-full px-2 py-0.5 text-[10px] font-medium text-white" style="background-color:${i % 2 === 0 ? ACCENT : PRIMARY}">${esc(t)}</span>`).join('')}</div>` : ''}
-      ${it.highlights?.length ? `<ul class="mt-1.5 space-y-0.5">${it.highlights.filter(Boolean).map((h: string) => `<li class="flex items-start gap-2 text-sm text-zinc-600"><span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" style="background-color:${HIGHLIGHT}"></span>${md(h)}</li>`).join('')}</ul>` : ''}
+      ${it.highlights?.length ? buildArtisticBulletList(it.highlights, 'mt-1.5 space-y-0.5') : ''}
     </div>`).join('')}</div>`;
   }
 

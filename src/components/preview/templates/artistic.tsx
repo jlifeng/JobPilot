@@ -14,12 +14,25 @@ import type {
   GitHubContent,
 } from '@/types/resume';
 import { AvatarImage } from '../avatar-image';
-import { degreeField, isSectionEmpty, md } from '../utils';
+import { degreeField, extractMarkdownBulletItems, isSectionEmpty, md } from '../utils';
 import { QrCodesPreview } from '../qr-codes-preview';
 
 const PRIMARY = '#1e1b4b';
 const ACCENT = '#f43f5e';
 const HIGHLIGHT = '#fbbf24';
+
+function ArtisticBulletList({ items, className = 'space-y-0.5' }: { items: string[]; className?: string }) {
+  return (
+    <ul className={className}>
+      {items.map((item, index) => (
+        <li key={index} className="flex items-start gap-2 text-sm text-zinc-600">
+          <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: HIGHLIGHT }} />
+          <span dangerouslySetInnerHTML={{ __html: md(item) }} />
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 export function ArtisticTemplate({ resume }: { resume: Resume }) {
   const personalInfo = resume.sections.find((s) => s.type === 'personal_info');
@@ -80,6 +93,14 @@ function ArtisticSectionContent({ section, resume }: { section: any; resume: Res
   const content = section.content;
 
   if (section.type === 'summary') {
+    const summaryItems = extractMarkdownBulletItems((content as SummaryContent).text);
+    if (summaryItems) {
+      return (
+        <div className="rounded-lg p-4" style={{ border: `2px dashed ${ACCENT}30`, backgroundColor: `${PRIMARY}05` }}>
+          <ArtisticBulletList items={summaryItems} />
+        </div>
+      );
+    }
     return (
       <div className="rounded-lg p-4" style={{ border: `2px dashed ${ACCENT}30`, backgroundColor: `${PRIMARY}05` }}>
         <p className="text-sm leading-relaxed text-zinc-600 italic" dangerouslySetInnerHTML={{ __html: md((content as SummaryContent).text) }} />
@@ -91,41 +112,39 @@ function ArtisticSectionContent({ section, resume }: { section: any; resume: Res
     const items = (content as WorkExperienceContent).items || [];
     return (
       <div className="space-y-4">
-        {items.map((item: any) => (
-          <div key={item.id} className="relative rounded-lg p-4" style={{ border: `1px dashed ${ACCENT}30` }}>
-            <div className="absolute -left-1.5 top-4 h-3 w-3 rounded-full" style={{ backgroundColor: ACCENT }} />
-            <div className="flex items-baseline justify-between">
-              <h3 className="text-sm font-bold" style={{ color: PRIMARY }}>{item.position}</h3>
-              <span className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold text-white" style={{ backgroundColor: ACCENT }}>
-                {item.startDate} - {item.endDate || (item.current ? (resume.language === 'zh' ? '至今' : 'Present') : '')}
-              </span>
-            </div>
-            {item.company && <p className="text-sm font-medium" style={{ color: ACCENT }}>{item.company}{item.location ? `, ${item.location}` : ''}</p>}
-            {item.description && <p className="mt-1 text-sm text-zinc-600"><span className="font-medium text-zinc-700">{resume.language === 'zh' ? '职责' : 'Responsibilities'}:</span> <span dangerouslySetInnerHTML={{ __html: md(item.description) }} /></p>}
-            {item.technologies?.length > 0 && (
-              <div className="mt-2 flex flex-wrap gap-1">
-                {item.technologies.map((t: string, i: number) => (
-                  <span key={i} className="rounded-full px-2 py-0.5 text-[10px] font-medium text-white" style={{ backgroundColor: i % 2 === 0 ? ACCENT : PRIMARY }}>
-                    {t}
-                  </span>
-                ))}
+        {items.map((item: any) => {
+          const responsibilityItems = extractMarkdownBulletItems(item.description);
+
+          return (
+            <div key={item.id} className="relative rounded-lg p-4" style={{ border: `1px dashed ${ACCENT}30` }}>
+              <div className="absolute -left-1.5 top-4 h-3 w-3 rounded-full" style={{ backgroundColor: ACCENT }} />
+              <div className="flex items-baseline justify-between">
+                <h3 className="text-sm font-bold" style={{ color: PRIMARY }}>{item.position}</h3>
+                <span className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold text-white" style={{ backgroundColor: ACCENT }}>
+                  {item.startDate} - {item.endDate || (item.current ? (resume.language === 'zh' ? '至今' : 'Present') : '')}
+                </span>
               </div>
-            )}
-            {item.highlights?.length > 0 && (
-              <div className="mt-1.5">
-                <p className="text-xs font-medium text-zinc-500">{resume.language === 'zh' ? '主要成就' : 'Key Achievements'}:</p>
-                <ul className="mt-0.5 space-y-0.5">
-                  {item.highlights.map((h: string, i: number) => (
-                    <li key={i} className="flex items-start gap-2 text-sm text-zinc-600">
-                      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: HIGHLIGHT }} />
-                      <span dangerouslySetInnerHTML={{ __html: md(h) }} />
-                    </li>
+              {item.company && <p className="text-sm font-medium" style={{ color: ACCENT }}>{item.company}{item.location ? `, ${item.location}` : ''}</p>}
+              {item.description && responsibilityItems && <div className="mt-1.5"><p className="text-xs font-medium text-zinc-500">{resume.language === 'zh' ? '职责' : 'Responsibilities'}:</p><ArtisticBulletList items={responsibilityItems} className="mt-0.5 space-y-0.5" /></div>}
+              {item.description && !responsibilityItems && <p className="mt-1 text-sm text-zinc-600"><span className="font-medium text-zinc-700">{resume.language === 'zh' ? '职责' : 'Responsibilities'}:</span> <span dangerouslySetInnerHTML={{ __html: md(item.description) }} /></p>}
+              {item.technologies?.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {item.technologies.map((t: string, i: number) => (
+                    <span key={i} className="rounded-full px-2 py-0.5 text-[10px] font-medium text-white" style={{ backgroundColor: i % 2 === 0 ? ACCENT : PRIMARY }}>
+                      {t}
+                    </span>
                   ))}
-                </ul>
-              </div>
-            )}
-          </div>
-        ))}
+                </div>
+              )}
+              {item.highlights?.length > 0 && (
+                <div className="mt-1.5">
+                  <p className="text-xs font-medium text-zinc-500">{resume.language === 'zh' ? '主要成就' : 'Key Achievements'}:</p>
+                  <ArtisticBulletList items={item.highlights} className="mt-0.5 space-y-0.5" />
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     );
   }
@@ -142,16 +161,7 @@ function ArtisticSectionContent({ section, resume }: { section: any; resume: Res
             </div>
             <p className="text-sm text-zinc-600">{degreeField(item.degree, item.field)}{item.location ? ` — ${item.location}` : ''}</p>
             {item.gpa && <p className="text-xs text-zinc-500">GPA: {item.gpa}</p>}
-            {item.highlights?.length > 0 && (
-              <ul className="mt-1 space-y-0.5">
-                {item.highlights.map((h: string, i: number) => (
-                  <li key={i} className="flex items-start gap-2 text-sm text-zinc-600">
-                    <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: HIGHLIGHT }} />
-                    <span dangerouslySetInnerHTML={{ __html: md(h) }} />
-                  </li>
-                ))}
-              </ul>
-            )}
+            {item.highlights?.length > 0 && <ArtisticBulletList items={item.highlights} className="mt-1 space-y-0.5" />}
           </div>
         ))}
       </div>
@@ -207,16 +217,7 @@ function ArtisticSectionContent({ section, resume }: { section: any; resume: Res
                 ))}
               </div>
             )}
-            {item.highlights?.length > 0 && (
-              <ul className="mt-1.5 space-y-0.5">
-                {item.highlights.map((h: string, i: number) => (
-                  <li key={i} className="flex items-start gap-2 text-sm text-zinc-600">
-                    <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: HIGHLIGHT }} />
-                    <span dangerouslySetInnerHTML={{ __html: md(h) }} />
-                  </li>
-                ))}
-              </ul>
-            )}
+            {item.highlights?.length > 0 && <ArtisticBulletList items={item.highlights} className="mt-1.5 space-y-0.5" />}
           </div>
         ))}
       </div>

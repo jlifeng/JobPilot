@@ -3,8 +3,8 @@ import { createRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { ArrowLeft, Eye, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { TEMPLATES } from "@/lib/constants";
 import { ResumePreview } from "@/components/preview/resume-preview";
+import { TEMPLATE_MATRIX_GROUPS } from "@/lib/template-matrix";
 import { templateLabelsMap } from "../lib/template-labels";
 import { createDocument } from "../lib/desktop-api";
 import { rootRoute } from "./root";
@@ -230,6 +230,7 @@ function TemplatesRoute() {
   const navigate = useNavigate();
   const [previewTemplate, setPreviewTemplate] = useState<string | null>(null);
   const [creatingTemplate, setCreatingTemplate] = useState<string | null>(null);
+  const firstTemplate = TEMPLATE_MATRIX_GROUPS[0]?.templates[0];
 
   const handleUseTemplate = async (template: string) => {
     setCreatingTemplate(template);
@@ -263,68 +264,82 @@ function TemplatesRoute() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {TEMPLATES.map((template) => {
-          const mockResume = buildMockResume(template);
-          const labelKey = templateLabelsMap[template];
-          const label = labelKey ? t(labelKey) : template;
-          const isCreating = creatingTemplate === template;
-
-          return (
-            <div
-              key={template}
-              className="group flex flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white transition-shadow hover:shadow-lg dark:border-zinc-700 dark:bg-zinc-900"
-            >
-              {/* Template name */}
-              <div className="border-b border-zinc-100 px-4 py-3 text-center dark:border-zinc-800">
-                <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
-                  {label}
-                </h3>
-              </div>
-
-              {/* Scaled preview */}
-              <div className="relative h-[320px] overflow-hidden bg-zinc-50 dark:bg-zinc-950">
-                <div
-                  className="absolute left-1/2 top-0 origin-top"
-                  style={{
-                    width: "794px",
-                    transform: "translateX(-50%) scale(0.28)",
-                  }}
-                >
-                  <ResumePreview resume={mockResume} />
-                </div>
-              </div>
-
-              {/* Buttons */}
-              <div className="flex gap-2 border-t border-zinc-100 px-4 py-3 dark:border-zinc-800">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex-1 cursor-pointer gap-1.5"
-                  onClick={() => setPreviewTemplate(template)}
-                >
-                  <Eye className="h-3.5 w-3.5" />
-                  {t("templates.preview")}
-                </Button>
-                <Button
-                  size="sm"
-                  className="flex-1 cursor-pointer gap-1.5 bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-zinc-200 text-white dark:text-zinc-900"
-                  onClick={() => void handleUseTemplate(template)}
-                  disabled={isCreating}
-                >
-                  {isCreating ? (
-                    <>
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      {t("templates.creating")}
-                    </>
-                  ) : (
-                    t("templates.useTemplate")
-                  )}
-                </Button>
-              </div>
+      <div className="space-y-10">
+        {TEMPLATE_MATRIX_GROUPS.map((group) => (
+          <section key={group.id}>
+            <div className="mb-4">
+              <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+                {t(group.titleKey)}
+              </h2>
+              <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                {t(group.descriptionKey)}
+              </p>
             </div>
-          );
-        })}
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {group.templates.map((template) => {
+                const mockResume = buildMockResume(template);
+                const labelKey = templateLabelsMap[template];
+                const label = labelKey ? t(labelKey) : template;
+                const isCreating = creatingTemplate === template;
+                const isFirst = template === firstTemplate;
+
+                return (
+                  <div
+                    key={template}
+                    className="group flex flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white transition-shadow hover:shadow-lg dark:border-zinc-700 dark:bg-zinc-900"
+                  >
+                    <div className="border-b border-zinc-100 px-4 py-3 text-center dark:border-zinc-800">
+                      <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
+                        {label}
+                      </h3>
+                    </div>
+
+                    <div className="relative h-[320px] overflow-hidden bg-zinc-50 dark:bg-zinc-950">
+                      <div
+                        className="absolute left-1/2 top-0 origin-top"
+                        style={{
+                          width: "794px",
+                          transform: "translateX(-50%) scale(0.28)",
+                        }}
+                      >
+                        <ResumePreview resume={mockResume} />
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2 border-t border-zinc-100 px-4 py-3 dark:border-zinc-800">
+                      <Button
+                        {...(isFirst ? { "data-tour": "tpl-preview" } : {})}
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 cursor-pointer gap-1.5"
+                        onClick={() => setPreviewTemplate(template)}
+                      >
+                        <Eye className="h-3.5 w-3.5" />
+                        {t("templates.preview")}
+                      </Button>
+                      <Button
+                        {...(isFirst ? { "data-tour": "tpl-use" } : {})}
+                        size="sm"
+                        className="flex-1 cursor-pointer gap-1.5 bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-zinc-200 text-white dark:text-zinc-900"
+                        onClick={() => void handleUseTemplate(template)}
+                        disabled={isCreating}
+                      >
+                        {isCreating ? (
+                          <>
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            {t("templates.creating")}
+                          </>
+                        ) : (
+                          t("templates.useTemplate")
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        ))}
       </div>
 
       {/* Full-size preview dialog */}

@@ -14,12 +14,16 @@ import type {
   GitHubContent,
 } from '@/types/resume';
 import { AvatarImage } from '../avatar-image';
-import { degreeField, isSectionEmpty, md } from '../utils';
+import { degreeField, extractMarkdownBulletItems, isSectionEmpty, md } from '../utils';
 import { QrCodesPreview } from '../qr-codes-preview';
 
 const PRIMARY = '#18181b';
 const ACCENT = '#6366f1';
 const CARD_BG = '#fafafa';
+
+function CardBulletList({ items, className = 'list-disc pl-4' }: { items: string[]; className?: string }) {
+  return <ul className={className}>{items.map((item, index) => <li key={index} className="text-sm text-zinc-600" dangerouslySetInnerHTML={{ __html: md(item) }} />)}</ul>;
+}
 
 export function CardTemplate({ resume }: { resume: Resume }) {
   const personalInfo = resume.sections.find((s) => s.type === 'personal_info');
@@ -77,6 +81,10 @@ function CardSectionContent({ section, resume }: { section: any; resume: Resume 
   const content = section.content;
 
   if (section.type === 'summary') {
+    const summaryItems = extractMarkdownBulletItems((content as SummaryContent).text);
+    if (summaryItems) {
+      return <CardBulletList items={summaryItems} className="list-disc pl-4" />;
+    }
     return <p className="text-sm leading-relaxed text-zinc-600" dangerouslySetInnerHTML={{ __html: md((content as SummaryContent).text) }} />;
   }
 
@@ -84,7 +92,10 @@ function CardSectionContent({ section, resume }: { section: any; resume: Resume 
     const items = (content as WorkExperienceContent).items || [];
     return (
       <div className="space-y-3">
-        {items.map((item: any) => (
+        {items.map((item: any) => {
+          const responsibilityItems = extractMarkdownBulletItems(item.description);
+
+          return (
           <div key={item.id} className="rounded-md bg-white p-3" style={{ border: '1px solid #f4f4f5' }}>
             <div className="flex items-baseline justify-between">
               <div>
@@ -94,7 +105,8 @@ function CardSectionContent({ section, resume }: { section: any; resume: Resume 
               </div>
               <span className="shrink-0 text-xs text-zinc-400">{item.startDate} – {item.endDate || (item.current ? (resume.language === 'zh' ? '至今' : 'Present') : '')}</span>
             </div>
-            {item.description && <p className="mt-1 text-sm text-zinc-600"><span className="font-medium text-zinc-700">{resume.language === 'zh' ? '职责' : 'Responsibilities'}:</span> <span dangerouslySetInnerHTML={{ __html: md(item.description) }} /></p>}
+            {item.description && responsibilityItems && <div className="mt-1"><p className="text-xs font-medium text-zinc-500">{resume.language === 'zh' ? '职责' : 'Responsibilities'}:</p><CardBulletList items={responsibilityItems} className="mt-0.5 list-disc pl-4" /></div>}
+            {item.description && !responsibilityItems && <p className="mt-1 text-sm text-zinc-600"><span className="font-medium text-zinc-700">{resume.language === 'zh' ? '职责' : 'Responsibilities'}:</span> <span dangerouslySetInnerHTML={{ __html: md(item.description) }} /></p>}
             {item.technologies?.length > 0 && (
               <div className="mt-1 flex flex-wrap gap-1">
                 {item.technologies.map((t: string, i: number) => (
@@ -107,15 +119,11 @@ function CardSectionContent({ section, resume }: { section: any; resume: Resume 
             {item.highlights?.length > 0 && (
               <div className="mt-1">
                 <p className="text-xs font-medium text-zinc-500">{resume.language === 'zh' ? '主要成就' : 'Key Achievements'}:</p>
-                <ul className="mt-0.5 list-disc pl-4">
-                  {item.highlights.map((h: string, i: number) => (
-                    <li key={i} className="text-sm text-zinc-600" dangerouslySetInnerHTML={{ __html: md(h) }} />
-                  ))}
-                </ul>
+                <CardBulletList items={item.highlights} className="mt-0.5 list-disc pl-4" />
               </div>
             )}
           </div>
-        ))}
+        )})}
       </div>
     );
   }
@@ -133,11 +141,7 @@ function CardSectionContent({ section, resume }: { section: any; resume: Resume 
             <p className="text-sm text-zinc-600">{degreeField(item.degree, item.field)}{item.location ? ` , ${item.location}` : ''}</p>
             {item.gpa && <p className="text-xs text-zinc-500">GPA: {item.gpa}</p>}
             {item.highlights?.length > 0 && (
-              <ul className="mt-1 list-disc pl-4">
-                {item.highlights.map((h: string, i: number) => (
-                  <li key={i} className="text-sm text-zinc-600" dangerouslySetInnerHTML={{ __html: md(h) }} />
-                ))}
-              </ul>
+              <CardBulletList items={item.highlights} className="mt-1 list-disc pl-4" />
             )}
           </div>
         ))}
@@ -190,11 +194,7 @@ function CardSectionContent({ section, resume }: { section: any; resume: Resume 
               </div>
             )}
             {item.highlights?.length > 0 && (
-              <ul className="mt-1 list-disc pl-4">
-                {item.highlights.map((h: string, i: number) => (
-                  <li key={i} className="text-sm text-zinc-600" dangerouslySetInnerHTML={{ __html: md(h) }} />
-                ))}
-              </ul>
+              <CardBulletList items={item.highlights} className="mt-1 list-disc pl-4" />
             )}
           </div>
         ))}

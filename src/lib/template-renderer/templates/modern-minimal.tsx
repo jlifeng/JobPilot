@@ -37,6 +37,7 @@ import {
   visibleSections,
 } from '../template-contract';
 import { ContactInfo, buildContactEntries } from '../contact-info';
+import { CertificationList, buildCertificationListHtml } from '../certifications-list';
 
 // ============================================================================
 // Constants
@@ -435,23 +436,15 @@ function ModernMinimalSectionContent({
   if (section.type === 'certifications') {
     const items = (content as unknown as CertificationsContent).items || [];
     return (
-      <div className="space-y-1">
-        {items.map((item) => (
-          <div key={item.id} className="flex items-baseline justify-between">
-            <div>
-              <span className="text-sm font-semibold" style={{ color: TEXT_PRIMARY }}>
-                {item.name}
-              </span>
-              {item.issuer && (
-                <span className="text-sm" style={{ color: TEXT_SECONDARY }}> — {item.issuer}</span>
-              )}
-            </div>
-            {item.date && (
-              <span className="text-xs" style={{ color: TEXT_SECONDARY }}>{item.date}</span>
-            )}
-          </div>
-        ))}
-      </div>
+      <CertificationList
+        items={items}
+        titleClassName="font-semibold"
+        issuerClassName=""
+        dateClassName="shrink-0 text-xs"
+        titleStyle={{ color: TEXT_PRIMARY }}
+        issuerStyle={{ color: TEXT_SECONDARY }}
+        dateStyle={{ color: TEXT_SECONDARY }}
+      />
     );
   }
 
@@ -689,17 +682,18 @@ function buildModernMinimalSectionHtml(
   // Certifications
   if (section.type === 'certifications') {
     const items = (content as unknown as CertificationsContent).items || [];
-    const itemsHtml = items.map((it) => `<div style="display:flex;align-items:baseline;justify-content:space-between;break-inside:avoid">
-      <div>
-        <span style="font-size:14px;font-weight:600;color:${TEXT_PRIMARY}">${esc(it.name)}</span>
-        ${it.issuer ? `<span style="font-size:13px;color:${TEXT_SECONDARY}"> — ${esc(it.issuer)}</span>` : ''}
-      </div>
-      ${it.date ? `<span style="font-size:11px;color:${TEXT_SECONDARY}">${esc(it.date)}</span>` : ''}
-    </div>`).join('');
+    const itemsHtml = buildCertificationListHtml(items, {
+      titleClass: '',
+      issuerClass: '',
+      dateClass: 'shrink-0 text-xs',
+      titleStyle: `font-size:14px;font-weight:600;color:${TEXT_PRIMARY}`,
+      issuerStyle: `font-size:13px;color:${TEXT_SECONDARY}`,
+      dateStyle: `font-size:11px;color:${TEXT_SECONDARY}`,
+    });
     return `<div data-section style="padding:0 32px 24px">
       <div style="border-top:1px solid ${DIVIDER};margin-bottom:16px"></div>
       ${sectionHeader}
-      <div style="display:flex;flex-direction:column;gap:4px">${itemsHtml}</div>
+      ${itemsHtml}
     </div>`;
   }
 

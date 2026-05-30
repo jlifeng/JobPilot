@@ -1,5 +1,22 @@
 import type { ResumeSection, SummaryContent, SkillsContent } from '@/types/resume';
 
+export function extractMarkdownBulletItems(text: unknown): string[] | null {
+  if (text == null) return null;
+  const lines = String(text).split('\n');
+  const items: string[] = [];
+
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line) continue;
+
+    const match = line.match(/^[-\u2013\u2022]\s+(.*)/);
+    if (!match) return null;
+    items.push(match[1]);
+  }
+
+  return items.length > 0 ? items : null;
+}
+
 /** Lightweight markdown → HTML for resume text fields (summary, descriptions, highlights).
  *  Supports: **bold**, `code`, line breaks, and "- item" lists. */
 export function md(text: unknown): string {

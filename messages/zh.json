@@ -684,7 +684,45 @@
     "preview": "预览",
     "useTemplate": "使用此模板",
     "creating": "创建中...",
-    "nav": "模版库"
+    "nav": "模版库",
+    "matrix": {
+      "atsGeneral": {
+        "title": "ATS 与通用投递",
+        "description": "适合网申、招聘平台解析和不确定模板选择时的稳妥投递。"
+      },
+      "techEngineering": {
+        "title": "技术工程",
+        "description": "突出项目经历、技术栈和工程成果，适合研发、算法、数据和架构岗位。"
+      },
+      "businessConsulting": {
+        "title": "咨询、金融与商务",
+        "description": "克制正式、信息密度高，适合咨询、金融、战略、职能和商务岗位。"
+      },
+      "academicResearch": {
+        "title": "应届、学术与科研",
+        "description": "强化教育背景、科研项目、竞赛经历和证书资质。"
+      },
+      "medicalLegal": {
+        "title": "医疗与法律",
+        "description": "面向专业资格导向岗位，突出执业资质、机构经历和可信度。"
+      },
+      "executive": {
+        "title": "管理与高管",
+        "description": "适合管理层、负责人和高级职能岗位，强调业务影响力。"
+      },
+      "creative": {
+        "title": "设计与创意",
+        "description": "为设计、品牌、内容和作品集导向岗位保留更强视觉记忆点。"
+      },
+      "dense": {
+        "title": "高信息密度",
+        "description": "适合经历多、项目多或希望一页承载更多内容的候选人。"
+      },
+      "visual": {
+        "title": "风格化模板",
+        "description": "提供更多视觉表达和版式变化，适合需要个性化呈现的简历。"
+      }
+    }
   },
   "tour": {
     "next": "下一步",

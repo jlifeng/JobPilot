@@ -14,12 +14,25 @@ import type {
   GitHubContent,
 } from '@/types/resume';
 import { AvatarImage } from '../avatar-image';
-import { degreeField, isSectionEmpty, md } from '../utils';
+import { degreeField, extractMarkdownBulletItems, isSectionEmpty, md } from '../utils';
 import { QrCodesPreview } from '../qr-codes-preview';
 
 const PRIMARY = '#1a1a1a';
 const ACCENT = '#dc2626';
 const SECONDARY = '#44403c';
+
+function MagazineBulletList({ items, className = 'space-y-0.5' }: { items: string[]; className?: string }) {
+  return (
+    <ul className={className}>
+      {items.map((item, index) => (
+        <li key={index} className="flex items-start gap-2 text-sm" style={{ color: SECONDARY }}>
+          <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rotate-45" style={{ backgroundColor: ACCENT }} />
+          <span dangerouslySetInnerHTML={{ __html: md(item) }} />
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 export function MagazineTemplate({ resume }: { resume: Resume }) {
   const personalInfo = resume.sections.find((s) => s.type === 'personal_info');
@@ -82,6 +95,10 @@ function MagazineSectionContent({ section, resume }: { section: any; resume: Res
 
   if (section.type === 'summary') {
     const text = (content as SummaryContent).text || '';
+    const summaryItems = extractMarkdownBulletItems(text);
+    if (summaryItems) {
+      return <MagazineBulletList items={summaryItems} />;
+    }
     return (
       <p className="text-sm leading-relaxed" style={{ color: SECONDARY }}>
         {text.length > 0 && (
@@ -98,36 +115,34 @@ function MagazineSectionContent({ section, resume }: { section: any; resume: Res
     const items = (content as WorkExperienceContent).items || [];
     return (
       <div className="space-y-4">
-        {items.map((item: any) => (
-          <div key={item.id} className="border-l-2 pl-4" style={{ borderColor: ACCENT }}>
-            <div className="flex items-baseline justify-between">
-              <h3 className="text-sm font-bold" style={{ color: PRIMARY }}>{item.position}</h3>
-              <span className="shrink-0 text-xs font-medium" style={{ color: ACCENT }}>
-                {item.startDate} - {item.endDate || (item.current ? (resume.language === 'zh' ? '至今' : 'Present') : '')}
-              </span>
-            </div>
-            {item.company && <p className="text-sm font-medium italic" style={{ color: SECONDARY }}>{item.company}{item.location ? `, ${item.location}` : ''}</p>}
-            {item.description && <p className="mt-1 text-sm" style={{ color: SECONDARY }}><span className="font-medium" style={{ color: PRIMARY }}>{resume.language === 'zh' ? '职责' : 'Responsibilities'}:</span> <span dangerouslySetInnerHTML={{ __html: md(item.description) }} /></p>}
-            {item.technologies?.length > 0 && (
-              <p className="mt-1 text-xs italic" style={{ color: ACCENT }}>
-                {item.technologies.join(', ')}
-              </p>
-            )}
-            {item.highlights?.length > 0 && (
-              <div className="mt-1.5">
-                <p className="text-xs font-medium mb-0.5" style={{ color: PRIMARY }}>{resume.language === 'zh' ? '主要成就' : 'Key Achievements'}:</p>
-                <ul className="space-y-0.5">
-                  {item.highlights.map((h: string, i: number) => (
-                    <li key={i} className="flex items-start gap-2 text-sm" style={{ color: SECONDARY }}>
-                      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rotate-45" style={{ backgroundColor: ACCENT }} />
-                      <span dangerouslySetInnerHTML={{ __html: md(h) }} />
-                    </li>
-                  ))}
-                </ul>
+        {items.map((item: any) => {
+          const responsibilityItems = extractMarkdownBulletItems(item.description);
+
+          return (
+            <div key={item.id} className="border-l-2 pl-4" style={{ borderColor: ACCENT }}>
+              <div className="flex items-baseline justify-between">
+                <h3 className="text-sm font-bold" style={{ color: PRIMARY }}>{item.position}</h3>
+                <span className="shrink-0 text-xs font-medium" style={{ color: ACCENT }}>
+                  {item.startDate} - {item.endDate || (item.current ? (resume.language === 'zh' ? '至今' : 'Present') : '')}
+                </span>
               </div>
-            )}
-          </div>
-        ))}
+              {item.company && <p className="text-sm font-medium italic" style={{ color: SECONDARY }}>{item.company}{item.location ? `, ${item.location}` : ''}</p>}
+              {item.description && responsibilityItems && <div className="mt-1.5"><p className="mb-0.5 text-xs font-medium" style={{ color: PRIMARY }}>{resume.language === 'zh' ? '职责' : 'Responsibilities'}:</p><MagazineBulletList items={responsibilityItems} /></div>}
+              {item.description && !responsibilityItems && <p className="mt-1 text-sm" style={{ color: SECONDARY }}><span className="font-medium" style={{ color: PRIMARY }}>{resume.language === 'zh' ? '职责' : 'Responsibilities'}:</span> <span dangerouslySetInnerHTML={{ __html: md(item.description) }} /></p>}
+              {item.technologies?.length > 0 && (
+                <p className="mt-1 text-xs italic" style={{ color: ACCENT }}>
+                  {item.technologies.join(', ')}
+                </p>
+              )}
+              {item.highlights?.length > 0 && (
+                <div className="mt-1.5">
+                  <p className="mb-0.5 text-xs font-medium" style={{ color: PRIMARY }}>{resume.language === 'zh' ? '主要成就' : 'Key Achievements'}:</p>
+                  <MagazineBulletList items={item.highlights} />
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     );
   }
@@ -144,16 +159,7 @@ function MagazineSectionContent({ section, resume }: { section: any; resume: Res
             </div>
             <p className="text-sm" style={{ color: SECONDARY }}>{degreeField(item.degree, item.field)}{item.location ? ` — ${item.location}` : ''}</p>
             {item.gpa && <p className="text-xs" style={{ color: SECONDARY }}>GPA: {item.gpa}</p>}
-            {item.highlights?.length > 0 && (
-              <ul className="mt-1 space-y-0.5">
-                {item.highlights.map((h: string, i: number) => (
-                  <li key={i} className="flex items-start gap-2 text-sm" style={{ color: SECONDARY }}>
-                    <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rotate-45" style={{ backgroundColor: ACCENT }} />
-                    <span dangerouslySetInnerHTML={{ __html: md(h) }} />
-                  </li>
-                ))}
-              </ul>
-            )}
+            {item.highlights?.length > 0 && <MagazineBulletList items={item.highlights} className="mt-1 space-y-0.5" />}
           </div>
         ))}
       </div>
@@ -200,16 +206,7 @@ function MagazineSectionContent({ section, resume }: { section: any; resume: Res
                 {item.technologies.join(', ')}
               </p>
             )}
-            {item.highlights?.length > 0 && (
-              <ul className="mt-1 space-y-0.5">
-                {item.highlights.map((h: string, i: number) => (
-                  <li key={i} className="flex items-start gap-2 text-sm" style={{ color: SECONDARY }}>
-                    <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rotate-45" style={{ backgroundColor: ACCENT }} />
-                    <span dangerouslySetInnerHTML={{ __html: md(h) }} />
-                  </li>
-                ))}
-              </ul>
-            )}
+            {item.highlights?.length > 0 && <MagazineBulletList items={item.highlights} className="mt-1 space-y-0.5" />}
           </div>
         ))}
       </div>

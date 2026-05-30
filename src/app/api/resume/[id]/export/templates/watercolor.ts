@@ -9,7 +9,7 @@ import type {
   CustomContent,
   GitHubContent,
 } from '@/types/resume';
-import { esc, md, degreeField, getPersonalInfo, visibleSections, buildQrCodesHtml, type ResumeWithSections, type Section } from '../utils';
+import { esc, md, degreeField, extractMarkdownBulletItems, getPersonalInfo, visibleSections, buildQrCodesHtml, type ResumeWithSections, type Section } from '../utils';
 
 const PRIMARY = '#4c1d95';
 const ACCENT = '#c084fc';
@@ -18,20 +18,27 @@ const TEXT = '#6b7280';
 const TEXT_DARK = '#374151';
 const GRADIENT = `linear-gradient(135deg, ${ACCENT}, ${PRIMARY})`;
 
+function buildWatercolorBulletList(items: string[] | undefined, className = 'space-y-0.5'): string {
+  if (!items?.length) return '';
+  return `<ul class="${className}">${items.filter(Boolean).map((item) => `<li class="flex items-start gap-2 text-sm" style="color:${TEXT}"><span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" style="background-color:${ACCENT}"></span>${md(item)}</li>`).join('')}</ul>`;
+}
+
 function buildWatercolorSectionContent(section: Section, lang: string): string {
   const c = section.content as any;
 
   if (section.type === 'summary') {
-    return `<div class="rounded-xl p-4" style="background-color:${WASH}"><div class="text-sm leading-relaxed" style="color:${TEXT_DARK}">${md((c as SummaryContent).text)}</div></div>`;
+    const summaryText = (c as SummaryContent).text;
+    const summaryItems = extractMarkdownBulletItems(summaryText);
+    return `<div class="rounded-xl p-4" style="background-color:${WASH}">${summaryItems ? buildWatercolorBulletList(summaryItems) : `<div class="text-sm leading-relaxed" style="color:${TEXT_DARK}">${md(summaryText)}</div>`}</div>`;
   }
 
   if (section.type === 'work_experience') {
     return `<div class="space-y-4">${((c as WorkExperienceContent).items || []).map((it: any) => `<div class="rounded-xl p-4" style="background-color:${WASH}">
       <div class="flex items-baseline justify-between"><h3 class="text-sm font-bold" style="color:${PRIMARY}">${esc(it.position)}</h3><span class="shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-semibold text-white" style="background:${GRADIENT}">${esc(it.startDate)} - ${esc(it.endDate) || (it.current ? (lang === 'zh' ? '至今' : 'Present') : '')}</span></div>
       ${it.company ? `<p class="text-sm font-medium" style="color:${ACCENT}">${esc(it.company)}</p>` : ''}
-      ${it.description ? `<div class="mt-1 text-sm" style="color:${TEXT}"><span class="font-medium" style="color:${TEXT_DARK}">${lang === 'zh' ? '职责' : 'Responsibilities'}:</span> ${md(it.description)}</div>` : ''}
+      ${(() => { const responsibilityItems = extractMarkdownBulletItems(it.description); if (responsibilityItems?.length) { return `<div class="mt-1"><p class="mb-0.5 text-xs font-medium" style="color:${TEXT_DARK}">${lang === 'zh' ? '职责' : 'Responsibilities'}:</p>${buildWatercolorBulletList(responsibilityItems)}</div>`; } return it.description ? `<div class="mt-1 text-sm" style="color:${TEXT}"><span class="font-medium" style="color:${TEXT_DARK}">${lang === 'zh' ? '职责' : 'Responsibilities'}:</span> ${md(it.description)}</div>` : ''; })()}
       ${it.technologies?.length ? `<div class="mt-2 flex flex-wrap gap-1">${it.technologies.map((t: string) => `<span class="rounded-full px-2 py-0.5 text-[10px] font-medium text-white" style="background:${GRADIENT}">${esc(t)}</span>`).join('')}</div>` : ''}
-      ${it.highlights?.length ? `<div class="mt-1"><p class="text-xs font-medium mb-0.5" style="color:${ACCENT}">${lang === 'zh' ? '主要成就' : 'Key Achievements'}:</p><ul class="space-y-0.5">${it.highlights.filter(Boolean).map((h: string) => `<li class="flex items-start gap-2 text-sm" style="color:${TEXT}"><span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" style="background-color:${ACCENT}"></span>${md(h)}</li>`).join('')}</ul></div>` : ''}
+      ${it.highlights?.length ? `<div class="mt-1"><p class="text-xs font-medium mb-0.5" style="color:${ACCENT}">${lang === 'zh' ? '主要成就' : 'Key Achievements'}:</p>${buildWatercolorBulletList(it.highlights)}</div>` : ''}
     </div>`).join('')}</div>`;
   }
 
@@ -40,7 +47,7 @@ function buildWatercolorSectionContent(section: Section, lang: string): string {
       <div class="flex items-baseline justify-between"><h3 class="text-sm font-bold" style="color:${PRIMARY}">${esc(it.institution)}</h3><span class="text-xs" style="color:${TEXT}">${esc(it.startDate)} - ${esc(it.endDate) || (lang === 'zh' ? '至今' : 'Present')}</span></div>
       <p class="text-sm" style="color:${TEXT_DARK}">${esc(degreeField(it.degree, it.field))}</p>
       ${it.gpa ? `<p class="text-xs" style="color:${ACCENT}">GPA: ${esc(it.gpa)}</p>` : ''}
-      ${it.highlights?.length ? `<ul class="mt-1 space-y-0.5">${it.highlights.filter(Boolean).map((h: string) => `<li class="flex items-start gap-2 text-sm" style="color:${TEXT}"><span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" style="background-color:${ACCENT}"></span>${md(h)}</li>`).join('')}</ul>` : ''}
+      ${it.highlights?.length ? buildWatercolorBulletList(it.highlights, 'mt-1 space-y-0.5') : ''}
     </div>`).join('')}</div>`;
   }
 
@@ -58,7 +65,7 @@ function buildWatercolorSectionContent(section: Section, lang: string): string {
       <div class="flex items-baseline justify-between"><h3 class="text-sm font-bold" style="color:${PRIMARY}">${esc(it.name)}</h3>${it.startDate ? `<span class="text-xs" style="color:${TEXT}">${esc(it.startDate)} - ${it.endDate ? esc(it.endDate) : (lang === 'zh' ? '至今' : 'Present')}</span>` : ''}</div>
       ${it.description ? `<div class="mt-0.5 text-sm" style="color:${TEXT}">${md(it.description)}</div>` : ''}
       ${it.technologies?.length ? `<div class="mt-2 flex flex-wrap gap-1">${it.technologies.map((t: string) => `<span class="rounded-full px-2 py-0.5 text-[10px] font-medium text-white" style="background:${GRADIENT}">${esc(t)}</span>`).join('')}</div>` : ''}
-      ${it.highlights?.length ? `<ul class="mt-1.5 space-y-0.5">${it.highlights.filter(Boolean).map((h: string) => `<li class="flex items-start gap-2 text-sm" style="color:${TEXT}"><span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" style="background-color:${ACCENT}"></span>${md(h)}</li>`).join('')}</ul>` : ''}
+      ${it.highlights?.length ? buildWatercolorBulletList(it.highlights, 'mt-1.5 space-y-0.5') : ''}
     </div>`).join('')}</div>`;
   }
 

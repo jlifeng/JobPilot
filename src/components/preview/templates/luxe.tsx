@@ -14,12 +14,25 @@ import type {
   GitHubContent,
 } from '@/types/resume';
 import { AvatarImage } from '../avatar-image';
-import { degreeField, isSectionEmpty, md } from '../utils';
+import { degreeField, extractMarkdownBulletItems, isSectionEmpty, md } from '../utils';
 import { QrCodesPreview } from '../qr-codes-preview';
 
 const GOLD = '#d4af37';
 const TEXT = '#000000';
 const BG = '#fafaf9';
+
+function LuxeBulletList({ items, className = 'list-none space-y-0.5' }: { items: string[]; className?: string }) {
+  return (
+    <ul className={className}>
+      {items.map((item, index) => (
+        <li key={index} className="flex items-start gap-2 text-sm" style={{ color: '#44403c' }}>
+          <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rotate-45" style={{ backgroundColor: GOLD }} />
+          <span dangerouslySetInnerHTML={{ __html: md(item) }} />
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 export function LuxeTemplate({ resume }: { resume: Resume }) {
   const personalInfo = resume.sections.find((s) => s.type === 'personal_info');
@@ -83,40 +96,44 @@ function LuxeSectionContent({ section, lang }: { section: any; lang?: string }) 
   const content = section.content;
 
   if (section.type === 'summary') {
-    return (
-      <p className="text-center text-sm italic leading-relaxed" style={{ color: '#44403c' }} dangerouslySetInnerHTML={{ __html: md((content as SummaryContent).text) }} />
-    );
+    const summaryText = (content as SummaryContent).text;
+    const summaryItems = extractMarkdownBulletItems(summaryText);
+    return summaryItems
+      ? <LuxeBulletList items={summaryItems} />
+      : <p className="text-center text-sm italic leading-relaxed" style={{ color: '#44403c' }} dangerouslySetInnerHTML={{ __html: md(summaryText) }} />;
   }
 
   if (section.type === 'work_experience') {
     return (
       <div className="space-y-5">
-        {((content as WorkExperienceContent).items || []).map((item: any) => (
+        {((content as WorkExperienceContent).items || []).map((item: any) => {
+          const responsibilityItems = extractMarkdownBulletItems(item.description);
+
+          return (
           <div key={item.id} className="border-l-2 pl-4" style={{ borderColor: GOLD }}>
             <div className="flex items-baseline justify-between">
               <h3 className="text-sm font-bold" style={{ color: TEXT }}>{item.position}</h3>
               <span className="shrink-0 text-xs italic" style={{ color: '#a8a29e' }}>{item.startDate} &ndash; {item.endDate || (item.current ? (lang === 'zh' ? '至今' : 'Present') : '')}</span>
             </div>
             {item.company && <p className="text-sm" style={{ color: GOLD }}>{item.company}{item.location ? `, ${item.location}` : ''}</p>}
-            {item.description && <p className="mt-1 text-sm" style={{ color: '#44403c' }}><span className="font-medium" style={{ color: TEXT }}>{lang === 'zh' ? '职责' : 'Responsibilities'}:</span> <span dangerouslySetInnerHTML={{ __html: md(item.description) }} /></p>}
+            {item.description && responsibilityItems && (
+              <div className="mt-1">
+                <p className="mb-0.5 text-xs font-medium" style={{ color: TEXT }}>{lang === 'zh' ? '职责' : 'Responsibilities'}:</p>
+                <LuxeBulletList items={responsibilityItems} />
+              </div>
+            )}
+            {item.description && !responsibilityItems && <p className="mt-1 text-sm" style={{ color: '#44403c' }}><span className="font-medium" style={{ color: TEXT }}>{lang === 'zh' ? '职责' : 'Responsibilities'}:</span> <span dangerouslySetInnerHTML={{ __html: md(item.description) }} /></p>}
             {item.technologies?.length > 0 && (
               <p className="mt-0.5 text-xs italic" style={{ color: '#a8a29e' }}>{lang === 'zh' ? '技术栈' : 'Tech'}: {item.technologies.join(', ')}</p>
             )}
             {item.highlights?.length > 0 && (
               <div className="mt-1.5">
                 <p className="text-xs font-medium mb-0.5" style={{ color: '#a8a29e' }}>{lang === 'zh' ? '主要成就' : 'Key Achievements'}:</p>
-                <ul className="list-none space-y-0.5">
-                  {item.highlights.map((h: string, i: number) => (
-                    <li key={i} className="flex items-start gap-2 text-sm" style={{ color: '#44403c' }}>
-                      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rotate-45" style={{ backgroundColor: GOLD }} />
-                      <span dangerouslySetInnerHTML={{ __html: md(h) }} />
-                    </li>
-                  ))}
-                </ul>
+                <LuxeBulletList items={item.highlights} />
               </div>
             )}
           </div>
-        ))}
+        )})}
       </div>
     );
   }
@@ -132,16 +149,7 @@ function LuxeSectionContent({ section, lang }: { section: any; lang?: string }) 
             </div>
             {item.institution && <p className="text-sm" style={{ color: GOLD }}>{item.institution}{item.location ? `, ${item.location}` : ''}</p>}
             {item.gpa && <p className="text-xs" style={{ color: '#a8a29e' }}>GPA: {item.gpa}</p>}
-            {item.highlights?.length > 0 && (
-              <ul className="mt-1 list-none space-y-0.5">
-                {item.highlights.map((h: string, i: number) => (
-                  <li key={i} className="flex items-start gap-2 text-sm" style={{ color: '#44403c' }}>
-                    <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rotate-45" style={{ backgroundColor: GOLD }} />
-                    <span dangerouslySetInnerHTML={{ __html: md(h) }} />
-                  </li>
-                ))}
-              </ul>
-            )}
+            {item.highlights?.length > 0 && <LuxeBulletList items={item.highlights} className="mt-1 list-none space-y-0.5" />}
           </div>
         ))}
       </div>
@@ -176,16 +184,7 @@ function LuxeSectionContent({ section, lang }: { section: any; lang?: string }) 
             {item.technologies?.length > 0 && (
               <p className="mt-0.5 text-xs italic" style={{ color: '#a8a29e' }}>{lang === 'zh' ? '技术栈' : 'Tech'}: {item.technologies.join(', ')}</p>
             )}
-            {item.highlights?.length > 0 && (
-              <ul className="mt-1 list-none space-y-0.5">
-                {item.highlights.map((h: string, i: number) => (
-                  <li key={i} className="flex items-start gap-2 text-sm" style={{ color: '#44403c' }}>
-                    <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rotate-45" style={{ backgroundColor: GOLD }} />
-                    <span dangerouslySetInnerHTML={{ __html: md(h) }} />
-                  </li>
-                ))}
-              </ul>
-            )}
+            {item.highlights?.length > 0 && <LuxeBulletList items={item.highlights} className="mt-1 list-none space-y-0.5" />}
           </div>
         ))}
       </div>
