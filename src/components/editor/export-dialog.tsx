@@ -16,6 +16,7 @@ import { downloadFromUrl } from '@/lib/utils/download';
 import { useResumeStore } from '@/stores/resume-store';
 import {
   FileDown,
+  FileCode2,
   Globe,
   AlignLeft,
   Braces,
@@ -31,7 +32,7 @@ interface ExportDialogProps {
   resumeId: string;
 }
 
-type ExportFormat = 'pdf' | 'pdf-one-page' | 'html' | 'txt' | 'json';
+type ExportFormat = 'pdf' | 'pdf-one-page' | 'html' | 'txt' | 'markdown' | 'json';
 type ExportState = 'idle' | 'exporting' | 'success' | 'error';
 
 const FORMAT_OPTIONS: {
@@ -45,6 +46,7 @@ const FORMAT_OPTIONS: {
   { value: 'pdf-one-page', icon: Sparkles, labelKey: 'pdfOnePage', descKey: 'pdfOnePageDescription', tooltipKey: 'pdfOnePageTooltip' },
   { value: 'html', icon: Globe, labelKey: 'html', descKey: 'htmlDescription' },
   { value: 'txt', icon: AlignLeft, labelKey: 'txt', descKey: 'txtDescription' },
+  { value: 'markdown', icon: FileCode2, labelKey: 'markdown', descKey: 'markdownDescription' },
   { value: 'json', icon: Braces, labelKey: 'json', descKey: 'jsonDescription' },
 ];
 
@@ -83,6 +85,7 @@ export function ExportDialog({ open, onOpenChange, resumeId }: ExportDialogProps
         'pdf-one-page': 'pdf',
         'html': 'html',
         'txt': 'txt',
+        'markdown': 'md',
         'json': 'json',
       };
       downloadFromUrl(

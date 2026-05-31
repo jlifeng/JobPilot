@@ -610,6 +610,8 @@
     "htmlDescription": "Web page format",
     "txt": "Plain Text",
     "txtDescription": "Simple text file",
+    "markdown": "Markdown",
+    "markdownDescription": "Readable text format",
     "pdfOnePage": "Smart One-Page",
     "pdfOnePageDescription": "Auto-fit to one page",
     "pdfOnePageTooltip": "Very long resumes may fail to fit on one page",
@@ -806,7 +808,7 @@
       },
       "export": {
         "title": "Import & Export",
-        "description": "Export as PDF, Smart One-Page PDF, Word, HTML, TXT, or JSON. Import a previously exported JSON to instantly restore or create a resume."
+        "description": "Export as PDF, Smart One-Page PDF, Word, HTML, TXT, Markdown, or JSON. Import a previously exported JSON to instantly restore or create a resume."
       },
       "sharing": {
         "title": "One-Click Sharing",

@@ -3,7 +3,7 @@ import { resumeRepository } from '@/lib/db/repositories/resume.repository';
 import { resolveUser, getUserIdFromRequest } from '@/lib/auth/helpers';
 import { generatePdf } from '@/lib/pdf/generate-pdf';
 import { generateHtml } from './builders';
-import { generatePlainText } from './plain-text';
+import { generateMarkdown, generatePlainText } from './plain-text';
 import { generateDocxBuffer } from './docx';
 
 // Chromium download + PDF render needs more time on Vercel serverless
@@ -63,6 +63,19 @@ export async function GET(
           },
         });
       }
+      case 'markdown':
+      case 'md': {
+        const markdown = generateMarkdown(resume);
+        const body = Buffer.from(markdown, 'utf8');
+        return new NextResponse(markdown, {
+          status: 200,
+          headers: {
+            'Content-Type': 'text/markdown; charset=utf-8',
+            'Content-Length': String(body.byteLength),
+            'Content-Disposition': `attachment; filename="${encodeURIComponent(filename)}.md"`,
+          },
+        });
+      }
       case 'docx': {
         const docxBuffer = await generateDocxBuffer(resume);
         return new NextResponse(new Uint8Array(docxBuffer), {
@@ -89,7 +102,7 @@ export async function GET(
       }
       default: {
         return NextResponse.json(
-          { error: `Unsupported format: ${format}. Supported: json, html, txt, docx, pdf` },
+          { error: `Unsupported format: ${format}. Supported: json, html, txt, markdown, md, docx, pdf` },
           { status: 400 }
         );
       }

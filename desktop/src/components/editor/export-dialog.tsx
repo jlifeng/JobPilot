@@ -5,6 +5,7 @@ import {
   AlignLeft,
   Braces,
   CheckCircle2,
+  FileCode2,
   FileDown,
   Globe,
   Info,
@@ -15,6 +16,7 @@ import {
 import { Button } from "@/components/ui/button";
 import {
   generateHtml,
+  generateMarkdown,
   generatePlainText,
 } from "@/lib/export";
 import { save as openSaveDialog } from "@tauri-apps/plugin-dialog";
@@ -31,7 +33,7 @@ interface ExportDialogProps {
   resumeId: string;
 }
 
-type ExportFormat = "pdf" | "pdf-one-page" | "html" | "txt" | "json";
+type ExportFormat = "pdf" | "pdf-one-page" | "html" | "txt" | "markdown" | "json";
 type ExportState = "idle" | "exporting" | "success" | "error" | "cancelled";
 
 interface NativeDialogSaveOptions {
@@ -97,6 +99,16 @@ const FORMAT_OPTIONS: FormatOption[] = [
     fallbackDescription: "Simple text file",
     supported: true,
     extension: "txt",
+  },
+  {
+    value: "markdown",
+    icon: FileCode2,
+    labelKey: "markdown",
+    descKey: "markdownDescription",
+    fallbackLabel: "Markdown",
+    fallbackDescription: "Portable markdown document",
+    supported: true,
+    extension: "md",
   },
   {
     value: "json",
@@ -281,6 +293,8 @@ export function ExportDialog({ open, onClose, resumeId }: ExportDialogProps) {
               bytes:
                 selectedFormat === "html"
                   ? encodeText(await generateHtml(resume))
+                  : selectedFormat === "markdown"
+                    ? encodeText(generateMarkdown(resume))
                   : selectedFormat === "json"
                     ? encodeText(JSON.stringify(resume, null, 2))
                     : encodeText(generatePlainText(resume)),

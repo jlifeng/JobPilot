@@ -138,3 +138,169 @@ export function generatePlainText(resume: ResumeWithSections): string {
 
   return lines.join('\n');
 }
+
+function pushMarkdownMultiline(lines: string[], text: string, prefix = ''): void {
+  const chunks = text
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  if (chunks.length === 0) return;
+
+  if (!prefix) {
+    lines.push(...chunks);
+    return;
+  }
+
+  lines.push(`${prefix}${chunks[0]}`);
+  for (const line of chunks.slice(1)) {
+    lines.push(`  ${line}`);
+  }
+}
+
+export function generateMarkdown(resume: ResumeWithSections): string {
+  const lines: string[] = [];
+  const displayTitle = safe(resume.title) || 'Resume';
+  lines.push(`# ${displayTitle}`);
+  lines.push('');
+
+  for (const section of resume.sections) {
+    if (!section.visible) continue;
+
+    switch (section.type) {
+      case 'personal_info': {
+        const info = section.content as PersonalInfoContent;
+        if (info.fullName) lines.push(`## ${info.fullName}`);
+        if (info.jobTitle) lines.push(info.jobTitle);
+
+        const infoParts: string[] = [];
+        if (info.age) infoParts.push(info.age);
+        if (info.gender) infoParts.push(info.gender);
+        if (info.politicalStatus) infoParts.push(info.politicalStatus);
+        if (info.ethnicity) infoParts.push(info.ethnicity);
+        if (info.hometown) infoParts.push(info.hometown);
+        if (info.maritalStatus) infoParts.push(info.maritalStatus);
+        if (info.yearsOfExperience) infoParts.push(info.yearsOfExperience);
+        if (info.educationLevel) infoParts.push(info.educationLevel);
+        if (infoParts.length > 0) lines.push(infoParts.join(' · '));
+
+        const contactParts: string[] = [];
+        if (info.email) contactParts.push(info.email);
+        if (info.phone) contactParts.push(info.phone);
+        if (info.wechat) contactParts.push(info.wechat);
+        if (info.location) contactParts.push(info.location);
+        if (contactParts.length > 0) lines.push(contactParts.join(' · '));
+
+        if (info.website) lines.push(info.website);
+        lines.push('');
+        break;
+      }
+      case 'summary': {
+        const summary = section.content as SummaryContent;
+        lines.push(`## ${section.title}`);
+        if (summary.text) pushMarkdownMultiline(lines, summary.text);
+        lines.push('');
+        break;
+      }
+      case 'work_experience': {
+        const work = section.content as WorkExperienceContent;
+        lines.push(`## ${section.title}`);
+        for (const item of work.items || []) {
+          const header = [safe(item.position), safe(item.company)].filter(Boolean).join(' @ ');
+          if (header) lines.push(`### ${header}`);
+          const dateRange = item.current
+            ? `${safe(item.startDate)} - Present`
+            : `${safe(item.startDate)} - ${safe(item.endDate)}`;
+          lines.push(dateRange + (item.location ? ` | ${item.location}` : ''));
+          if (item.description) pushMarkdownMultiline(lines, item.description);
+          for (const h of item.highlights || []) {
+            if (h?.trim()) pushMarkdownMultiline(lines, h, '- ');
+          }
+          lines.push('');
+        }
+        break;
+      }
+      case 'education': {
+        const edu = section.content as EducationContent;
+        lines.push(`## ${section.title}`);
+        for (const item of edu.items || []) {
+          const title = [safe(item.degree), item.field ? `in ${safe(item.field)}` : '', safe(item.institution)]
+            .filter(Boolean)
+            .join(' · ');
+          if (title) lines.push(`### ${title}`);
+          lines.push(`${safe(item.startDate)} - ${safe(item.endDate)}${item.location ? ` | ${item.location}` : ''}`);
+          if (item.gpa) lines.push(`GPA: ${item.gpa}`);
+          for (const h of item.highlights || []) {
+            if (h?.trim()) pushMarkdownMultiline(lines, h, '- ');
+          }
+          lines.push('');
+        }
+        break;
+      }
+      case 'skills': {
+        const skills = section.content as SkillsContent;
+        lines.push(`## ${section.title}`);
+        for (const cat of skills.categories || []) {
+          if (cat.name) lines.push(`### ${safe(cat.name)}`);
+          for (const skill of cat.skills || []) {
+            if (skill?.trim()) lines.push(`- ${skill}`);
+          }
+          lines.push('');
+        }
+        break;
+      }
+      case 'projects': {
+        const projects = section.content as ProjectsContent;
+        lines.push(`## ${section.title}`);
+        for (const item of projects.items || []) {
+          const projectTitle = item.url ? `[${safe(item.name)}](${safe(item.url)})` : safe(item.name);
+          if (projectTitle) lines.push(`### ${projectTitle}`);
+          if (item.startDate || item.endDate) {
+            lines.push(`${safe(item.startDate)}${item.endDate ? ` - ${safe(item.endDate)}` : ''}`);
+          }
+          if (item.description) pushMarkdownMultiline(lines, item.description);
+          if (item.technologies?.length) lines.push(`Technologies: ${item.technologies.join(', ')}`);
+          for (const h of item.highlights || []) {
+            if (h?.trim()) pushMarkdownMultiline(lines, h, '- ');
+          }
+          lines.push('');
+        }
+        break;
+      }
+      case 'certifications': {
+        const certs = section.content as CertificationsContent;
+        lines.push(`## ${section.title}`);
+        for (const item of certs.items || []) {
+          lines.push(
+            `- ${safe(item.name)}${item.issuer ? `, ${safe(item.issuer)}` : ''}${item.date ? ` (${safe(item.date)})` : ''}`
+          );
+        }
+        lines.push('');
+        break;
+      }
+      case 'languages': {
+        const langs = section.content as LanguagesContent;
+        lines.push(`## ${section.title}`);
+        for (const item of langs.items || []) {
+          lines.push(`- ${safe(item.language)}: ${safe(item.proficiency)}`);
+        }
+        lines.push('');
+        break;
+      }
+      default: {
+        const custom = section.content as CustomContent;
+        lines.push(`## ${section.title}`);
+        for (const item of (custom as any).items || []) {
+          const label = [safe(item.title), item.subtitle ? safe(item.subtitle) : ''].filter(Boolean).join(' · ');
+          if (label) lines.push(`### ${label}`);
+          if (item.date) lines.push(safe(item.date));
+          if (item.description) pushMarkdownMultiline(lines, item.description);
+          lines.push('');
+        }
+        break;
+      }
+    }
+  }
+
+  return lines.join('\n').trim() + '\n';
+}
