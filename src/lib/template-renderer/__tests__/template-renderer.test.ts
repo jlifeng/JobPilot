@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import type { Resume } from '@/types/resume';
-import { getUnifiedTemplate, toCanonicalResume } from '@/lib/template-renderer';
+import { getUnifiedTemplate, getUnifiedTemplateIds, toCanonicalResume } from '@/lib/template-renderer';
 import { buildContactEntries } from '@/lib/template-renderer/contact-info';
 
 function createSampleResume(template: string): Resume {
@@ -1005,6 +1005,44 @@ function testModernMinimalProfileContactInfoOrder(): void {
   assertAppearsInOrder(exportMarkup, expectedOrder);
 }
 
+function testAllUnifiedTemplatesSupportBasicMarkdownSyntax(): void {
+  const summaryMarkdown = [
+    'Built **shipping** renderer with `tsx` pipeline.',
+    '- Stabilized preview output',
+    '- Stabilized export output',
+  ].join('\n');
+
+  for (const templateId of getUnifiedTemplateIds()) {
+    const unifiedTemplate = getUnifiedTemplate(templateId);
+    assert.ok(unifiedTemplate, `Expected "${templateId}" to be registered`);
+
+    const resume = createSampleResume(templateId);
+    const summarySection = resume.sections.find((section) => section.type === 'summary');
+    assert.ok(summarySection, 'Expected summary section to exist');
+
+    summarySection.content = { text: summaryMarkdown };
+
+    for (const section of resume.sections) {
+      if (section.type !== 'summary' && section.type !== 'personal_info') {
+        section.visible = false;
+      }
+    }
+
+    const canonical = toCanonicalResume(resume);
+    const previewMarkup = renderToStaticMarkup(
+      React.createElement(unifiedTemplate.PreviewComponent, { resume: canonical }),
+    );
+    const exportMarkup = unifiedTemplate.buildHtml(canonical);
+
+    for (const markup of [previewMarkup, exportMarkup]) {
+      assert.match(markup, /<strong>shipping<\/strong>/);
+      assert.match(markup, /<code>tsx<\/code>/);
+      assert.match(markup, /<li[^>]*>[\s\S]*Stabilized preview output[\s\S]*<\/li>/);
+      assert.match(markup, /<li[^>]*>[\s\S]*Stabilized export output[\s\S]*<\/li>/);
+    }
+  }
+}
+
 testCanonicalResumeMetadata();
 testTemplateParity('classic');
 testTemplateParity('modern');
@@ -1061,3 +1099,4 @@ testSharedProfileContactInfoOrder();
 testModernMinimalProjectAndEducationHighlightsRenderAsBullets();
 testModernMinimalHeaderAlignsLeftWhenAvatarMissing();
 testModernMinimalProfileContactInfoOrder();
+testAllUnifiedTemplatesSupportBasicMarkdownSyntax();

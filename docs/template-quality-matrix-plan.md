@@ -426,7 +426,7 @@ zigzag
 
 ### 主矩阵模板抽检进展
 
-截至 2026-05-30，已完成两轮 unified 模板人工视觉快速抽检，共覆盖 13 / 29 个模板：
+截至 2026-05-30，已完成三轮 unified 模板人工视觉快速抽检，共覆盖 29 / 29 个模板：
 
 1. 第一轮抽检已覆盖：
    - `ats`
@@ -445,14 +445,38 @@ zigzag
    - `sidebar`
    - `swiss`
 
+3. 第三轮抽检已覆盖：
+   - `consultant`
+   - `designer`
+   - `creative`
+   - `compact`
+   - `classic`
+   - `modern`
+   - `formal`
+   - `euro`
+   - `nordic`
+   - `timeline`
+   - `elegant`
+   - `engineer`
+   - `legal`
+   - `scientist`
+   - `medical`
+   - `teacher`
+
 当前抽检结论：
 
-- 上述 13 个模板的 preview / export 主结构肉眼一致，未见明显块级错位；
+- 上述 29 个 unified 模板的 preview / export 主结构肉眼一致，未见明显块级错位；
 - `modern-minimal` 的项目时间右对齐、项目亮点 bullet、技能层级显示正常；
 - `two-column`、`sidebar` 的侧栏 / 主栏结构在预览和导出中保持一致；
 - `executive`、`finance`、`corporate`、`swiss` 的头部强调色和分区层级在导出中基本保持住模板气质；
-- `ats`、`minimal`、`academic`、`clean` 这类偏投递 / 学术模板的信息密度与行高比较稳定，没有明显拥挤或松散失衡；
+- `ats`、`minimal`、`academic`、`clean`、`teacher` 这类偏投递 / 学术模板的信息密度与行高比较稳定，没有明显拥挤或松散失衡；
+- `consultant`、`designer`、`creative`、`compact`、`classic`、`modern`、`formal`、`euro`、`nordic`、`timeline`、`elegant`、`engineer`、`legal`、`scientist`、`medical` 的基础布局和列表主结构在预览/导出中保持一致；
 - 本轮结论仍属于“快速视觉取样”，尚未替代招聘平台导入抽检、多页内容抽检和极端长文本抽检。
+
+自动化验证补充：
+
+- 已再次执行：`pnpm exec tsx "src/lib/template-renderer/__tests__/template-renderer.test.ts"`；
+- 当前退出码为 0，可作为本轮人工抽检结论的基础回归兜底。
 
 ### 剩余 22 个 legacy 模板处置建议（第一版）
 
@@ -492,6 +516,28 @@ zigzag
 - `startup`、`architect`、`card` 仍有相对明确的场景辨识度，不只是换色皮肤；
 - `magazine`、`artistic`、`retro`、`japanese`、`berlin` 已经积累过列表样式修复，继续长期维持 legacy 双轨的成本偏高，更适合迁移收口；
 - `bold`、`gradient` 当前与现有主矩阵的差异更多停留在装饰层，和高质量矩阵目标的重合度偏低，适合先观察是否真的需要保留。
+
+处置策略定稿门槛（用于从“第一版建议”进入“最终决策”）：
+
+1. 价值门槛：模板需满足以下任一条件才进入“继续迁移”队列。
+   - 能补足主矩阵未覆盖的结构能力（如超长经历、强侧栏、特定行业字段承载）；
+   - 近 2 个迭代周期内有稳定使用反馈或明确业务需求；
+   - 维护成本显著高于迁移成本（持续出现 preview/export 双改问题）。
+
+2. 维护门槛：满足以下任一条件进入“保留低优先级”。
+   - 与已迁移模板在信息结构上高度同质，仅视觉差异明显；
+   - 当前问题主要为低频视觉细节，不影响核心投递可用性；
+   - 短期内没有明确业务增量价值。
+
+3. 下线候选门槛：满足以下全部条件才进入“合并/下线候选”。
+   - 与主矩阵或已迁移模板重复度高；
+   - 无近期明确使用场景反馈；
+   - 历史问题修复收益低，且持续消耗维护成本。
+
+当前状态说明（2026-05-30）：
+
+- 上述 22 个模板仍处于“建议版分层”，尚未进入最终定稿；
+- 下一步需要补充模板使用频率、用户反馈和导入平台表现，再完成最终分层落版。
 
 ## 统一设计原则
 
@@ -649,8 +695,8 @@ zigzag
 
 4. 对已迁移模板做视觉抽检。
    - 已补自动抽检：`modern-minimal`、`developer`、`clean` 的长项目名、长技术栈、多亮点。
-   - 已完成人工快速抽检：`ats`、`minimal`、`modern-minimal`、`professional`、`developer`、`academic`、`executive`、`clean`、`finance`、`corporate`、`two-column`、`sidebar`、`swiss`。
-   - 后续人工视觉抽检优先：`medical`、`teacher`、`consultant`、`designer`、`creative`、`compact`、`classic`、`modern`、`formal`、`euro`、`nordic`、`timeline`、`elegant`、`engineer`、`legal`、`scientist`。
+   - 已完成人工快速抽检：29 / 29 unified 模板已覆盖（含 `ats`、`minimal`、`modern-minimal`、`professional`、`developer`、`academic`、`executive`、`clean`、`finance`、`corporate`、`two-column`、`sidebar`、`swiss`、`consultant`、`designer`、`creative`、`compact`、`classic`、`modern`、`formal`、`euro`、`nordic`、`timeline`、`elegant`、`engineer`、`legal`、`scientist`、`medical`、`teacher`）。
+   - 下一步优先从“视觉一致性抽检”转向“招聘平台导入一致性抽检”和“极端长文本/多页场景抽检”。
    - 检查长姓名、长邮箱、长项目名、长技术栈、多项目、多教育经历、多技能分类。
    - 检查无头像、有头像两种状态。
 
@@ -751,7 +797,7 @@ zigzag
 
 | 优先级 | 任务 | 说明 |
 |---|---|---|
-| P0 | 完成剩余 16 个 unified 模板的人工视觉抽检 | 当前已完成 13 / 29，优先补 `medical`、`teacher`、`consultant`、`designer`、`creative`、`compact` |
+| P0 | 完成 29 个 unified 模板的人工视觉抽检复核收口 | 当前已完成 29 / 29，后续以差异复检和回归抽检为主 |
 | P0 | 做招聘平台导入抽检 | 优先检查颜色、列表、时间、字段顺序、长文本解析 |
 | P0 | 锁定剩余 22 个 legacy 模板处置策略 | 当前已形成第一版分层建议，下一步需结合模板使用频率和产品取舍定稿 |
 | P1 | 从剩余 22 个模板里挑下一批 unified migration 候选 | 第一优先级建议：`blocks`、`coder`、`startup`、`architect`、`card`、`magazine`、`artistic`、`retro`、`japanese`、`berlin` |
@@ -763,6 +809,67 @@ zigzag
 1. 把 29 个 unified 模板的视觉和导出稳定性做扎实；
 2. 对剩余 22 个 legacy 模板做产品层面的取舍；
 3. 只迁移那些真正值得保留、且已经被验证有持续维护价值的模板。
+
+## 招聘平台导入抽检执行清单（下一轮直接执行）
+
+抽检目标：
+
+- 验证“本地 PDF 正常但招聘平台导入后颜色、列表、字段顺序变化”的风险；
+- 覆盖主矩阵模板和高风险模板，不做全量一次性硬铺开。
+
+第一批抽检模板建议：
+
+- `ats`
+- `minimal`
+- `modern-minimal`
+- `professional`
+- `developer`
+- `consultant`
+- `finance`
+- `two-column`
+- `sidebar`
+- `swiss`
+
+每个模板统一检查项：
+
+1. 颜色一致性：头部横条、强调色、分隔线是否偏色；
+2. 列表一致性：个人简介、职责、主要成就、项目亮点、荣誉奖项 bullet 是否丢失或合并；
+3. 时间与字段顺序：项目时间右对齐、个人信息顺序、侧栏/主栏顺序是否被平台重排；
+4. 长文本表现：长项目名、长技术栈、长邮箱是否溢出或截断；
+5. 多页稳定性：分页处是否出现标题孤行、列表断裂、头像挤压。
+
+通过判定标准：
+
+- 导入平台后的主要信息结构和本地 PDF 保持一致；
+- 没有“颜色明显跑偏”“列表丢 bullet”“字段顺序错乱”三类高优先级问题；
+- 如出现问题，需同步记录模板 ID、问题截图、复现数据和平台名称，再回到 unified template 维护入口修复。
+
+当前执行状态（2026-05-30）：
+
+- 清单已完成，可直接执行；
+- 本地渲染与导出侧的快速抽检和统一渲染测试已完成；
+- 招聘平台导入抽检台账已建立，等待逐模板落结果。
+
+招聘平台导入抽检台账（第一批）：
+
+| 模板 ID | 抽检状态 | 颜色一致性 | 列表一致性 | 时间/字段顺序 | 长文本/分页 | 备注 |
+|---|---|---|---|---|---|---|
+| `ats` | 待执行 | - | - | - | - | - |
+| `minimal` | 待执行 | - | - | - | - | - |
+| `modern-minimal` | 待执行 | - | - | - | - | - |
+| `professional` | 待执行 | - | - | - | - | - |
+| `developer` | 待执行 | - | - | - | - | - |
+| `consultant` | 待执行 | - | - | - | - | - |
+| `finance` | 待执行 | - | - | - | - | - |
+| `two-column` | 待执行 | - | - | - | - | - |
+| `sidebar` | 待执行 | - | - | - | - | - |
+| `swiss` | 待执行 | - | - | - | - | - |
+
+台账填充约定：
+
+1. 抽检状态统一使用：`待执行`、`进行中`、`通过`、`需修复`；
+2. 任一维度出现问题时，备注必须包含：平台名称、问题截图路径、复现用模板数据；
+3. `需修复` 模板必须关联回 unified template 文件并在修复后回填二次抽检结果。
 
 ## 后续恢复工作入口
 
