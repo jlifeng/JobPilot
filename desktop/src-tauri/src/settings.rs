@@ -23,6 +23,8 @@ pub struct WorkspaceSettingsDocument {
     pub ai: WorkspaceAiSettings,
     pub editor: WorkspaceEditorSettings,
     pub window: WorkspaceWindowSettings,
+    #[serde(default)]
+    pub sync: WorkspaceSyncSettings,
     pub updated_at_epoch_ms: u64,
 }
 
@@ -55,6 +57,43 @@ pub struct WorkspaceEditorSettings {
 pub struct WorkspaceWindowSettings {
     pub remember_window_state: bool,
     pub restore_last_workspace: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkspaceSyncSettings {
+    #[serde(default)]
+    pub webdav: WorkspaceWebdavSettings,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkspaceWebdavSettings {
+    #[serde(default)]
+    pub server_url: String,
+    #[serde(default)]
+    pub username: String,
+    #[serde(default = "default_webdav_remote_path")]
+    pub remote_path: String,
+    #[serde(default)]
+    pub last_snapshot_name: Option<String>,
+    #[serde(default)]
+    pub last_backup_at_epoch_ms: Option<u64>,
+    #[serde(default)]
+    pub last_restore_at_epoch_ms: Option<u64>,
+}
+
+impl Default for WorkspaceWebdavSettings {
+    fn default() -> Self {
+        Self {
+            server_url: String::new(),
+            username: String::new(),
+            remote_path: default_webdav_remote_path(),
+            last_snapshot_name: None,
+            last_backup_at_epoch_ms: None,
+            last_restore_at_epoch_ms: None,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -674,8 +713,13 @@ fn default_settings_document() -> Result<WorkspaceSettingsDocument, String> {
             remember_window_state: true,
             restore_last_workspace: true,
         },
+        sync: WorkspaceSyncSettings::default(),
         updated_at_epoch_ms: now_epoch_ms()?,
     })
+}
+
+fn default_webdav_remote_path() -> String {
+    "JobPilot".into()
 }
 
 fn load_or_initialize_vault_fallback(
@@ -1477,7 +1521,7 @@ where
     fs::write(path, payload).map_err(|error| format!("failed to write {}: {error}", path.display()))
 }
 
-fn now_epoch_ms() -> Result<u64, String> {
+pub fn now_epoch_ms() -> Result<u64, String> {
     let duration = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map_err(|error| format!("clock drift detected: {error}"))?;

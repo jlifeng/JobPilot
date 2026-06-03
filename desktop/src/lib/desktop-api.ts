@@ -285,6 +285,16 @@ export interface WorkspaceSettingsDocument {
     rememberWindowState: boolean;
     restoreLastWorkspace: boolean;
   };
+  sync: {
+    webdav: {
+      serverUrl: string;
+      username: string;
+      remotePath: string;
+      lastSnapshotName?: string | null;
+      lastBackupAtEpochMs?: number | null;
+      lastRestoreAtEpochMs?: number | null;
+    };
+  };
   updatedAtEpochMs: number;
 }
 
@@ -372,6 +382,46 @@ export interface SecretValueWriteInput {
   provider?: string | null;
   purpose?: string | null;
   value: string;
+}
+
+export interface WebdavSyncStatus {
+  configured: boolean;
+  serverUrl: string;
+  username: string;
+  remotePath: string;
+  passwordConfigured: boolean;
+  lastSnapshotName?: string | null;
+  lastBackupAtEpochMs?: number | null;
+  lastRestoreAtEpochMs?: number | null;
+}
+
+export interface WebdavSettingsUpdateInput {
+  serverUrl: string;
+  username: string;
+  remotePath: string;
+  password?: string | null;
+}
+
+export interface WebdavConnectivityResult {
+  success: boolean;
+  latencyMs: number;
+  errorMessage: string | null;
+}
+
+export interface WebdavSnapshotReceipt {
+  snapshotName: string;
+  remotePath: string;
+  databaseBytes: number;
+  secretCount: number;
+  settingsIncluded: boolean;
+  completedAtEpochMs: number;
+}
+
+export interface WebdavRestoreReceipt {
+  snapshotName: string;
+  localBackupPath: string;
+  restoredSecretCount: number;
+  restoredAtEpochMs: number;
 }
 
 export interface StartAiPromptStreamInput {
@@ -946,7 +996,28 @@ const FALLBACK_SETTINGS: WorkspaceSettingsDocument = {
     rememberWindowState: true,
     restoreLastWorkspace: true,
   },
+  sync: {
+    webdav: {
+      serverUrl: "",
+      username: "",
+      remotePath: "JobPilot",
+      lastSnapshotName: null,
+      lastBackupAtEpochMs: null,
+      lastRestoreAtEpochMs: null,
+    },
+  },
   updatedAtEpochMs: 0,
+};
+
+const FALLBACK_WEBDAV_SYNC_STATUS: WebdavSyncStatus = {
+  configured: false,
+  serverUrl: "",
+  username: "",
+  remotePath: "JobPilot",
+  passwordConfigured: false,
+  lastSnapshotName: null,
+  lastBackupAtEpochMs: null,
+  lastRestoreAtEpochMs: null,
 };
 
 const FALLBACK_LEGACY_IMPORT_CONTRACT: LegacyImportContract = {
@@ -1758,6 +1829,42 @@ export async function writeSecretValue(
 
 export async function readSecretValue(key: string): Promise<string | null> {
   return invoke<string | null>("read_secret_value", { key });
+}
+
+export async function getWebdavSyncStatus(): Promise<WebdavSyncStatus> {
+  return invokeWithFallback(
+    "get_webdav_sync_status",
+    FALLBACK_WEBDAV_SYNC_STATUS,
+  );
+}
+
+export async function updateWebdavSyncSettings(
+  input: WebdavSettingsUpdateInput,
+): Promise<WebdavSyncStatus> {
+  return invoke<WebdavSyncStatus>("update_webdav_sync_settings", { input });
+}
+
+export async function testWebdavConnection(): Promise<WebdavConnectivityResult> {
+  return invokeWithFallback<WebdavConnectivityResult>(
+    "test_webdav_connection",
+    {
+      success: false,
+      latencyMs: 0,
+      errorMessage: "Desktop runtime not available",
+    },
+  );
+}
+
+export async function uploadWebdavSnapshot(
+  input: WebdavSnapshotPasswordInput,
+): Promise<WebdavSnapshotReceipt> {
+  return invoke<WebdavSnapshotReceipt>("upload_webdav_snapshot", { input });
+}
+
+export async function restoreWebdavSnapshot(
+  input: WebdavSnapshotPasswordInput,
+): Promise<WebdavRestoreReceipt> {
+  return invoke<WebdavRestoreReceipt>("restore_webdav_snapshot", { input });
 }
 
 export async function startAiPromptStream(

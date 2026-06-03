@@ -46,4 +46,9 @@ commands.allow = [
   "get_interview_report",
   "generate_interview_report",
   "start_interview_turn_stream",
+  "get_webdav_sync_status",
+  "update_webdav_sync_settings",
+  "test_webdav_connection",
+  "upload_webdav_snapshot",
+  "restore_webdav_snapshot",
 ]

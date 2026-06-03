@@ -5,6 +5,7 @@ mod legacy_import_contract;
 mod release;
 mod settings;
 mod storage;
+mod sync;
 mod workspace;
 
 use ai::{
@@ -29,6 +30,10 @@ use storage::{
     InterviewSessionListItem, SaveDocumentInput, StorageSnapshot,
     TemplateValidationExportWriteResult, TemplateValidationSnapshot, UpdateDocumentInput,
     UpdateInterviewMessageMetadataInput,
+};
+use sync::{
+    WebdavConnectivityResult, WebdavRestoreReceipt, WebdavSettingsUpdateInput,
+    WebdavSnapshotReceipt, WebdavSyncStatus,
 };
 use tauri::Manager;
 use workspace::WorkspaceSnapshot;
@@ -276,6 +281,43 @@ fn read_secret_value(app: tauri::AppHandle, key: String) -> Result<Option<String
 }
 
 #[tauri::command]
+fn get_webdav_sync_status(app: tauri::AppHandle) -> Result<WebdavSyncStatus, String> {
+    sync::get_webdav_sync_status(&app)
+}
+
+#[tauri::command]
+fn update_webdav_sync_settings(
+    app: tauri::AppHandle,
+    input: WebdavSettingsUpdateInput,
+) -> Result<WebdavSyncStatus, String> {
+    sync::update_webdav_sync_settings(&app, input)
+}
+
+#[tauri::command]
+async fn test_webdav_connection(
+    app: tauri::AppHandle,
+) -> Result<WebdavConnectivityResult, String> {
+    sync::test_webdav_connection(&app).await
+}
+
+#[tauri::command]
+async fn upload_webdav_snapshot(
+    app: tauri::AppHandle,
+) -> Result<WebdavSnapshotReceipt, String> {
+    sync::upload_webdav_snapshot(&app).await
+}
+
+#[tauri::command]
+async fn restore_webdav_snapshot(
+    app: tauri::AppHandle,
+) -> Result<WebdavRestoreReceipt, String> {
+    let _receipt = sync::restore_webdav_snapshot(&app).await?;
+    // The database file was replaced on disk but the in-memory SQLite handles
+    // are stale. Restart the app so fresh connections pick up the new data.
+    app.restart();
+}
+
+#[tauri::command]
 fn start_ai_prompt_stream(
     app: tauri::AppHandle,
     input: ai::StartAiPromptStreamInput,
@@ -491,6 +533,11 @@ pub fn run() {
             update_workspace_appearance_settings,
             write_secret_value,
             read_secret_value,
+            get_webdav_sync_status,
+            update_webdav_sync_settings,
+            test_webdav_connection,
+            upload_webdav_snapshot,
+            restore_webdav_snapshot,
             start_ai_prompt_stream,
             list_interview_sessions,
             get_interview_session,

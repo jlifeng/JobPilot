@@ -5,6 +5,25 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 并且本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.2.2] - 2026-06-03
+
+### 新增
+
+- **WebDAV 云端同步** — 支持将简历、设置和 API 密钥加密备份到 WebDAV 服务器（如 123云盘、坚果云、Nextcloud 等），一键恢复
+  - 设置抽屉新增"同步"标签页，配置 WebDAV 服务器地址、用户名、密码和远端目录
+  - 测试连接：PROPFIND 优先探测目录可达性，PUT 写入验证，兼容非标 WebDAV 服务（MKCOL 降级、PUT 405 容错）
+  - 上传快照：将本地数据库、设置和加密后的密钥打包上传，使用 Argon2id + XChaCha20Poly1305 加密
+  - 恢复快照：从远端下载并恢复数据，自动创建本地备份后重启应用确保数据生效
+  - 加密密钥复用 WebDAV 密码，无需额外备份密码，减少操作步骤
+- **远端目录输入** — WebDAV 同步支持自定义远端挂载目录，默认值 `JobPilot`
+
+### 修复
+
+- 修复 Tauri v2 命令权限未注册导致 WebDAV 命令无法调用的问题
+- 修复 WebDAV remotePath 前端 state 未绑定用户输入的问题
+- 修复恢复快照后 SQLite 连接缓存导致数据不生效的问题（恢复后自动重启应用）
+- 修复 123云盘等不支持 MKCOL 的 WebDAV 服务器创建子目录失败的问题
+
 ## [1.2.1] - 2026-06-01
 
 ### 新增
@@ -155,8 +174,9 @@
 - 中英双语 — 完整的国际化支持
 - 本地优先 — 数据存储在本地，隐私安全有保障
 
-[Unreleased]: https://github.com/jlifeng/JobPilot/compare/v1.1.9...HEAD
-[1.1.9]: https://github.com/jlifeng/JobPilot/compare/v1.1.8...v1.1.9
+[Unreleased]: https://github.com/jlifeng/JobPilot/compare/v1.2.2...HEAD
+[1.2.2]: https://github.com/jlifeng/JobPilot/compare/v1.2.1...v1.2.2
+[1.2.1]: https://github.com/jlifeng/JobPilot/compare/v1.1.9...v1.2.1
 [1.1.8]: https://github.com/jlifeng/JobPilot/compare/v1.1.7...v1.1.8
 [1.1.7]: https://github.com/jlifeng/JobPilot/compare/v1.1.6...v1.1.7
 [1.1.6]: https://github.com/jlifeng/JobPilot/compare/v1.1.5...v1.1.6

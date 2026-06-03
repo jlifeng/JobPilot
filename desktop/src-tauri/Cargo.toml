@@ -1,6 +1,6 @@
 [package]
 name = "jobpilot-desktop"
-version = "1.2.1"
+version = "1.2.2"
 description = "Tauri desktop application for JobPilot"
 authors = ["JobPilot"]
 edition = "2021"
@@ -15,8 +15,12 @@ tauri-build = { version = "2.0.0", features = [] }
 
 [dependencies]
 futures-util = "0.3"
+argon2 = "0.5"
+base64 = "0.22"
+chacha20poly1305 = "0.10"
+rand_core = { version = "0.6", features = ["getrandom"] }
 reqwest = { version = "0.12", features = ["json", "stream", "rustls-tls"] }
-rusqlite = { version = "0.31.0", features = ["bundled"] }
+rusqlite = { version = "0.31.0", features = ["bundled", "backup"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 sha2 = "0.10"
@@ -30,4 +34,3 @@ tauri-plugin-process = "2.3.1"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 keyring = "3"
-

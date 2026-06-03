@@ -26,6 +26,7 @@ import {
   type LegacyImportContract,
   type ReleaseReadinessSnapshot,
   type SecretInventorySnapshot,
+  type WebdavSyncStatus,
 } from "./desktop-api";
 import type {
   InterviewReport,

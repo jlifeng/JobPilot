@@ -1,47 +1,68 @@
-'use client';
+"use client";
 
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { useTranslations } from 'next-intl';
-import { useLocale } from 'next-intl';
-import { useTheme } from 'next-themes';
-import { Settings, Cpu, Paintbrush, PenTool, Eye, EyeOff, Sun, Moon, Monitor, ChevronsUpDown, Check, Loader2 } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
+import { useLocale } from "next-intl";
+import { useTheme } from "next-themes";
+import {
+  Settings,
+  Cpu,
+  Paintbrush,
+  PenTool,
+  Eye,
+  EyeOff,
+  Sun,
+  Moon,
+  Monitor,
+  ChevronsUpDown,
+  Check,
+  Loader2,
+} from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
-import { Slider } from '@/components/ui/slider';
+} from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Slider } from "@/components/ui/slider";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { useUIStore } from '@/stores/ui-store';
-import { useSettingsStore, getAIHeaders, type AIProvider } from '@/stores/settings-store';
-import { useTourStore } from '@/stores/tour-store';
-import { usePathname, useRouter } from '@/i18n/routing';
-import { locales, localeNames } from '@/i18n/config';
-import { cn } from '@/lib/utils';
+} from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { useUIStore } from "@/stores/ui-store";
+import {
+  useSettingsStore,
+  getAIHeaders,
+  type AIProvider,
+} from "@/stores/settings-store";
+import { useTourStore } from "@/stores/tour-store";
+import { usePathname, useRouter } from "@/i18n/routing";
+import { locales, localeNames } from "@/i18n/config";
+import { cn } from "@/lib/utils";
 
 const AI_PROVIDERS: { value: AIProvider; label: string }[] = [
-  { value: 'openai', label: 'OpenAI' },
-  { value: 'anthropic', label: 'Anthropic' },
-  { value: 'gemini', label: 'Google Gemini' },
+  { value: "openai", label: "OpenAI" },
+  { value: "anthropic", label: "Anthropic" },
+  { value: "gemini", label: "Google Gemini" },
 ];
 
 export function SettingsDialog() {
-  const t = useTranslations('settings');
-  const tCommon = useTranslations('common');
+  const t = useTranslations("settings");
+  const tCommon = useTranslations("common");
   const locale = useLocale();
   const router = useRouter();
   const pathname = usePathname();
@@ -71,11 +92,11 @@ export function SettingsDialog() {
   const startTour = useTourStore((s) => s.startTour);
   const [showApiKey, setShowApiKey] = useState(false);
   const [showExaPoolApiKey, setShowExaPoolApiKey] = useState(false);
-  const isOpen = activeModal === 'settings';
+  const isOpen = activeModal === "settings";
 
   // Model combobox state
   const [modelOpen, setModelOpen] = useState(false);
-  const [modelSearch, setModelSearch] = useState('');
+  const [modelSearch, setModelSearch] = useState("");
   const [fetchedModels, setFetchedModels] = useState<string[]>([]);
   const [modelsFetching, setModelsFetching] = useState(false);
   const [modelsFetched, setModelsFetched] = useState(false);
@@ -91,7 +112,7 @@ export function SettingsDialog() {
   const fetchModels = useCallback(async () => {
     setModelsFetching(true);
     try {
-      const res = await fetch('/api/ai/models', { headers: getAIHeaders() });
+      const res = await fetch("/api/ai/models", { headers: getAIHeaders() });
       const data = await res.json();
       const ids = (data.models || []).map((m: { id: string }) => m.id);
       setFetchedModels(ids);
@@ -127,12 +148,12 @@ export function SettingsDialog() {
     if (modelOpen) {
       setTimeout(() => modelSearchRef.current?.focus(), 50);
     } else {
-      setModelSearch('');
+      setModelSearch("");
     }
   }, [modelOpen]);
 
   const filteredModels = fetchedModels.filter((m) =>
-    m.toLowerCase().includes(modelSearch.toLowerCase())
+    m.toLowerCase().includes(modelSearch.toLowerCase()),
   );
 
   const handleLocaleChange = (newLocale: string) => {
@@ -149,34 +170,28 @@ export function SettingsDialog() {
         <DialogHeader className="px-6 pt-6 pb-0">
           <DialogTitle className="flex items-center gap-2">
             <Settings className="h-5 w-5 text-zinc-500" />
-            {t('title')}
+            {t("title")}
           </DialogTitle>
         </DialogHeader>
 
-        <Tabs value={settingsTab} onValueChange={setSettingsTab} className="mt-4">
+        <Tabs
+          value={settingsTab}
+          onValueChange={setSettingsTab}
+          className="mt-4"
+        >
           <div className="px-6">
-            <TabsList className="w-full">
-              <TabsTrigger value="ai" className="flex-1 gap-1.5 cursor-pointer">
-                <Cpu className="h-3.5 w-3.5" />
-                {t('ai.title')}
-              </TabsTrigger>
-              <TabsTrigger value="appearance" className="flex-1 gap-1.5 cursor-pointer">
-                <Paintbrush className="h-3.5 w-3.5" />
-                {t('appearance.title')}
-              </TabsTrigger>
-              <TabsTrigger value="editor" className="flex-1 gap-1.5 cursor-pointer">
-                <PenTool className="h-3.5 w-3.5" />
-                {t('editorTab.title')}
-              </TabsTrigger>
-            </TabsList>
+            <TabsList className="w-full"></TabsList>
           </div>
 
           {/* AI Configuration Tab */}
           <TabsContent value="ai" className="px-6 pb-6 pt-4 space-y-5">
             {/* Provider */}
             <div className="space-y-2">
-              <Label>{t('ai.provider')}</Label>
-              <Select value={aiProvider} onValueChange={(v) => setAIProvider(v as AIProvider)}>
+              <Label>{t("ai.provider")}</Label>
+              <Select
+                value={aiProvider}
+                onValueChange={(v) => setAIProvider(v as AIProvider)}
+              >
                 <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
@@ -192,13 +207,13 @@ export function SettingsDialog() {
 
             {/* API Key */}
             <div className="space-y-2">
-              <Label>{t('ai.apiKey')}</Label>
+              <Label>{t("ai.apiKey")}</Label>
               <div className="relative">
                 <Input
-                  type={showApiKey ? 'text' : 'password'}
+                  type={showApiKey ? "text" : "password"}
                   value={aiApiKey}
                   onChange={(e) => setAIApiKey(e.target.value)}
-                  placeholder={t('ai.apiKeyPlaceholder')}
+                  placeholder={t("ai.apiKeyPlaceholder")}
                   className="pr-10"
                 />
                 <Button
@@ -208,15 +223,19 @@ export function SettingsDialog() {
                   className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 cursor-pointer"
                   onClick={() => setShowApiKey(!showApiKey)}
                 >
-                  {showApiKey ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                  {showApiKey ? (
+                    <EyeOff className="h-3.5 w-3.5" />
+                  ) : (
+                    <Eye className="h-3.5 w-3.5" />
+                  )}
                 </Button>
               </div>
-              <p className="text-xs text-zinc-400">{t('ai.apiKeyHint')}</p>
+              <p className="text-xs text-zinc-400">{t("ai.apiKeyHint")}</p>
             </div>
 
             {/* Base URL */}
             <div className="space-y-2">
-              <Label>{t('ai.baseURL')}</Label>
+              <Label>{t("ai.baseURL")}</Label>
               <Input
                 value={aiBaseURL}
                 onChange={(e) => setAIBaseURL(e.target.value)}
@@ -226,8 +245,12 @@ export function SettingsDialog() {
 
             {/* Model — Combobox */}
             <div className="space-y-2">
-              <Label>{t('ai.model')}</Label>
-              <Popover open={modelOpen} onOpenChange={setModelOpen} modal={false}>
+              <Label>{t("ai.model")}</Label>
+              <Popover
+                open={modelOpen}
+                onOpenChange={setModelOpen}
+                modal={false}
+              >
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
@@ -235,51 +258,66 @@ export function SettingsDialog() {
                     aria-expanded={modelOpen}
                     className="w-full justify-between cursor-pointer font-normal"
                   >
-                    <span className="truncate">{aiModel || t('ai.modelPlaceholder')}</span>
+                    <span className="truncate">
+                      {aiModel || t("ai.modelPlaceholder")}
+                    </span>
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                <PopoverContent
+                  className="w-[--radix-popover-trigger-width] p-0"
+                  align="start"
+                >
                   {/* Search input */}
                   <div className="border-b px-3 py-2">
                     <Input
                       ref={modelSearchRef}
                       value={modelSearch}
                       onChange={(e) => setModelSearch(e.target.value)}
-                      placeholder={tCommon('search')}
+                      placeholder={tCommon("search")}
                       className="h-8 border-0 p-0 shadow-none focus-visible:ring-0"
                     />
                   </div>
 
                   {/* Model list */}
-                  <div className="max-h-48 overflow-y-auto p-1" onWheel={(e) => e.stopPropagation()}>
+                  <div
+                    className="max-h-48 overflow-y-auto p-1"
+                    onWheel={(e) => e.stopPropagation()}
+                  >
                     {modelsFetching && (
                       <div className="flex items-center justify-center py-4 text-sm text-zinc-400">
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        {tCommon('loading')}
+                        {tCommon("loading")}
                       </div>
                     )}
 
-                    {!modelsFetching && filteredModels.length === 0 && modelsFetched && (
-                      <div className="py-3 text-center text-xs text-zinc-400">
-                        {t('ai.noModelsFound')}
-                      </div>
-                    )}
+                    {!modelsFetching &&
+                      filteredModels.length === 0 &&
+                      modelsFetched && (
+                        <div className="py-3 text-center text-xs text-zinc-400">
+                          {t("ai.noModelsFound")}
+                        </div>
+                      )}
 
                     {filteredModels.map((m) => (
                       <button
                         key={m}
                         type="button"
                         className={cn(
-                          'flex w-full cursor-pointer items-center rounded-sm px-2 py-1.5 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800',
-                          aiModel === m && 'bg-zinc-100 dark:bg-zinc-800'
+                          "flex w-full cursor-pointer items-center rounded-sm px-2 py-1.5 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800",
+                          aiModel === m && "bg-zinc-100 dark:bg-zinc-800",
                         )}
                         onClick={() => {
                           setAIModel(m);
                           setModelOpen(false);
                         }}
                       >
-                        <Check className={cn('mr-2 h-4 w-4', aiModel === m ? 'opacity-100' : 'opacity-0')} />
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            aiModel === m ? "opacity-100" : "opacity-0",
+                          )}
+                        />
                         <span className="truncate">{m}</span>
                       </button>
                     ))}
@@ -290,10 +328,10 @@ export function SettingsDialog() {
                     <Input
                       value={aiModel}
                       onChange={(e) => setAIModel(e.target.value)}
-                      placeholder={t('ai.modelPlaceholder')}
+                      placeholder={t("ai.modelPlaceholder")}
                       className="h-8 text-sm"
                       onKeyDown={(e) => {
-                        if (e.key === 'Enter') setModelOpen(false);
+                        if (e.key === "Enter") setModelOpen(false);
                       }}
                     />
                   </div>
@@ -305,30 +343,30 @@ export function SettingsDialog() {
 
             <div className="space-y-1">
               <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                {t('ai.webToolsTitle')}
+                {t("ai.webToolsTitle")}
               </div>
               <p className="text-xs leading-relaxed text-zinc-400">
-                {t('ai.webToolsDescription')}
+                {t("ai.webToolsDescription")}
               </p>
             </div>
 
             <div className="space-y-2">
-              <Label>{t('ai.exaPoolBaseURL')}</Label>
+              <Label>{t("ai.exaPoolBaseURL")}</Label>
               <Input
                 value={exaPoolBaseURL}
                 onChange={(e) => setExaPoolBaseURL(e.target.value)}
-                placeholder={t('ai.exaPoolBaseURLPlaceholder')}
+                placeholder={t("ai.exaPoolBaseURLPlaceholder")}
               />
             </div>
 
             <div className="space-y-2">
-              <Label>{t('ai.exaPoolApiKey')}</Label>
+              <Label>{t("ai.exaPoolApiKey")}</Label>
               <div className="relative">
                 <Input
-                  type={showExaPoolApiKey ? 'text' : 'password'}
+                  type={showExaPoolApiKey ? "text" : "password"}
                   value={exaPoolApiKey}
                   onChange={(e) => setExaPoolApiKey(e.target.value)}
-                  placeholder={t('ai.exaPoolApiKeyPlaceholder')}
+                  placeholder={t("ai.exaPoolApiKeyPlaceholder")}
                   className="pr-10"
                 />
                 <Button
@@ -338,10 +376,16 @@ export function SettingsDialog() {
                   className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 cursor-pointer"
                   onClick={() => setShowExaPoolApiKey(!showExaPoolApiKey)}
                 >
-                  {showExaPoolApiKey ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                  {showExaPoolApiKey ? (
+                    <EyeOff className="h-3.5 w-3.5" />
+                  ) : (
+                    <Eye className="h-3.5 w-3.5" />
+                  )}
                 </Button>
               </div>
-              <p className="text-xs text-zinc-400">{t('ai.exaPoolApiKeyHint')}</p>
+              <p className="text-xs text-zinc-400">
+                {t("ai.exaPoolApiKeyHint")}
+              </p>
             </div>
           </TabsContent>
 
@@ -349,12 +393,24 @@ export function SettingsDialog() {
           <TabsContent value="appearance" className="px-6 pb-6 pt-4 space-y-5">
             {/* Theme */}
             <div className="space-y-3">
-              <Label>{t('appearance.theme')}</Label>
+              <Label>{t("appearance.theme")}</Label>
               <div className="grid grid-cols-3 gap-2">
                 {[
-                  { value: 'light', icon: Sun, label: t('appearance.themeLight') },
-                  { value: 'dark', icon: Moon, label: t('appearance.themeDark') },
-                  { value: 'system', icon: Monitor, label: t('appearance.themeSystem') },
+                  {
+                    value: "light",
+                    icon: Sun,
+                    label: t("appearance.themeLight"),
+                  },
+                  {
+                    value: "dark",
+                    icon: Moon,
+                    label: t("appearance.themeDark"),
+                  },
+                  {
+                    value: "system",
+                    icon: Monitor,
+                    label: t("appearance.themeSystem"),
+                  },
                 ].map(({ value, icon: Icon, label }) => (
                   <button
                     key={value}
@@ -362,8 +418,8 @@ export function SettingsDialog() {
                     onClick={() => handleThemeChange(value)}
                     className={`flex cursor-pointer flex-col items-center gap-2 rounded-lg border p-3 text-sm transition-all ${
                       currentTheme === value
-                        ? 'border-zinc-900 bg-zinc-50 text-zinc-900 dark:border-zinc-100 dark:bg-zinc-800 dark:text-zinc-100'
-                        : 'border-zinc-200 text-zinc-500 hover:border-zinc-300 hover:text-zinc-700 dark:border-zinc-700 dark:hover:border-zinc-600'
+                        ? "border-zinc-900 bg-zinc-50 text-zinc-900 dark:border-zinc-100 dark:bg-zinc-800 dark:text-zinc-100"
+                        : "border-zinc-200 text-zinc-500 hover:border-zinc-300 hover:text-zinc-700 dark:border-zinc-700 dark:hover:border-zinc-600"
                     }`}
                   >
                     <Icon className="h-5 w-5" />
@@ -377,7 +433,7 @@ export function SettingsDialog() {
 
             {/* Language */}
             <div className="space-y-2">
-              <Label>{t('appearance.language')}</Label>
+              <Label>{t("appearance.language")}</Label>
               <Select value={locale} onValueChange={handleLocaleChange}>
                 <SelectTrigger className="w-full">
                   <SelectValue />
@@ -398,13 +454,12 @@ export function SettingsDialog() {
             {/* Auto Save */}
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label>{t('editorTab.autoSave')}</Label>
-                <p className="text-xs text-zinc-400">{t('editorTab.autoSaveDescription')}</p>
+                <Label>{t("editorTab.autoSave")}</Label>
+                <p className="text-xs text-zinc-400">
+                  {t("editorTab.autoSaveDescription")}
+                </p>
               </div>
-              <Switch
-                checked={autoSave}
-                onCheckedChange={setAutoSave}
-              />
+              <Switch checked={autoSave} onCheckedChange={setAutoSave} />
             </div>
 
             <Separator />
@@ -412,7 +467,7 @@ export function SettingsDialog() {
             {/* Auto Save Interval */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <Label>{t('editorTab.autoSaveInterval')}</Label>
+                <Label>{t("editorTab.autoSaveInterval")}</Label>
                 <span className="text-sm text-zinc-500">
                   {(autoSaveInterval / 1000).toFixed(1)}s
                 </span>
@@ -435,8 +490,10 @@ export function SettingsDialog() {
             {/* Restart Tour */}
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label>{t('editorTab.restartTour')}</Label>
-                <p className="text-xs text-zinc-400">{t('editorTab.restartTourDescription')}</p>
+                <Label>{t("editorTab.restartTour")}</Label>
+                <p className="text-xs text-zinc-400">
+                  {t("editorTab.restartTourDescription")}
+                </p>
               </div>
               <Button
                 variant="outline"
@@ -444,10 +501,10 @@ export function SettingsDialog() {
                 className="cursor-pointer"
                 onClick={() => {
                   closeModal();
-                  setTimeout(() => startTour('editor', 5), 300);
+                  setTimeout(() => startTour("editor", 5), 300);
                 }}
               >
-                {t('editorTab.restartTour')}
+                {t("editorTab.restartTour")}
               </Button>
             </div>
           </TabsContent>
