@@ -1856,15 +1856,13 @@ export async function testWebdavConnection(): Promise<WebdavConnectivityResult> 
 }
 
 export async function uploadWebdavSnapshot(
-  input: WebdavSnapshotPasswordInput,
 ): Promise<WebdavSnapshotReceipt> {
-  return invoke<WebdavSnapshotReceipt>("upload_webdav_snapshot", { input });
+  return invoke<WebdavSnapshotReceipt>("upload_webdav_snapshot");
 }
 
 export async function restoreWebdavSnapshot(
-  input: WebdavSnapshotPasswordInput,
 ): Promise<WebdavRestoreReceipt> {
-  return invoke<WebdavRestoreReceipt>("restore_webdav_snapshot", { input });
+  return invoke<WebdavRestoreReceipt>("restore_webdav_snapshot");
 }
 
 export async function startAiPromptStream(
