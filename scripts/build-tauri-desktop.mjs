@@ -117,6 +117,10 @@ if (env.TAURI_SIGNING_PRIVATE_KEY_PASSWORD) {
   env.CI ??= "true";
 }
 
+function toPowerShellLiteral(value) {
+  return `'${value.replaceAll("'", "''")}'`;
+}
+
 const child = (() => {
   if (process.platform === "win32") {
     const scriptParts = [];
