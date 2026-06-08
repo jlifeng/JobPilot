@@ -106,6 +106,21 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
 
+      - name: Normalize macOS updater asset names
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          bundle_dir=".codex-cargo-target/desktop-tauri/${{ matrix.target }}/release/bundle/macos"
+          shopt -s nullglob
+          for artifact in "$bundle_dir"/*.app.tar.gz; do
+            base="$(basename "$artifact" .app.tar.gz)"
+            renamed="$bundle_dir/${base}_${{ matrix.target }}.app.tar.gz"
+            mv "$artifact" "$renamed"
+            if [ -f "$artifact.sig" ]; then
+              mv "$artifact.sig" "$renamed.sig"
+            fi
+          done
+
       - name: Build release updater manifest
         run: pnpm run build:desktop:release-updater-manifest
         env:
