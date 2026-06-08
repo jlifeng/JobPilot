@@ -113,6 +113,7 @@ jobs:
           RELEASE_TAG: ${{ github.ref_name }}
           RELEASE_UPDATER_MANIFEST_OUTPUT: desktop/.codex-temp/release-assets/latest.json
           DESKTOP_UPDATER_TARGET: ${{ matrix.updater_target }}
+          DESKTOP_TAURI_BUNDLE_DIR: .codex-cargo-target/desktop-tauri/${{ matrix.target }}/release/bundle
 
       - name: Generate release notes
         run: node scripts/generate-release-notes.mjs
@@ -127,7 +128,7 @@ jobs:
           name: build-${{ matrix.target }}
           path: |
             desktop/.codex-temp/release-assets/
-            .codex-cargo-target/desktop-tauri/release/bundle/
+            .codex-cargo-target/desktop-tauri/${{ matrix.target }}/release/bundle/
           include-hidden-files: true
 
   merge-and-publish:

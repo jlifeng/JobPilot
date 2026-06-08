@@ -148,12 +148,12 @@ jobs:
         with:
           name: jobpilot-desktop-windows-${{ github.sha }}
           path: |
-            .codex-cargo-target/desktop-tauri/release/bundle/**/*.exe
-            .codex-cargo-target/desktop-tauri/release/bundle/**/*.exe.sig
-            .codex-cargo-target/desktop-tauri/release/bundle/**/*.msi
-            .codex-cargo-target/desktop-tauri/release/bundle/**/*.msi.sig
-            .codex-cargo-target/desktop-tauri/release/bundle/**/*.zip
-            .codex-cargo-target/desktop-tauri/release/bundle/**/*.zip.sig
+            .codex-cargo-target/desktop-tauri/${{ matrix.target }}/release/bundle/**/*.exe
+            .codex-cargo-target/desktop-tauri/${{ matrix.target }}/release/bundle/**/*.exe.sig
+            .codex-cargo-target/desktop-tauri/${{ matrix.target }}/release/bundle/**/*.msi
+            .codex-cargo-target/desktop-tauri/${{ matrix.target }}/release/bundle/**/*.msi.sig
+            .codex-cargo-target/desktop-tauri/${{ matrix.target }}/release/bundle/**/*.zip
+            .codex-cargo-target/desktop-tauri/${{ matrix.target }}/release/bundle/**/*.zip.sig
           if-no-files-found: error
 
       - name: Upload Desktop Artifacts (macOS)
@@ -162,9 +162,9 @@ jobs:
         with:
           name: jobpilot-desktop-macos-${{ matrix.target }}-${{ github.sha }}
           path: |
-            .codex-cargo-target/desktop-tauri/release/bundle/**/*.dmg
-            .codex-cargo-target/desktop-tauri/release/bundle/**/*.dmg.sig
-            .codex-cargo-target/desktop-tauri/release/bundle/**/*.app
-            .codex-cargo-target/desktop-tauri/release/bundle/**/*.app.tar.gz
-            .codex-cargo-target/desktop-tauri/release/bundle/**/*.app.tar.gz.sig
+            .codex-cargo-target/desktop-tauri/${{ matrix.target }}/release/bundle/**/*.dmg
+            .codex-cargo-target/desktop-tauri/${{ matrix.target }}/release/bundle/**/*.dmg.sig
+            .codex-cargo-target/desktop-tauri/${{ matrix.target }}/release/bundle/**/*.app
+            .codex-cargo-target/desktop-tauri/${{ matrix.target }}/release/bundle/**/*.app.tar.gz
+            .codex-cargo-target/desktop-tauri/${{ matrix.target }}/release/bundle/**/*.app.tar.gz.sig
           if-no-files-found: error
