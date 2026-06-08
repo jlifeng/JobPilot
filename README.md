@@ -14,7 +14,7 @@
 
 </div>
 
-<img width="1536" height="1024" alt="JobPilot Screenshot" src="https://github.com/user-attachments/assets/a8d4fef2-969f-4cc8-a168-ad78771a4d35" />
+<img width="1536" height="1024" alt="JobPilot Screenshot" src="https://vip.123pan.cn/1813176/yk6baz03t0m000ddz18hgvi6qy2q3l2tDIYPDwe0ApxzBIUzAqe=.png" />
 
 ---
 
