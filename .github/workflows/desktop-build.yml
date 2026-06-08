@@ -74,6 +74,10 @@ jobs:
             runner: macos-latest
             rust_target: aarch64-apple-darwin
             artifact_ext: dmg
+          - target: x86_64-apple-darwin
+            runner: macos-latest
+            rust_target: x86_64-apple-darwin
+            artifact_ext: dmg
 
     steps:
       - name: Checkout repository
@@ -132,7 +136,7 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
 
       - name: Build Tauri Desktop
-        run: pnpm run build:tauri
+        run: pnpm run build:tauri -- --target ${{ matrix.target }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}

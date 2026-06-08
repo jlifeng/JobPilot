@@ -24,9 +24,15 @@ jobs:
           - target: x86_64-pc-windows-msvc
             runner: windows-latest
             rust_target: x86_64-pc-windows-msvc
+            updater_target: windows-x86_64
           - target: aarch64-apple-darwin
             runner: macos-latest
             rust_target: aarch64-apple-darwin
+            updater_target: darwin-aarch64
+          - target: x86_64-apple-darwin
+            runner: macos-latest
+            rust_target: x86_64-apple-darwin
+            updater_target: darwin-x86_64
 
     steps:
       - name: Checkout repository
@@ -94,7 +100,7 @@ jobs:
           }
 
       - name: Build Tauri Desktop
-        run: pnpm run build:tauri
+        run: pnpm run build:tauri -- --target ${{ matrix.target }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
@@ -106,6 +112,7 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
           RELEASE_TAG: ${{ github.ref_name }}
           RELEASE_UPDATER_MANIFEST_OUTPUT: desktop/.codex-temp/release-assets/latest.json
+          DESKTOP_UPDATER_TARGET: ${{ matrix.updater_target }}
 
       - name: Generate release notes
         run: node scripts/generate-release-notes.mjs

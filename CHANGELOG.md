@@ -5,6 +5,12 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 并且本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.4.1] - 2026-06-09
+
+### 新增
+
+- **macOS Intel 构建支持** — 桌面端发布流程新增 Intel Mac (`x86_64-apple-darwin`) 构建，与 Apple Silicon 和 Windows 安装包一并生成
+
 ## [1.4.0] - 2026-06-09
 
 ### 新增
@@ -213,7 +219,8 @@
 - 中英双语 — 完整的国际化支持
 - 本地优先 — 数据存储在本地，隐私安全有保障
 
-[Unreleased]: https://github.com/jlifeng/JobPilot/compare/v1.4.0...HEAD
+[Unreleased]: https://github.com/jlifeng/JobPilot/compare/v1.4.1...HEAD
+[1.4.1]: https://github.com/jlifeng/JobPilot/compare/v1.4.0...v1.4.1
 [1.4.0]: https://github.com/jlifeng/JobPilot/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/jlifeng/JobPilot/compare/v1.2.2...v1.3.0
 [1.2.2]: https://github.com/jlifeng/JobPilot/compare/v1.2.1...v1.2.2

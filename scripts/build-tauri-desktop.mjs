@@ -87,6 +87,7 @@ const configuredKeyPath = firstDefined(
   defaultKeyPath,
 );
 const shouldLoadKeyFromFile = !env.TAURI_SIGNING_PRIVATE_KEY;
+const tauriBuildArgs = process.argv.slice(2);
 
 if (!existsSync(configuredKeyPath) && shouldLoadKeyFromFile) {
   console.error(
@@ -119,6 +120,10 @@ if (env.TAURI_SIGNING_PRIVATE_KEY_PASSWORD) {
 const child = (() => {
   if (process.platform === "win32") {
     const scriptParts = [];
+    const tauriBuildCommand = [
+      "& npm.cmd --prefix desktop run tauri:build --",
+      ...tauriBuildArgs.map((arg) => toPowerShellLiteral(arg)),
+    ].join(" ");
 
     if (shouldLoadKeyFromFile) {
       const escapedKeyPath = configuredKeyPath.replace(/'/gu, "''");
@@ -136,7 +141,7 @@ const child = (() => {
       "if ($env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD) { $env:TAURI_PRIVATE_KEY_PASSWORD = $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD }",
       "if (-not $env:TAURI_PRIVATE_KEY_PASSWORD) { $env:TAURI_PRIVATE_KEY_PASSWORD = '' }",
       "if (-not $env:CI) { $env:CI = 'true' }",
-      "& npm.cmd --prefix desktop run tauri:build",
+      tauriBuildCommand,
     );
 
     const script = scriptParts.join("; ");
@@ -154,7 +159,14 @@ const child = (() => {
     });
   }
 
-  return spawn("npm", ["--prefix", "desktop", "run", "tauri:build"], {
+  return spawn("npm", [
+    "--prefix",
+    "desktop",
+    "run",
+    "tauri:build",
+    "--",
+    ...tauriBuildArgs,
+  ], {
     cwd: ROOT,
     env,
     stdio: "inherit",

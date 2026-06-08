@@ -1,6 +1,6 @@
 [package]
 name = "jobpilot-desktop"
-version = "1.4.0"
+version = "1.4.1"
 description = "Tauri desktop application for JobPilot"
 authors = ["JobPilot"]
 edition = "2021"
