@@ -479,7 +479,7 @@ Return ONLY the JSON, no markdown fences.`;
                   <Button
                     onClick={() => void handleAnalyze()}
                     disabled={isAnalyzing || !jobDescription.trim()}
-                    className="cursor-pointer bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-zinc-200"
+                    className="cursor-pointer bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-400"
                   >
                     {isAnalyzing ? (
                       <>

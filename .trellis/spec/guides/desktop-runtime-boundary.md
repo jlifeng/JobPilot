@@ -522,6 +522,139 @@ Rules:
 6. `create-resume-dialog.tsx` and `resume-import.ts` must read `resumeImportVisionModel` from runtime settings, block direct image uploads when it is missing, and switch scanned-PDF parsing to the vision model only after text extraction proves the PDF is not text-based.
 7. `desktop/vite.config.ts` must keep `mupdf` out of `optimizeDeps`, and `desktop/src/lib/resume-import.ts` must load `mupdf-wasm.wasm` through a Vite `?url` import; otherwise the renderer can receive HTML instead of Wasm and fail with `WebAssembly.instantiate(): expected magic word`.
 
+## WebDAV Sync Settings Contract
+
+### 1. Scope / Trigger
+
+- Trigger: the renderer and Rust command layer share the WebDAV sync settings payload, including sync mode and auto-sync interval fields.
+- Scope: configuration persistence plus native background upload scheduling. The desktop runtime starts a lightweight WebDAV scheduler during Tauri bootstrap; when `syncMode="auto"` and credentials are configured, the scheduler periodically uploads a snapshot after the configured interval has elapsed since the last backup.
+
+### 2. Signatures
+
+Rust commands:
+
+- File: `desktop/src-tauri/src/lib.rs`
+- Commands:
+  - `get_webdav_sync_status`
+  - `update_webdav_sync_settings`
+  - `test_webdav_connection`
+
+Renderer / settings files:
+
+- `desktop/src-tauri/src/sync.rs`
+- `desktop/src-tauri/src/settings.rs`
+- `desktop/src/lib/desktop-api.ts`
+- `desktop/src/components/editor/settings-dialog.tsx`
+- `desktop/src/routes/settings.tsx`
+
+### 3. Contracts
+
+Workspace settings payload fields:
+
+```json
+{
+  "sync": {
+    "webdav": {
+      "serverUrl": "https://dav.example.com/path",
+      "username": "user@example.com",
+      "remotePath": "JobPilot",
+      "syncMode": "manual",
+      "autoSyncIntervalMinutes": 60,
+      "lastSnapshotName": null,
+      "lastBackupAtEpochMs": null,
+      "lastRestoreAtEpochMs": null
+    }
+  }
+}
+```
+
+`update_webdav_sync_settings` input:
+
+```json
+{
+  "serverUrl": "https://dav.example.com/path",
+  "username": "user@example.com",
+  "remotePath": "JobPilot",
+  "syncMode": "manual",
+  "autoSyncIntervalMinutes": 60,
+  "password": null
+}
+```
+
+`get_webdav_sync_status` / `update_webdav_sync_settings` response:
+
+```json
+{
+  "configured": true,
+  "serverUrl": "https://dav.example.com/path",
+  "username": "user@example.com",
+  "remotePath": "JobPilot",
+  "syncMode": "manual",
+  "autoSyncIntervalMinutes": 60,
+  "passwordConfigured": true,
+  "lastSnapshotName": null,
+  "lastBackupAtEpochMs": null,
+  "lastRestoreAtEpochMs": null
+}
+```
+
+Defaults:
+
+- `syncMode`: `"manual"`
+- `autoSyncIntervalMinutes`: `60`
+- `remotePath`: `"JobPilot"`
+
+UI contract:
+
+- `/settings` must not duplicate the cloud sync section.
+- `/sync` renders `SettingsContent mode="sync-only"` and shows only WebDAV connection plus sync policy configuration.
+- Upload / restore snapshot actions may exist as lower-level commands, but the cloud sync page must not expose them unless a future design explicitly adds that workflow back.
+
+### 4. Validation & Error Matrix
+
+| Condition | Runtime behavior | UI expectation |
+|---|---|---|
+| Empty `serverUrl` | `update_webdav_sync_settings` rejects with `WebDAV server URL is required` | Show the returned save error |
+| `syncMode="auto"` | Persist `"auto"` | Switch is on and interval input is visible |
+| Any other `syncMode` value | Persist `"manual"` | Switch is off after status reload |
+| `autoSyncIntervalMinutes < 5` | Clamp to `5` | Renderer should clamp before save and mirror returned value |
+| `autoSyncIntervalMinutes > 1440` | Clamp to `1440` | Renderer should clamp before save and mirror returned value |
+| Blank `remotePath` | Normalize to `"JobPilot"` | Reloaded field shows `"JobPilot"` |
+| Blank `password` on update | Keep existing secret unchanged | Password input clears after save and placeholder indicates saved state |
+
+### 5. Good / Base / Bad Cases
+
+- Good: user opens `/sync`, enters WebDAV credentials, leaves auto sync off, saves, and status reloads with `syncMode="manual"` plus `autoSyncIntervalMinutes=60`.
+- Good: user enables auto sync and chooses `30`; the renderer saves `syncMode="auto"` and `autoSyncIntervalMinutes=30`, and the native scheduler uploads the next snapshot after the interval has elapsed.
+- Base: old settings documents without sync mode fields deserialize with manual mode and a 60-minute interval.
+- Bad: frontend adds a new sync mode string without Rust validation; runtime must coerce it to manual until the contract is deliberately extended.
+- Bad: UI claims auto sync is healthy when credentials are missing, `syncMode` is not `auto`, or the latest background upload failed.
+
+### 6. Tests Required
+
+- Type/build check: `pnpm build:desktop-shell` must compile the renderer with the shared TypeScript payload fields.
+- Rust check: `cargo check --manifest-path desktop/src-tauri/Cargo.toml --target-dir .codex-cargo-target/desktop-tauri` must compile the command structs and settings document defaults.
+- Manual native smoke: in Tauri, open `/sync`, save manual mode, then enable auto mode with a custom interval and reopen the page to confirm values persist.
+- Contract assertion points: missing legacy fields default correctly, invalid interval values clamp to `5..1440`, and `/settings` does not render the sync section.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```tsx
+<SettingsContent variant="page" mode="settings" />
+```
+
+on the cloud sync route, because it duplicates AI / appearance / editor settings.
+
+#### Correct
+
+```tsx
+<SettingsContent variant="page" mode="sync-only" />
+```
+
+so the dedicated cloud sync navigation entry exposes only sync configuration.
+
 ## Native Resume Export Contract
 
 Rust commands:

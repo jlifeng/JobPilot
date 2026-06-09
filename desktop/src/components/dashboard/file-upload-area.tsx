@@ -222,7 +222,7 @@ export function ImportProgressDisplay({
         </div>
         <div className="h-2 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800">
           <div
-            className="h-full bg-zinc-900 dark:bg-zinc-100 transition-all duration-300"
+            className="h-full bg-blue-600 dark:bg-blue-500 transition-all duration-300"
             style={{ width: `${progressPercent}%` }}
           />
         </div>

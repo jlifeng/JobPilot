@@ -216,6 +216,20 @@
       "roundsLabel": "轮次进度",
       "markError": "更新标记失败，请稍后重试。"
     },
+    "practice": {
+      "answerScore": "回答评分",
+      "answerEvaluationUnavailable": "本次回答评分暂不可用，面试对话已正常保存。",
+      "riskPoints": "面试官可能追问",
+      "followUpQuestion": "建议追问",
+      "trainingSuggestions": "下次练习",
+      "weakPointsTitle": "薄弱点",
+      "weakPointsHint": "这些薄弱点来自本次面试记录，会优先指出容易被面试官继续深挖的地方。",
+      "trainingPlanTitle": "训练计划",
+      "trainingPlanHint": "按优先级练习这些动作，可以把下一轮回答从“能答”推进到“答得可信”。",
+      "priorityLow": "低",
+      "priorityMedium": "中",
+      "priorityHigh": "高"
+    },
     "report": {
       "generateError": "生成报告失败，请稍后重试。",
       "generating": "正在生成报告...",
@@ -259,6 +273,8 @@
     "sidebar": {
       "sections": "简历模块",
       "addSection": "添加模块",
+      "collapse": "收起简历模块",
+      "expand": "展开简历模块",
       "dragHint": "拖拽模块以调整顺序"
     },
     "sections": {
@@ -385,6 +401,8 @@
   },
   "settings": {
     "title": "设置",
+    "pageBody": "集中管理 AI Provider 和编辑器自动保存。这里使用和编辑器 AI 配置入口相同的配置逻辑。",
+    "syncPageBody": "配置 WebDAV 连接、手动上传备份和从云端恢复工作区快照。",
     "language": "界面语言",
     "theme": "主题",
     "themeLight": "浅色",

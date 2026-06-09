@@ -247,12 +247,12 @@ export function AIChatBubble({ resumeId }: AIChatBubbleProps) {
         }}
       >
         <div
-          className="flex cursor-move items-center justify-between bg-zinc-900 px-4 py-2.5 dark:bg-zinc-100"
+          className="flex cursor-move items-center justify-between bg-blue-600 px-4 py-2.5 dark:bg-blue-500"
           onMouseDown={handleWindowMouseDown}
         >
           <div className="flex items-center gap-2">
-            <MessageSquare className="h-4 w-4 text-white dark:text-zinc-900" />
-            <span className="text-sm font-semibold text-white dark:text-zinc-900">{panelTitle}</span>
+            <MessageSquare className="h-4 w-4 text-white" />
+            <span className="text-sm font-semibold text-white">{panelTitle}</span>
           </div>
           <button
             type="button"
@@ -285,7 +285,7 @@ export function AIChatBubble({ resumeId }: AIChatBubbleProps) {
         <button
           type="button"
           data-tour="ai-chat"
-          className="relative flex h-14 w-14 cursor-grab items-center justify-center rounded-full bg-zinc-900 text-white shadow-lg transition-transform hover:scale-110 active:cursor-grabbing active:scale-95 dark:bg-zinc-100 dark:text-zinc-900"
+          className="relative flex h-14 w-14 cursor-grab items-center justify-center rounded-full bg-blue-600 text-white shadow-lg transition-transform hover:scale-110 active:cursor-grabbing active:scale-95 dark:bg-blue-500 dark:text-white"
           onMouseDown={handleBubbleMouseDown}
           onClick={handleBubbleClick}
           title={bubbleTooltip}

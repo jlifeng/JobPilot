@@ -15,7 +15,11 @@ import {
   XCircle,
 } from "lucide-react";
 import { useResumeStore } from "../../stores/resume-store";
-import { listenToAiStreamEvents, startAiPromptStream } from "../../lib/desktop-api";
+import {
+  listenToAiStreamEvents,
+  saveAiAnalysisRecord,
+  startAiPromptStream,
+} from "../../lib/desktop-api";
 import { getDesktopAiRuntimeConfig, getNextStreamText } from "./ai-dialog-helpers";
 import type { DesktopAiStreamEvent } from "../../lib/desktop-api";
 
@@ -355,6 +359,7 @@ export function JdAnalysisDialog({
   );
   const requestIdRef = useRef<string | null>(null);
   const streamTextRef = useRef("");
+  const savedAnalysisSignatureRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (open) {
@@ -363,6 +368,7 @@ export function JdAnalysisDialog({
 
     requestIdRef.current = null;
     streamTextRef.current = "";
+    savedAnalysisSignatureRef.current = null;
     const resetTimer = setTimeout(() => {
       setJdText("");
       setStreamText("");
@@ -378,6 +384,35 @@ export function JdAnalysisDialog({
       clearTimeout(resetTimer);
     };
   }, [open]);
+
+  useEffect(() => {
+    if (state !== "completed" || !structuredResult) {
+      return;
+    }
+
+    const signature = `${requestIdRef.current ?? "completed"}:${structuredResult.overallScore}:${structuredResult.atsScore}`;
+    if (savedAnalysisSignatureRef.current === signature) {
+      return;
+    }
+    savedAnalysisSignatureRef.current = signature;
+
+    void saveAiAnalysisRecord({
+      documentId: resumeId,
+      analysisType: "jd",
+      payload: {
+        jobDescription: jdText,
+        summary: structuredResult.summary,
+        result: structuredResult as unknown as Record<string, unknown>,
+      },
+      score: structuredResult.atsScore,
+      issueCount:
+        structuredResult.missingKeywords.length + structuredResult.suggestions.length,
+      targetJobTitle: currentResume?.targetJobTitle ?? null,
+      targetCompany: currentResume?.targetCompany ?? null,
+    }).catch((error) => {
+      console.error("Failed to save JD analysis record:", error);
+    });
+  }, [currentResume, jdText, resumeId, state, structuredResult]);
 
   useEffect(() => {
     let unlisten: (() => void) | undefined;
@@ -426,6 +461,7 @@ export function JdAnalysisDialog({
     const requestId = `jd-analysis-${resumeId}-${Date.now()}`;
     requestIdRef.current = requestId;
     streamTextRef.current = "";
+    savedAnalysisSignatureRef.current = null;
     setState("analyzing");
     setStreamText("");
     setStructuredResult(null);

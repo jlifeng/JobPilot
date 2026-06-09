@@ -12,7 +12,11 @@ import {
 } from "lucide-react";
 import { useResumeStore } from "../../stores/resume-store";
 import { useEditorStore } from "../../stores/editor-store";
-import { listenToAiStreamEvents, startAiPromptStream } from "../../lib/desktop-api";
+import {
+  listenToAiStreamEvents,
+  saveAiAnalysisRecord,
+  startAiPromptStream,
+} from "../../lib/desktop-api";
 import { getDesktopAiRuntimeConfig, getNextStreamText } from "./ai-dialog-helpers";
 import type { DesktopAiStreamEvent } from "../../lib/desktop-api";
 
@@ -182,7 +186,7 @@ export function GrammarCheckDialog({
   resumeId,
 }: GrammarCheckDialogProps) {
   const { t } = useTranslation();
-  const { sections, updateSection } = useResumeStore();
+  const { currentResume, sections, updateSection } = useResumeStore();
   const { selectedSectionId } = useEditorStore();
 
   const [checkScope, setCheckScope] = useState<"all" | "current">("all");
@@ -195,6 +199,7 @@ export function GrammarCheckDialog({
   const [failedIssues, setFailedIssues] = useState<Set<number>>(new Set());
   const requestIdRef = useRef<string | null>(null);
   const rawAnalysisRef = useRef("");
+  const savedAnalysisSignatureRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (open) {
@@ -203,6 +208,7 @@ export function GrammarCheckDialog({
 
     requestIdRef.current = null;
     rawAnalysisRef.current = "";
+    savedAnalysisSignatureRef.current = null;
     const resetTimer = setTimeout(() => {
       setState("idle");
       setIssues([]);
@@ -217,6 +223,34 @@ export function GrammarCheckDialog({
       clearTimeout(resetTimer);
     };
   }, [open]);
+
+  useEffect(() => {
+    if (state !== "completed") {
+      return;
+    }
+
+    const signature = `${requestIdRef.current ?? "completed"}:${issues.length}:${rawAnalysis.length}`;
+    if (savedAnalysisSignatureRef.current === signature) {
+      return;
+    }
+    savedAnalysisSignatureRef.current = signature;
+
+    void saveAiAnalysisRecord({
+      documentId: resumeId,
+      analysisType: "grammar",
+      payload: {
+        scope: checkScope,
+        summary: stripStructuredPayload(rawAnalysis),
+        issues: issues as unknown as Record<string, unknown>[],
+      },
+      score: issues.length === 0 ? 100 : null,
+      issueCount: issues.length,
+      targetJobTitle: currentResume?.targetJobTitle ?? null,
+      targetCompany: currentResume?.targetCompany ?? null,
+    }).catch((error) => {
+      console.error("Failed to save grammar analysis record:", error);
+    });
+  }, [checkScope, currentResume, issues, rawAnalysis, resumeId, state]);
 
   useEffect(() => {
     let unlisten: (() => void) | undefined;
@@ -269,6 +303,7 @@ export function GrammarCheckDialog({
     const requestId = `grammar-check-${resumeId}-${Date.now()}`;
     requestIdRef.current = requestId;
     rawAnalysisRef.current = "";
+    savedAnalysisSignatureRef.current = null;
     setState("checking");
     setIssues([]);
     setRawAnalysis("");

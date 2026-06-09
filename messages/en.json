@@ -216,6 +216,20 @@
       "roundsLabel": "Round progress",
       "markError": "Failed to update the review marker."
     },
+    "practice": {
+      "answerScore": "Answer score",
+      "answerEvaluationUnavailable": "Answer scoring is temporarily unavailable. The interview turn has been saved.",
+      "riskPoints": "Likely follow-up risks",
+      "followUpQuestion": "Suggested follow-up",
+      "trainingSuggestions": "Next practice",
+      "weakPointsTitle": "Weak points",
+      "weakPointsHint": "These weak points are grounded in the interview transcript and highlight areas an interviewer may probe further.",
+      "trainingPlanTitle": "Training plan",
+      "trainingPlanHint": "Practice these prioritized actions to make the next round more specific, credible, and interview-ready.",
+      "priorityLow": "Low",
+      "priorityMedium": "Medium",
+      "priorityHigh": "High"
+    },
     "report": {
       "generateError": "Failed to generate the report. Please try again.",
       "generating": "Generating report...",
@@ -259,6 +273,8 @@
     "sidebar": {
       "sections": "Sections",
       "addSection": "Add Section",
+      "collapse": "Collapse sections",
+      "expand": "Expand sections",
       "dragHint": "Drag sections to reorder"
     },
     "sections": {
@@ -376,6 +392,8 @@
   },
   "settings": {
     "title": "Settings",
+    "pageBody": "Manage AI providers and editor autosave in one place. This page uses the same settings logic as the editor AI config entry.",
+    "syncPageBody": "Configure WebDAV, upload backups manually, and restore workspace snapshots from the cloud.",
     "language": "Language",
     "theme": "Theme",
     "themeLight": "Light",

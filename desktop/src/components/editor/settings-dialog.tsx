@@ -1,26 +1,17 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { i18n } from "../../i18n";
 import {
   Settings,
   Cpu,
-  Paintbrush,
   PenTool,
   Eye,
   EyeOff,
-  Sun,
-  Moon,
-  Monitor,
   ChevronsUpDown,
   Check,
   Loader2,
   Plug,
   RefreshCw,
   Cloud,
-  Clock,
-  Shield,
-  Upload,
-  Download,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -55,16 +46,11 @@ import {
   getWebdavSyncStatus,
   updateWebdavSyncSettings,
   testWebdavConnection,
-  uploadWebdavSnapshot,
-  restoreWebdavSnapshot,
   type ProviderConfigUpdateInput,
   type AiProvider,
   type ConnectivityTestResult,
   type WebdavSyncStatus,
-  type WebdavSettingsUpdateInput,
   type WebdavConnectivityResult,
-  type WebdavSnapshotReceipt,
-  type WebdavRestoreReceipt,
 } from "../../lib/desktop-api";
 
 const AI_PROVIDERS: { value: AiProvider; label: string }[] = [
@@ -73,37 +59,46 @@ const AI_PROVIDERS: { value: AiProvider; label: string }[] = [
   { value: "gemini", label: "Google Gemini" },
 ];
 
-const LOCALES = [
-  { value: "zh", label: "中文" },
-  { value: "en", label: "English" },
-] as const;
+type SettingsContentMode = "tabs" | "ai-only" | "settings" | "sync-only";
 
-type ThemeMode = "light" | "dark" | "system";
-
-function applyDesktopTheme(theme: ThemeMode) {
-  if (typeof document === "undefined") return;
-  const resolvedTheme =
-    theme === "system"
-      ? window.matchMedia("(prefers-color-scheme: dark)").matches
-        ? "dark"
-        : "light"
-      : theme;
-  document.documentElement.dataset.theme = theme;
-  document.documentElement.classList.toggle("dark", resolvedTheme === "dark");
+function clampWebdavAutoSyncIntervalMinutes(value: number) {
+  return Math.min(1440, Math.max(5, value));
 }
 
-interface SettingsDialogProps {
-  open: boolean;
-  onClose: () => void;
+interface SettingsContentProps {
+  open?: boolean;
+  onClose?: () => void;
+  variant?: "dialog" | "page";
+  mode?: SettingsContentMode;
 }
 
-export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
+export function SettingsContent({
+  open = true,
+  onClose,
+  variant = "dialog",
+  mode,
+}: SettingsContentProps) {
   const { t } = useTranslation();
   const { settingsTab, setSettingsTab } = useUIStore();
+  const contentMode = mode ?? (variant === "page" ? "settings" : "tabs");
+  const showTabs = contentMode === "tabs";
+  const isSectionedPage = contentMode === "settings" || contentMode === "sync-only";
+  const showAiSection =
+    contentMode === "ai-only" ||
+    contentMode === "settings" ||
+    (contentMode === "tabs" && settingsTab === "ai");
+  const showEditorSection =
+    contentMode === "settings" ||
+    (contentMode === "tabs" && settingsTab === "editor");
+  const showSyncSection =
+    contentMode === "sync-only" ||
+    (contentMode === "tabs" && settingsTab === "sync");
+  const sectionClassName =
+    contentMode === "settings"
+      ? "rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950"
+      : "";
 
-  // Appearance
-  const [theme, setTheme] = useState<ThemeMode>("system");
-  const [language, setLanguage] = useState("zh");
+  // Editor
   const [autoSave, setAutoSave] = useState(true);
   const [autoSaveInterval, setAutoSaveInterval] = useState(500);
 
@@ -126,11 +121,11 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   const [webdavUsername, setWebdavUsername] = useState("");
   const [webdavPassword, setWebdavPassword] = useState("");
   const [webdavRemotePath, setWebdavRemotePath] = useState("JobPilot");
+  const [webdavSyncMode, setWebdavSyncMode] = useState<"manual" | "auto">("manual");
+  const [webdavAutoSyncIntervalMinutes, setWebdavAutoSyncIntervalMinutes] = useState(60);
   const [webdavShowPassword, setWebdavShowPassword] = useState(false);
   const [webdavTesting, setWebdavTesting] = useState(false);
   const [webdavTestResult, setWebdavTestResult] = useState<WebdavConnectivityResult | null>(null);
-  const [webdavUploading, setWebdavUploading] = useState(false);
-  const [webdavRestoring, setWebdavRestoring] = useState(false);
   const [webdavMessage, setWebdavMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   // Model combobox state
@@ -179,6 +174,10 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
       setWebdavServerUrl(status.serverUrl);
       setWebdavUsername(status.username);
       setWebdavRemotePath(status.remotePath || "JobPilot");
+      setWebdavSyncMode(status.syncMode || "manual");
+      setWebdavAutoSyncIntervalMinutes(
+        clampWebdavAutoSyncIntervalMinutes(status.autoSyncIntervalMinutes || 60),
+      );
       setWebdavPassword("");
       setWebdavTestResult(null);
       setWebdavMessage(null);
@@ -193,8 +192,6 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
     void (async () => {
       try {
         const settings = await getWorkspaceSettingsSnapshot();
-        setTheme((settings.theme as ThemeMode) ?? "system");
-        setLanguage(settings.locale || "zh");
         setAutoSave(settings.editor?.autoSave ?? true);
         setAutoSaveInterval(settings.editor?.autoSaveIntervalMs ?? 500);
         await loadAiSettings();
@@ -271,19 +268,16 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
     m.toLowerCase().includes(visionModelSearch.toLowerCase()),
   );
 
-  // Auto-save handlers
-  const saveAppearance = useCallback(
+  const saveEditorPreferences = useCallback(
     async (updates: {
-      locale?: string;
-      theme?: ThemeMode;
       autoSave?: boolean;
       autoSaveIntervalMs?: number;
     }) => {
       try {
         const settings = await getWorkspaceSettingsSnapshot();
         await updateWorkspaceAppearanceSettings({
-          locale: updates.locale ?? settings.locale ?? "zh",
-          theme: updates.theme ?? settings.theme ?? "system",
+          locale: settings.locale ?? "zh",
+          theme: settings.theme ?? "system",
           autoSave: updates.autoSave ?? settings.editor?.autoSave ?? true,
           autoSaveIntervalMs:
             updates.autoSaveIntervalMs ??
@@ -291,14 +285,8 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
             500,
           rememberWindowState: true,
         });
-        if (updates.theme) {
-          applyDesktopTheme(updates.theme);
-        }
-        if (updates.locale) {
-          void i18n.changeLanguage(updates.locale);
-        }
       } catch (error) {
-        console.error("Failed to save appearance settings:", error);
+        console.error("Failed to save editor settings:", error);
       }
     },
     [],
@@ -331,24 +319,14 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
     [aiProvider, aiBaseURL, aiModel, resumeImportVisionModel, exaPoolBaseURL],
   );
 
-  const handleThemeChange = (value: ThemeMode) => {
-    setTheme(value);
-    void saveAppearance({ theme: value });
-  };
-
-  const handleLanguageChange = (value: string) => {
-    setLanguage(value);
-    void saveAppearance({ locale: value });
-  };
-
   const handleAutoSaveChange = (value: boolean) => {
     setAutoSave(value);
-    void saveAppearance({ autoSave: value });
+    void saveEditorPreferences({ autoSave: value });
   };
 
   const handleAutoSaveIntervalChange = ([v]: number[]) => {
     setAutoSaveInterval(v);
-    void saveAppearance({ autoSaveIntervalMs: v });
+    void saveEditorPreferences({ autoSaveIntervalMs: v });
   };
 
   const handleProviderChange = async (value: AiProvider) => {
@@ -490,13 +468,19 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   const handleSaveWebdavSettings = useCallback(async () => {
     setWebdavMessage(null);
     try {
+      const autoSyncIntervalMinutes = clampWebdavAutoSyncIntervalMinutes(
+        webdavAutoSyncIntervalMinutes,
+      );
       const nextStatus = await updateWebdavSyncSettings({
         serverUrl: webdavServerUrl,
         username: webdavUsername,
         remotePath: webdavRemotePath,
+        syncMode: webdavSyncMode,
+        autoSyncIntervalMinutes,
         password: webdavPassword.trim().length > 0 ? webdavPassword : null,
       });
       setWebdavStatus(nextStatus);
+      setWebdavAutoSyncIntervalMinutes(nextStatus.autoSyncIntervalMinutes);
       setWebdavPassword("");
       setWebdavMessage({ type: "success", text: t("webdavSettingsSaved") });
     } catch (error) {
@@ -505,7 +489,15 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
         text: error instanceof Error ? error.message : t("webdavSettingsSaveFailed"),
       });
     }
-  }, [webdavServerUrl, webdavUsername, webdavRemotePath, webdavPassword, t]);
+  }, [
+    webdavServerUrl,
+    webdavUsername,
+    webdavRemotePath,
+    webdavSyncMode,
+    webdavAutoSyncIntervalMinutes,
+    webdavPassword,
+    t,
+  ]);
 
   const handleTestWebdavConnection = useCallback(async () => {
     setWebdavTesting(true);
@@ -530,49 +522,6 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
       setWebdavMessage({ type: "error", text: errResult.errorMessage });
     } finally {
       setWebdavTesting(false);
-    }
-  }, [t]);
-
-  const handleUploadWebdavSnapshot = useCallback(async () => {
-    setWebdavUploading(true);
-    setWebdavMessage(null);
-    try {
-      const receipt = await uploadWebdavSnapshot();
-      const nextStatus = await getWebdavSyncStatus();
-      setWebdavStatus(nextStatus);
-      setWebdavMessage({
-        type: "success",
-        text: t("webdavUploadSuccess", {
-          name: receipt.snapshotName,
-          secrets: receipt.secretCount,
-        }),
-      });
-    } catch (error) {
-      setWebdavMessage({
-        type: "error",
-        text: error instanceof Error ? error.message : t("webdavUploadFailed"),
-      });
-    } finally {
-      setWebdavUploading(false);
-    }
-  }, [t]);
-
-  const handleRestoreWebdavSnapshot = useCallback(async () => {
-    setWebdavRestoring(true);
-    setWebdavMessage(null);
-    try {
-      await restoreWebdavSnapshot();
-      setWebdavMessage({
-        type: "success",
-        text: t("webdavRestoreSuccess"),
-      });
-    } catch (error) {
-      setWebdavMessage({
-        type: "error",
-        text: error instanceof Error ? error.message : t("webdavRestoreFailed"),
-      });
-    } finally {
-      setWebdavRestoring(false);
     }
   }, [t]);
 
@@ -609,7 +558,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
       }
 
       window.dispatchEvent(new Event("ai-settings-changed"));
-      onClose();
+      onClose?.();
     } catch (error) {
       console.error("Failed to save AI settings:", error);
     } finally {
@@ -628,39 +577,31 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
 
   const handleCancelAi = useCallback(() => {
     void loadAiSettings();
-    onClose();
+    onClose?.();
   }, [loadAiSettings, onClose]);
 
-  return (
-    <Sheet
-      open={open}
-      onOpenChange={(v) => {
-        if (!v) onClose();
-      }}
-    >
-      <SheetContent
-        side="right"
-        className="w-[420px] sm:max-w-[420px] p-0 flex flex-col"
-        showCloseButton
-      >
+  const content = (
+    <>
         {/* Header */}
-        <SheetHeader className="px-6 py-4 border-b dark:border-zinc-800">
-          <SheetTitle className="flex items-center gap-2">
-            <Settings className="h-5 w-5 text-zinc-500" />
-            {t("settings.title")}
-          </SheetTitle>
-        </SheetHeader>
+        {variant === "dialog" ? (
+          <SheetHeader className="px-6 py-4 border-b dark:border-zinc-800">
+            <SheetTitle className="flex items-center gap-2">
+              {contentMode === "ai-only" ? (
+                <Cpu className="h-5 w-5 text-blue-600 dark:text-blue-300" />
+              ) : (
+                <Settings className="h-5 w-5 text-blue-600 dark:text-blue-300" />
+              )}
+              {contentMode === "ai-only" ? t("settings.ai.title") : t("settings.title")}
+            </SheetTitle>
+          </SheetHeader>
+        ) : null}
 
         {/* Tabs */}
+        {showTabs && (
         <div className="px-6 pt-4">
           <div className="inline-flex h-10 w-full items-center justify-center rounded-md bg-zinc-100 p-1 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
             {[
               { value: "ai", icon: Cpu, label: t("settings.ai.title") },
-              {
-                value: "appearance",
-                icon: Paintbrush,
-                label: t("settings.appearance.title"),
-              },
               {
                 value: "editor",
                 icon: PenTool,
@@ -678,8 +619,8 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                 className={cn(
                   "inline-flex flex-1 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium transition-all",
                   settingsTab === value
-                    ? "bg-white text-zinc-900 shadow-sm dark:bg-zinc-900 dark:text-zinc-100"
-                    : "hover:text-zinc-900 dark:hover:text-zinc-100",
+                    ? "bg-white text-blue-700 shadow-sm dark:bg-zinc-900 dark:text-blue-200"
+                    : "hover:text-blue-700 dark:hover:text-blue-200",
                 )}
                 onClick={() => setSettingsTab(value)}
               >
@@ -689,13 +630,34 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
             ))}
           </div>
         </div>
+        )}
 
         {/* Content */}
         <div className="flex-1 flex flex-col min-h-0">
-          <div className="flex-1 overflow-y-auto px-6 pb-6 pt-4">
+          <div
+            className={cn(
+              "flex-1 overflow-y-auto px-6 pb-6 pt-4",
+              isSectionedPage && "space-y-4",
+            )}
+          >
             {/* AI Configuration Tab */}
-            {settingsTab === "ai" && (
-              <div className="space-y-4">
+            {showAiSection && (
+              <div className={cn("space-y-4", sectionClassName)}>
+                {isSectionedPage && (
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-200">
+                      <Cpu className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <h2 className="text-base font-semibold text-slate-950 dark:text-zinc-100">
+                        {t("settings.ai.title")}
+                      </h2>
+                      <p className="text-xs leading-5 text-zinc-400">
+                        {t("settings.ai.apiKeyHint")}
+                      </p>
+                    </div>
+                  </div>
+                )}
                 {/* Provider */}
                 <div className="space-y-2">
                   <Label>{t("settings.ai.provider")}</Label>
@@ -1071,74 +1033,24 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
               </div>
             )}
 
-            {/* Appearance Tab */}
-            {settingsTab === "appearance" && (
-              <div className="space-y-5">
-                {/* Theme */}
-                <div className="space-y-3">
-                  <Label>{t("settings.appearance.theme")}</Label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {[
-                      {
-                        value: "light" as const,
-                        icon: Sun,
-                        label: t("settings.appearance.themeLight"),
-                      },
-                      {
-                        value: "dark" as const,
-                        icon: Moon,
-                        label: t("settings.appearance.themeDark"),
-                      },
-                      {
-                        value: "system" as const,
-                        icon: Monitor,
-                        label: t("settings.appearance.themeSystem"),
-                      },
-                    ].map(({ value, icon: Icon, label }) => (
-                      <button
-                        key={value}
-                        type="button"
-                        onClick={() => handleThemeChange(value)}
-                        className={`flex cursor-pointer flex-col items-center gap-2 rounded-lg border p-3 text-sm transition-all ${
-                          theme === value
-                            ? "border-zinc-900 bg-zinc-50 text-zinc-900 dark:border-zinc-100 dark:bg-zinc-800 dark:text-zinc-100"
-                            : "border-zinc-200 text-zinc-500 hover:border-zinc-300 hover:text-zinc-700 dark:border-zinc-700 dark:hover:border-zinc-600"
-                        }`}
-                      >
-                        <Icon className="h-5 w-5" />
-                        <span>{label}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <Separator />
-
-                {/* Language */}
-                <div className="space-y-2">
-                  <Label>{t("settings.appearance.language")}</Label>
-                  <Select
-                    value={language}
-                    onValueChange={(v) => handleLanguageChange(v)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {LOCALES.map((loc) => (
-                        <SelectItem key={loc.value} value={loc.value}>
-                          {loc.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            )}
-
             {/* Editor Tab */}
-            {settingsTab === "editor" && (
-              <div className="space-y-5">
+            {showEditorSection && (
+              <div className={cn("space-y-5", sectionClassName)}>
+                {isSectionedPage && (
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-200">
+                      <PenTool className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <h2 className="text-base font-semibold text-slate-950 dark:text-zinc-100">
+                        {t("settings.editorTab.title")}
+                      </h2>
+                      <p className="text-xs leading-5 text-zinc-400">
+                        {t("settings.editorTab.autoSaveDescription")}
+                      </p>
+                    </div>
+                  </div>
+                )}
                 {/* Auto Save */}
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
@@ -1180,35 +1092,23 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
             )}
 
             {/* Sync Tab */}
-            {settingsTab === "sync" && (
-              <div className="space-y-5">
-                {/* WebDAV Status */}
-                <div className="flex items-center gap-2 text-sm">
-                  <span
-                    className={cn(
-                      "inline-block h-2 w-2 rounded-full",
-                      webdavStatus?.configured
-                        ? webdavStatus?.lastBackupAtEpochMs
-                          ? "bg-green-500"
-                          : "bg-yellow-500"
-                        : "bg-zinc-300 dark:bg-zinc-600",
-                    )}
-                  />
-                  <span className="text-zinc-600 dark:text-zinc-400">
-                    {webdavStatus?.configured
-                      ? webdavStatus?.lastBackupAtEpochMs
-                        ? t("webdavStatusConnected")
-                        : t("webdavStatusNotBackedUp")
-                      : t("webdavNotConfigured")}
-                  </span>
-                  {webdavStatus?.lastBackupAtEpochMs && (
-                    <span className="text-xs text-zinc-400 flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      {new Date(webdavStatus.lastBackupAtEpochMs).toLocaleString()}
-                    </span>
-                  )}
-                </div>
-
+            {showSyncSection && (
+              <div className={cn("space-y-5", sectionClassName)}>
+                {isSectionedPage && (
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-200">
+                      <Cloud className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <h2 className="text-base font-semibold text-slate-950 dark:text-zinc-100">
+                        {t("settingsTabSync")}
+                      </h2>
+                      <p className="text-xs leading-5 text-zinc-400">
+                        {t("webdavSyncConfigHint")}
+                      </p>
+                    </div>
+                  </div>
+                )}
                 {/* Server URL */}
                 <div className="space-y-2">
                   <Label>{t("webdavServerUrlLabel")}</Label>
@@ -1270,6 +1170,49 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                   />
                 </div>
 
+                {/* Sync mode */}
+                <div className="rounded-xl border border-zinc-200 bg-zinc-50/60 p-4 dark:border-zinc-800 dark:bg-zinc-900/60">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="space-y-1">
+                      <Label>{t("webdavAutoSyncLabel")}</Label>
+                      <p className="text-xs leading-5 text-zinc-400">
+                        {t("webdavAutoSyncDescription")}
+                      </p>
+                    </div>
+                    <Switch
+                      checked={webdavSyncMode === "auto"}
+                      onCheckedChange={(checked) =>
+                        setWebdavSyncMode(checked ? "auto" : "manual")
+                      }
+                    />
+                  </div>
+
+                  {webdavSyncMode === "auto" && (
+                    <div className="mt-4 space-y-2">
+                      <Label>{t("webdavAutoSyncIntervalLabel")}</Label>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number"
+                          min={5}
+                          max={1440}
+                          value={webdavAutoSyncIntervalMinutes}
+                          onChange={(event) =>
+                            setWebdavAutoSyncIntervalMinutes(
+                              clampWebdavAutoSyncIntervalMinutes(
+                                Number(event.target.value) || 60,
+                              ),
+                            )
+                          }
+                          className="max-w-32"
+                        />
+                        <span className="text-sm text-zinc-500">
+                          {t("webdavAutoSyncIntervalUnit")}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 {/* Save & Test */}
                 <div className="flex items-center gap-2">
                   <Button
@@ -1303,53 +1246,6 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                   )}
                 </div>
 
-                <Separator />
-
-                {/* Encryption hint */}
-                <div className="space-y-1">
-                  <div className="flex items-center gap-1.5 text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                    <Shield className="h-3.5 w-3.5" />
-                    {t("webdavBackupEncryption")}
-                  </div>
-                  <p className="text-xs leading-relaxed text-zinc-400">
-                    {t("webdavBackupEncryptionHint")}
-                  </p>
-                </div>
-
-                {/* Upload / Restore */}
-                <div className="flex items-center gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="cursor-pointer gap-1.5"
-                    disabled={webdavUploading || !webdavStatus?.configured}
-                    onClick={() => void handleUploadWebdavSnapshot()}
-                  >
-                    {webdavUploading ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <Upload className="h-3.5 w-3.5" />
-                    )}
-                    {webdavUploading ? t("webdavUploading") : t("webdavUpload")}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="cursor-pointer gap-1.5"
-                    disabled={webdavRestoring || !webdavStatus?.configured}
-                    onClick={() => void handleRestoreWebdavSnapshot()}
-                  >
-                    {webdavRestoring ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <Download className="h-3.5 w-3.5" />
-                    )}
-                    {webdavRestoring ? t("webdavRestoring") : t("webdavRestore")}
-                  </Button>
-                </div>
-
                 {/* Status message */}
                 {webdavMessage && (
                   <p
@@ -1368,7 +1264,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
           </div>
 
           {/* Sticky Footer for AI tab */}
-          {settingsTab === "ai" && (
+          {showAiSection && !isSectionedPage && (
             <div className="border-t border-zinc-200 bg-white px-6 py-3 dark:border-zinc-800 dark:bg-zinc-950">
               <div className="flex items-center justify-end gap-2">
                 <Button
@@ -1393,7 +1289,47 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
             </div>
           )}
         </div>
+    </>
+  );
+
+  if (variant === "page") {
+    return (
+      <section className="flex min-h-[calc(100vh-6rem)] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+        {content}
+      </section>
+    );
+  }
+
+  return (
+    <Sheet
+      open={open}
+      onOpenChange={(v) => {
+        if (!v) onClose?.();
+      }}
+    >
+      <SheetContent
+        side="right"
+        className="w-[420px] sm:max-w-[420px] p-0 flex flex-col"
+        showCloseButton
+      >
+        {content}
       </SheetContent>
     </Sheet>
+  );
+}
+
+interface SettingsDialogProps {
+  open: boolean;
+  onClose: () => void;
+}
+
+export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
+  return (
+    <SettingsContent
+      open={open}
+      onClose={onClose}
+      variant="dialog"
+      mode="ai-only"
+    />
   );
 }

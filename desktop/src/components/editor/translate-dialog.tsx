@@ -451,7 +451,7 @@ Rules:
                   <span
                     className={cn(
                       "flex h-9 w-9 items-center justify-center rounded-lg",
-                      mode === "overwrite" ? "bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900" : "bg-zinc-100 text-zinc-500",
+                      mode === "overwrite" ? "bg-blue-600 text-white dark:bg-blue-500 dark:text-white" : "bg-zinc-100 text-zinc-500",
                     )}
                   >
                     <FileEdit className="h-4 w-4" />
@@ -475,7 +475,7 @@ Rules:
                   <span
                     className={cn(
                       "flex h-9 w-9 items-center justify-center rounded-lg",
-                      mode === "copy" ? "bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900" : "bg-zinc-100 text-zinc-500",
+                      mode === "copy" ? "bg-blue-600 text-white dark:bg-blue-500 dark:text-white" : "bg-zinc-100 text-zinc-500",
                     )}
                   >
                     <FilePlus2 className="h-4 w-4" />
@@ -511,7 +511,7 @@ Rules:
                   ) : null}
                   <div className="h-2 w-full overflow-hidden rounded-full bg-zinc-200">
                     <div
-                      className="h-full bg-zinc-900 dark:bg-zinc-100 transition-all duration-300"
+                      className="h-full bg-blue-600 dark:bg-blue-500 transition-all duration-300"
                       style={{ width: `${progressPercent}%` }}
                     />
                   </div>

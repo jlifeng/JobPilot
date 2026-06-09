@@ -1,7 +1,17 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { ArrowLeft, Loader2, RotateCcw, Sparkles, Trash2, Trophy } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowLeft,
+  ListChecks,
+  Loader2,
+  RotateCcw,
+  Sparkles,
+  Target,
+  Trash2,
+  Trophy,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,13 +23,93 @@ import {
   saveInterviewRestartDraft,
 } from "../../lib/desktop-api";
 import { resolveInterviewLocale } from "../../lib/interviewers";
-import type { InterviewReport, InterviewSessionDetail } from "../../types/interview";
+import type {
+  InterviewReport,
+  InterviewSessionDetail,
+  InterviewTrainingPlanItem,
+  InterviewWeakPoint,
+} from "../../types/interview";
 
 interface InterviewReportSummaryProps {
   sessionId: string;
   initialSession: InterviewSessionDetail | null;
   initialReport: InterviewReport | null;
   runtimeIsFallback: boolean;
+}
+
+function getPriorityTone(value: "low" | "medium" | "high"): string {
+  if (value === "high") {
+    return "border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-200";
+  }
+  if (value === "low") {
+    return "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200";
+  }
+  return "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200";
+}
+
+interface WeakPointCardProps {
+  item: InterviewWeakPoint;
+  label: string;
+}
+
+function WeakPointCard({ item, label }: WeakPointCardProps) {
+  return (
+    <div className="rounded-2xl border border-zinc-200 bg-white px-4 py-4 text-sm dark:border-zinc-800 dark:bg-zinc-950">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="inline-flex items-center gap-2 font-medium text-zinc-950 dark:text-zinc-50">
+          <AlertTriangle className="h-4 w-4" />
+          {item.title}
+        </div>
+        <span className={`rounded-full border px-2 py-1 text-xs font-medium ${getPriorityTone(item.severity)}`}>
+          {label}
+        </span>
+      </div>
+      {item.evidence ? (
+        <p className="mt-3 leading-6 text-zinc-600 dark:text-zinc-300">{item.evidence}</p>
+      ) : null}
+      {item.trainingFocus ? (
+        <div className="mt-3 rounded-xl bg-zinc-50 px-3 py-2 text-zinc-600 dark:bg-zinc-900/70 dark:text-zinc-300">
+          {item.trainingFocus}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+interface TrainingPlanCardProps {
+  item: InterviewTrainingPlanItem;
+  label: string;
+}
+
+function TrainingPlanCard({ item, label }: TrainingPlanCardProps) {
+  return (
+    <div className="rounded-2xl border border-zinc-200 bg-white px-4 py-4 text-sm dark:border-zinc-800 dark:bg-zinc-950">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="inline-flex items-center gap-2 font-medium text-zinc-950 dark:text-zinc-50">
+          <Target className="h-4 w-4" />
+          {item.title}
+        </div>
+        <span className={`rounded-full border px-2 py-1 text-xs font-medium ${getPriorityTone(item.priority)}`}>
+          {label}
+        </span>
+      </div>
+      {item.description ? (
+        <p className="mt-3 leading-6 text-zinc-600 dark:text-zinc-300">{item.description}</p>
+      ) : null}
+      {item.drills.length > 0 ? (
+        <ul className="mt-3 space-y-2">
+          {item.drills.map((drill, index) => (
+            <li
+              key={`${item.title}-drill-${index}`}
+              className="rounded-xl bg-zinc-50 px-3 py-2 text-zinc-600 dark:bg-zinc-900/70 dark:text-zinc-300"
+            >
+              {drill}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  );
 }
 
 export function InterviewReportSummary({
@@ -36,6 +126,11 @@ export function InterviewReportSummary({
   const [error, setError] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const priorityLabels = {
+    low: t("interview.practice.priorityLow"),
+    medium: t("interview.practice.priorityMedium"),
+    high: t("interview.practice.priorityHigh"),
+  };
 
   useEffect(() => {
     if (runtimeIsFallback || report || !session || session.status !== "completed") {
@@ -291,6 +386,48 @@ export function InterviewReportSummary({
               </CardContent>
             </Card>
           </div>
+
+          {report.weakPoints.length > 0 ? (
+            <Card className="rounded-3xl border-zinc-200/80 shadow-sm dark:border-zinc-800">
+              <CardHeader>
+                <CardTitle className="inline-flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5" />
+                  {t("interview.practice.weakPointsTitle")}
+                </CardTitle>
+                <CardDescription>{t("interview.practice.weakPointsHint")}</CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-3 lg:grid-cols-2">
+                {report.weakPoints.map((item, index) => (
+                  <WeakPointCard
+                    key={`${report.id}-weak-${index}`}
+                    item={item}
+                    label={priorityLabels[item.severity]}
+                  />
+                ))}
+              </CardContent>
+            </Card>
+          ) : null}
+
+          {report.trainingPlan.length > 0 ? (
+            <Card className="rounded-3xl border-zinc-200/80 shadow-sm dark:border-zinc-800">
+              <CardHeader>
+                <CardTitle className="inline-flex items-center gap-2">
+                  <ListChecks className="h-5 w-5" />
+                  {t("interview.practice.trainingPlanTitle")}
+                </CardTitle>
+                <CardDescription>{t("interview.practice.trainingPlanHint")}</CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-3 lg:grid-cols-2">
+                {report.trainingPlan.map((item, index) => (
+                  <TrainingPlanCard
+                    key={`${report.id}-training-${index}`}
+                    item={item}
+                    label={priorityLabels[item.priority]}
+                  />
+                ))}
+              </CardContent>
+            </Card>
+          ) : null}
 
           <Card className="rounded-3xl border-zinc-200/80 shadow-sm dark:border-zinc-800">
             <CardHeader>

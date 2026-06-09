@@ -300,7 +300,7 @@ export function CreateResumeDialog({
                           {t(templateLabelsMap[tId] || "templateClassic")}
                         </span>
                         {template === tId && (
-                          <div className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-zinc-900 dark:bg-zinc-100 text-white">
+                          <div className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-blue-600 text-white dark:bg-blue-500">
                             <Check className="h-2.5 w-2.5" />
                           </div>
                         )}

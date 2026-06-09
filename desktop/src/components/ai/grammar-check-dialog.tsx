@@ -320,8 +320,8 @@ Return ONLY the JSON, no markdown fences.`;
           unlisten();
         }
       });
-    } catch (err: any) {
-      setError(err.message || "Failed to check grammar");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to check grammar");
       setIsChecking(false);
     }
   };
@@ -437,7 +437,7 @@ Return ONLY the JSON, no markdown fences.`;
                   <Button
                     onClick={() => void handleCheck()}
                     disabled={isChecking}
-                    className="cursor-pointer bg-zinc-900 hover:bg-zinc-800"
+                    className="cursor-pointer bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-400"
                   >
                     {isChecking ? (
                       <>
@@ -472,7 +472,7 @@ Return ONLY the JSON, no markdown fences.`;
                     {t("grammarCheck.checkAgain")}
                   </Button>
                   {result.issues.length > 0 && (
-                    <Button className="cursor-pointer gap-1.5 bg-zinc-900 hover:bg-zinc-800">
+                    <Button className="cursor-pointer gap-1.5 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-400">
                       <Wand2 className="h-3.5 w-3.5" />
                       {t("grammarCheck.fixAll")}
                     </Button>

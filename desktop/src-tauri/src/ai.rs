@@ -175,6 +175,54 @@ struct InterviewReportModelOutput {
     overall_feedback: String,
     #[serde(default)]
     improvement_suggestions: Vec<String>,
+    #[serde(default)]
+    weak_points: Vec<InterviewWeakPointModelOutput>,
+    #[serde(default)]
+    training_plan: Vec<InterviewTrainingPlanItemModelOutput>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct InterviewWeakPointModelOutput {
+    title: String,
+    evidence: String,
+    severity: String,
+    training_focus: String,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct InterviewTrainingPlanItemModelOutput {
+    title: String,
+    description: String,
+    priority: String,
+    #[serde(default)]
+    drills: Vec<String>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct InterviewAnswerEvaluationModelOutput {
+    overall_score: i32,
+    summary: String,
+    #[serde(default)]
+    dimensions: Vec<InterviewAnswerEvaluationDimensionOutput>,
+    #[serde(default)]
+    strengths: Vec<String>,
+    #[serde(default)]
+    risk_points: Vec<String>,
+    follow_up_question: Option<String>,
+    #[serde(default)]
+    training_suggestions: Vec<String>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct InterviewAnswerEvaluationDimensionOutput {
+    id: String,
+    label: String,
+    score: i32,
+    feedback: String,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -561,8 +609,101 @@ pub async fn generate_interview_report(
                 .map(|item| item.trim().to_string())
                 .filter(|item| !item.is_empty())
                 .collect(),
+            weak_points: parsed
+                .weak_points
+                .into_iter()
+                .map(|item| storage::InterviewWeakPointRecord {
+                    title: item.title.trim().to_string(),
+                    evidence: item.evidence.trim().to_string(),
+                    severity: normalize_priority_or_severity(&item.severity),
+                    training_focus: item.training_focus.trim().to_string(),
+                })
+                .filter(|item| !item.title.is_empty())
+                .collect(),
+            training_plan: parsed
+                .training_plan
+                .into_iter()
+                .map(|item| storage::InterviewTrainingPlanItemRecord {
+                    title: item.title.trim().to_string(),
+                    description: item.description.trim().to_string(),
+                    priority: normalize_priority_or_severity(&item.priority),
+                    drills: item
+                        .drills
+                        .into_iter()
+                        .map(|drill| drill.trim().to_string())
+                        .filter(|drill| !drill.is_empty())
+                        .collect(),
+                })
+                .filter(|item| !item.title.is_empty())
+                .collect(),
         },
     )
+}
+
+async fn evaluate_interview_answer(
+    client: &reqwest::Client,
+    config: &ResolvedProviderConfig,
+    session: &storage::InterviewSessionDetail,
+    round: &storage::InterviewRoundDetail,
+    candidate_message: &storage::InterviewMessageItem,
+    interviewer_response: &str,
+    locale: &str,
+) -> Result<InterviewAnswerEvaluationModelOutput, String> {
+    let system_prompt = build_interview_answer_evaluation_system_prompt(locale);
+    let user_prompt = build_interview_answer_evaluation_user_prompt(
+        session,
+        round,
+        candidate_message,
+        interviewer_response,
+        locale,
+    );
+    let response_json = match config.provider.as_str() {
+        "openai" => {
+            let endpoint = format!("{}/chat/completions", config.base_url.trim_end_matches('/'));
+            request_openai_json_completion(client, &endpoint, config, &system_prompt, &user_prompt)
+                .await?
+        }
+        "anthropic" => {
+            let endpoint = format!("{}/v1/messages", config.base_url.trim_end_matches('/'));
+            request_anthropic_json_completion(
+                client,
+                &endpoint,
+                config,
+                &system_prompt,
+                &user_prompt,
+            )
+            .await?
+        }
+        other => {
+            return Err(format!(
+                "provider '{other}' is not supported for interview answer evaluation."
+            ));
+        }
+    };
+
+    let mut parsed: InterviewAnswerEvaluationModelOutput = serde_json::from_value(response_json)
+        .map_err(|error| format!("failed to parse interview answer evaluation JSON: {error}"))?;
+    parsed.overall_score = parsed.overall_score.clamp(0, 100);
+    parsed.summary = parsed.summary.trim().to_string();
+    parsed.dimensions = parsed
+        .dimensions
+        .into_iter()
+        .map(|dimension| InterviewAnswerEvaluationDimensionOutput {
+            id: dimension.id.trim().to_string(),
+            label: dimension.label.trim().to_string(),
+            score: dimension.score.clamp(0, 100),
+            feedback: dimension.feedback.trim().to_string(),
+        })
+        .filter(|dimension| !dimension.id.is_empty() && !dimension.label.is_empty())
+        .collect();
+    parsed.strengths = clean_string_list(parsed.strengths);
+    parsed.risk_points = clean_string_list(parsed.risk_points);
+    parsed.follow_up_question = parsed
+        .follow_up_question
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty());
+    parsed.training_suggestions = clean_string_list(parsed.training_suggestions);
+    Ok(parsed)
 }
 
 async fn run_interview_turn_stream(
@@ -595,6 +736,7 @@ async fn run_interview_turn_stream(
         ));
     }
     let pending_message = build_interview_input_message(&kind, message, metadata, &locale)?;
+    let mut candidate_message_for_evaluation: Option<storage::InterviewMessageItem> = None;
     let start_message_inserted = if matches!(kind, InterviewTurnKind::Start) {
         storage::add_interview_start_message_once(
             app,
@@ -607,7 +749,7 @@ async fn run_interview_turn_stream(
         )?
         .is_some()
     } else {
-        storage::add_interview_message(
+        let inserted_message = storage::add_interview_message(
             app,
             storage::AddInterviewMessageInput {
                 round_id: round.id.clone(),
@@ -616,6 +758,9 @@ async fn run_interview_turn_stream(
                 metadata: Some(pending_message.2),
             },
         )?;
+        if matches!(kind, InterviewTurnKind::Answer) {
+            candidate_message_for_evaluation = Some(inserted_message);
+        }
         true
     };
 
@@ -730,6 +875,43 @@ async fn run_interview_turn_stream(
 
     if should_increment_interview_question_count(&kind) {
         storage::increment_interview_round_question_count(app, &refreshed_round.id)?;
+    }
+
+    if let Some(candidate_message) = candidate_message_for_evaluation {
+        match evaluate_interview_answer(
+            &client,
+            &config,
+            &refreshed_session,
+            &refreshed_round,
+            &candidate_message,
+            persisted_text.as_str(),
+            &locale,
+        )
+        .await
+        {
+            Ok(evaluation) => {
+                let _ = storage::update_interview_message_metadata(
+                    app,
+                    storage::UpdateInterviewMessageMetadataInput {
+                        message_id: candidate_message.id,
+                        metadata: json!({
+                            "answerEvaluation": evaluation,
+                        }),
+                    },
+                );
+            }
+            Err(error) => {
+                let _ = storage::update_interview_message_metadata(
+                    app,
+                    storage::UpdateInterviewMessageMetadataInput {
+                        message_id: candidate_message.id,
+                        metadata: json!({
+                            "answerEvaluationError": error,
+                        }),
+                    },
+                );
+            }
+        }
     }
 
     if is_round_complete {
@@ -3099,9 +3281,73 @@ fn merge_metadata_objects(base: Option<Value>, extra: Value) -> Result<Value, St
 
 fn build_interview_report_system_prompt(locale: &str) -> String {
     if locale == "zh" {
-        "你是一位专业的人才评估专家。你会根据面试记录产出简洁、可信、结构化的 JSON 报告，只输出合法 JSON，不要附加解释。".into()
+        "你是一位专业的人才评估与面试训练教练。你会根据面试记录产出可信、结构化、可执行的 JSON 复盘报告，只输出合法 JSON，不要附加解释。".into()
     } else {
-        "You are an experienced talent assessment professional. Produce a concise, credible, structured JSON report from interview transcripts. Return valid JSON only.".into()
+        "You are an experienced talent assessment and interview practice coach. Produce a credible, structured, actionable JSON report from interview transcripts. Return valid JSON only.".into()
+    }
+}
+
+fn build_interview_answer_evaluation_system_prompt(locale: &str) -> String {
+    if locale == "zh" {
+        "你是一位严谨的面试回答教练。你只评估候选人刚刚这一次回答，并输出合法 JSON。不要安慰式泛泛评价，不要虚构候选人没说过的细节。".into()
+    } else {
+        "You are a rigorous interview answer coach. Evaluate only the candidate's latest answer and return valid JSON. Avoid vague encouragement and do not invent details the candidate did not provide.".into()
+    }
+}
+
+fn build_interview_answer_evaluation_user_prompt(
+    session: &storage::InterviewSessionDetail,
+    round: &storage::InterviewRoundDetail,
+    candidate_message: &storage::InterviewMessageItem,
+    interviewer_response: &str,
+    locale: &str,
+) -> String {
+    let previous_question = round
+        .messages
+        .iter()
+        .rev()
+        .filter(|message| message.role == "interviewer")
+        .find(|message| message.created_at_epoch_ms <= candidate_message.created_at_epoch_ms)
+        .map(|message| message.content.as_str())
+        .unwrap_or("");
+    let focus_areas = round
+        .interviewer_config
+        .get("focusAreas")
+        .and_then(|value| value.as_array())
+        .map(|values| {
+            values
+                .iter()
+                .filter_map(|value| value.as_str())
+                .collect::<Vec<_>>()
+                .join(", ")
+        })
+        .unwrap_or_default();
+    let job_title = session.job_title.clone().unwrap_or_default();
+
+    if locale == "zh" {
+        format!(
+            "请评估候选人刚刚这一次回答。\n\n输出 JSON，字段且仅字段如下：\n{{\n  \"overallScore\": <0-100 整数>,\n  \"summary\": <1-2 句简短评价>,\n  \"dimensions\": [\n    {{ \"id\": \"structure\", \"label\": \"结构完整度\", \"score\": <0-100>, \"feedback\": <一句话> }},\n    {{ \"id\": \"contribution\", \"label\": \"个人贡献\", \"score\": <0-100>, \"feedback\": <一句话> }},\n    {{ \"id\": \"quantification\", \"label\": \"结果量化\", \"score\": <0-100>, \"feedback\": <一句话> }},\n    {{ \"id\": \"jdRelevance\", \"label\": \"岗位相关性\", \"score\": <0-100>, \"feedback\": <一句话> }},\n    {{ \"id\": \"clarity\", \"label\": \"表达清晰度\", \"score\": <0-100>, \"feedback\": <一句话> }}\n  ],\n  \"strengths\": [<字符串>, ...],\n  \"riskPoints\": [<字符串>, ...],\n  \"followUpQuestion\": <建议面试官继续追问的一个具体问题，若无则 null>,\n  \"trainingSuggestions\": [<候选人下一次可练习的具体动作>, ...]\n}}\n\n要求：\n- 如果是行为/项目回答，按 STAR 关注背景、任务、行动、结果是否完整。\n- 如果是技术回答，关注原理、权衡、边界、排障和落地指标。\n- `riskPoints` 指出面试官可能质疑的点。\n- `followUpQuestion` 必须基于这次回答的缺口，不要泛泛而谈。\n- 只基于下面内容判断。\n\n岗位标题：{}\n岗位 JD：\n{}\n\n本轮面试官：{} / {}\n本轮重点：{}\n\n上一道问题：\n{}\n\n候选人回答：\n{}\n\n面试官随后回应：\n{}",
+            job_title,
+            session.job_description,
+            interviewer_display_name(&round.interviewer_config),
+            round.interviewer_type,
+            focus_areas,
+            previous_question,
+            candidate_message.content,
+            interviewer_response
+        )
+    } else {
+        format!(
+            "Evaluate only the candidate's latest answer.\n\nReturn JSON with exactly these fields:\n{{\n  \"overallScore\": <integer 0-100>,\n  \"summary\": <1-2 sentence concise assessment>,\n  \"dimensions\": [\n    {{ \"id\": \"structure\", \"label\": \"Structure\", \"score\": <0-100>, \"feedback\": <one sentence> }},\n    {{ \"id\": \"contribution\", \"label\": \"Personal contribution\", \"score\": <0-100>, \"feedback\": <one sentence> }},\n    {{ \"id\": \"quantification\", \"label\": \"Quantified result\", \"score\": <0-100>, \"feedback\": <one sentence> }},\n    {{ \"id\": \"jdRelevance\", \"label\": \"JD relevance\", \"score\": <0-100>, \"feedback\": <one sentence> }},\n    {{ \"id\": \"clarity\", \"label\": \"Clarity\", \"score\": <0-100>, \"feedback\": <one sentence> }}\n  ],\n  \"strengths\": [<string>, ...],\n  \"riskPoints\": [<string>, ...],\n  \"followUpQuestion\": <one concrete follow-up question the interviewer should ask, or null>,\n  \"trainingSuggestions\": [<specific practice action>, ...]\n}}\n\nRequirements:\n- For behavioral/project answers, use STAR: situation, task, action, result.\n- For technical answers, assess principles, trade-offs, boundaries, debugging, and measurable outcomes.\n- `riskPoints` should identify what an interviewer may challenge.\n- `followUpQuestion` must target a real gap in this answer.\n- Base the assessment only on the supplied content.\n\nJob title: {}\nJob description:\n{}\n\nInterviewer: {} / {}\nRound focus: {}\n\nPrevious question:\n{}\n\nCandidate answer:\n{}\n\nInterviewer response after the answer:\n{}",
+            job_title,
+            session.job_description,
+            interviewer_display_name(&round.interviewer_config),
+            round.interviewer_type,
+            focus_areas,
+            previous_question,
+            candidate_message.content,
+            interviewer_response
+        )
     }
 }
 
@@ -3134,18 +3380,33 @@ fn build_interview_report_user_prompt(
 
     if locale == "zh" {
         format!(
-            "请基于下面的桌面端面试记录生成一份基础报告。\n\n输出 JSON，字段且仅字段如下：\n{{\n  \"overallScore\": <0-100 整数>,\n  \"summary\": <2-4 句总结>,\n  \"overallFeedback\": <2-5 句整体反馈>,\n  \"improvementSuggestions\": [<字符串>, ...]\n}}\n\n要求：\n- 只基于给定记录做判断，不要虚构没有发生的细节。\n- `improvementSuggestions` 返回 3-6 条可执行建议。\n- 如果轮次不完整，也要如实反映在反馈里。\n\n岗位标题：{}\n岗位 JD：\n{}\n\n面试记录：\n{}",
+            "请基于下面的桌面端面试记录生成一份面试训练复盘报告。\n\n输出 JSON，字段且仅字段如下：\n{{\n  \"overallScore\": <0-100 整数>,\n  \"summary\": <2-4 句总结>,\n  \"overallFeedback\": <2-5 句整体反馈>,\n  \"improvementSuggestions\": [<字符串>, ...],\n  \"weakPoints\": [\n    {{ \"title\": <薄弱点标题>, \"evidence\": <来自面试记录的证据>, \"severity\": \"low\" | \"medium\" | \"high\", \"trainingFocus\": <训练重点> }}\n  ],\n  \"trainingPlan\": [\n    {{ \"title\": <训练项标题>, \"description\": <训练目标>, \"priority\": \"low\" | \"medium\" | \"high\", \"drills\": [<具体练习动作>, ...] }}\n  ]\n}}\n\n要求：\n- 只基于给定记录做判断，不要虚构没有发生的细节。\n- `improvementSuggestions` 返回 3-6 条可执行建议。\n- `weakPoints` 返回 2-5 条，必须包含证据和训练重点。\n- `trainingPlan` 返回 2-4 个训练项，每个训练项包含 2-4 个 drills。\n- 如果轮次不完整，也要如实反映在反馈里。\n\n岗位标题：{}\n岗位 JD：\n{}\n\n面试记录：\n{}",
             job_title,
             session.job_description,
             transcript_json
         )
     } else {
         format!(
-            "Generate a basic report from the following desktop interview transcript.\n\nReturn JSON with exactly these fields:\n{{\n  \"overallScore\": <integer 0-100>,\n  \"summary\": <2-4 sentence summary>,\n  \"overallFeedback\": <2-5 sentence overall feedback>,\n  \"improvementSuggestions\": [<string>, ...]\n}}\n\nRequirements:\n- Base the assessment only on the supplied transcript.\n- Return 3-6 actionable `improvementSuggestions` entries.\n- If the session is incomplete, say so honestly in the feedback.\n\nJob title: {}\nJob description:\n{}\n\nTranscript:\n{}",
+            "Generate an interview practice report from the following desktop interview transcript.\n\nReturn JSON with exactly these fields:\n{{\n  \"overallScore\": <integer 0-100>,\n  \"summary\": <2-4 sentence summary>,\n  \"overallFeedback\": <2-5 sentence overall feedback>,\n  \"improvementSuggestions\": [<string>, ...],\n  \"weakPoints\": [\n    {{ \"title\": <weak point title>, \"evidence\": <evidence from the transcript>, \"severity\": \"low\" | \"medium\" | \"high\", \"trainingFocus\": <training focus> }}\n  ],\n  \"trainingPlan\": [\n    {{ \"title\": <training item title>, \"description\": <training goal>, \"priority\": \"low\" | \"medium\" | \"high\", \"drills\": [<specific practice action>, ...] }}\n  ]\n}}\n\nRequirements:\n- Base the assessment only on the supplied transcript.\n- Return 3-6 actionable `improvementSuggestions` entries.\n- Return 2-5 `weakPoints`, each with evidence and training focus.\n- Return 2-4 `trainingPlan` items, each with 2-4 drills.\n- If the session is incomplete, say so honestly in the feedback.\n\nJob title: {}\nJob description:\n{}\n\nTranscript:\n{}",
             job_title,
             session.job_description,
             transcript_json
         )
+    }
+}
+
+fn clean_string_list(values: Vec<String>) -> Vec<String> {
+    values
+        .into_iter()
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty())
+        .collect()
+}
+
+fn normalize_priority_or_severity(value: &str) -> String {
+    match value.trim() {
+        "low" | "medium" | "high" => value.trim().to_string(),
+        _ => "medium".into(),
     }
 }
 

@@ -6,15 +6,13 @@ import {
   Undo2,
   Redo2,
   Download,
-  Upload,
-  Settings,
+  Cpu,
   Palette,
   Save,
   FileSearch,
   Languages,
   FileText,
   SpellCheck,
-  Copy,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -28,6 +26,9 @@ import { JdAnalysisDialog } from "./jd-analysis-dialog";
 import { TranslateDialog } from "./translate-dialog";
 import { CoverLetterDialog } from "./cover-letter-dialog";
 import { GrammarCheckDialog } from "./grammar-check-dialog";
+
+const TOOLBAR_BUTTON_CLASS =
+  "cursor-pointer rounded-lg text-slate-600 hover:bg-blue-50 hover:text-blue-600 dark:text-zinc-300 dark:hover:bg-blue-950/40 dark:hover:text-blue-200";
 
 export function EditorToolbar() {
   const { t } = useTranslation();
@@ -71,20 +72,20 @@ export function EditorToolbar() {
 
   return (
     <>
-      <div className="flex h-12 items-center justify-between border-b bg-white px-3 dark:bg-background dark:border-zinc-800">
+      <div className="flex h-14 shrink-0 items-center justify-between rounded-xl border border-slate-200/80 bg-white/95 px-4 shadow-[0_4px_12px_rgba(15,23,42,0.06)] backdrop-blur dark:border-white/10 dark:bg-card dark:shadow-[0_18px_44px_rgba(0,0,0,0.22)]">
         <div className="flex items-center gap-2">
           <Button
             variant="ghost"
             size="sm"
             asChild
-            className="cursor-pointer gap-1 text-zinc-600"
+            className={`${TOOLBAR_BUTTON_CLASS} gap-1`}
           >
             <Link to="/dashboard">
               <ArrowLeft className="h-4 w-4" />
             </Link>
           </Button>
           <Separator orientation="vertical" className="h-6" />
-          <span className="max-w-48 truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">
+          <span className="max-w-48 truncate text-sm font-semibold text-slate-950 dark:text-zinc-50">
             {currentResume?.title || ""}
           </span>
           <span className="text-xs text-zinc-400">
@@ -101,7 +102,7 @@ export function EditorToolbar() {
               variant="ghost"
               size="sm"
               onClick={() => save()}
-              className="cursor-pointer gap-1 text-zinc-700 hover:text-zinc-800 hover:bg-zinc-50"
+              className="cursor-pointer gap-1 rounded-lg text-blue-600 hover:bg-blue-50 hover:text-blue-700 dark:text-blue-300 dark:hover:bg-blue-950/40"
             >
               <Save className="h-3.5 w-3.5" />
               <span className="text-xs">{t("editor.toolbar.save")}</span>
@@ -115,7 +116,7 @@ export function EditorToolbar() {
             size="sm"
             onClick={handleUndo}
             disabled={undoStack.length === 0}
-            className="cursor-pointer"
+            className={TOOLBAR_BUTTON_CLASS}
             title={t("editor.toolbar.undo")}
           >
             <Undo2 className="h-4 w-4" />
@@ -125,7 +126,7 @@ export function EditorToolbar() {
             size="sm"
             onClick={handleRedo}
             disabled={redoStack.length === 0}
-            className="cursor-pointer"
+            className={TOOLBAR_BUTTON_CLASS}
             title={t("editor.toolbar.redo")}
           >
             <Redo2 className="h-4 w-4" />
@@ -136,7 +137,7 @@ export function EditorToolbar() {
             variant="ghost"
             size="sm"
             onClick={() => openModal("export")}
-            className="cursor-pointer"
+            className={TOOLBAR_BUTTON_CLASS}
             title={t("editor.toolbar.exportPdf")}
           >
             <Download className="h-4 w-4" />
@@ -149,7 +150,7 @@ export function EditorToolbar() {
             variant="ghost"
             size="sm"
             onClick={() => openModal("jd-analysis")}
-            className="cursor-pointer"
+            className={TOOLBAR_BUTTON_CLASS}
             title={t("editor.toolbar.jdAnalysis")}
           >
             <FileSearch className="h-4 w-4" />
@@ -161,7 +162,7 @@ export function EditorToolbar() {
             variant="ghost"
             size="sm"
             onClick={() => openModal("translate")}
-            className="cursor-pointer"
+            className={TOOLBAR_BUTTON_CLASS}
             title={t("editor.toolbar.translate")}
           >
             <Languages className="h-4 w-4" />
@@ -173,7 +174,7 @@ export function EditorToolbar() {
             variant="ghost"
             size="sm"
             onClick={() => openModal("cover-letter")}
-            className="cursor-pointer"
+            className={TOOLBAR_BUTTON_CLASS}
             title={t("editor.toolbar.coverLetter")}
           >
             <FileText className="h-4 w-4" />
@@ -185,7 +186,7 @@ export function EditorToolbar() {
             variant="ghost"
             size="sm"
             onClick={() => openModal("grammar-check")}
-            className="cursor-pointer"
+            className={TOOLBAR_BUTTON_CLASS}
             title={t("editor.toolbar.grammarCheck")}
           >
             <SpellCheck className="h-4 w-4" />
@@ -199,7 +200,7 @@ export function EditorToolbar() {
             variant={showThemeEditor ? "secondary" : "ghost"}
             size="sm"
             onClick={toggleThemeEditor}
-            className="cursor-pointer"
+            className={TOOLBAR_BUTTON_CLASS}
             title={t("editor.toolbar.theme")}
           >
             <Palette className="h-4 w-4" />
@@ -212,10 +213,13 @@ export function EditorToolbar() {
             variant="ghost"
             size="sm"
             onClick={() => openModal("settings")}
-            className="cursor-pointer"
-            title={t("editor.toolbar.settings")}
+            className={TOOLBAR_BUTTON_CLASS}
+            title={t("settings.ai.title")}
           >
-            <Settings className="h-4 w-4" />
+            <Cpu className="h-4 w-4" />
+            <span className="ml-1 text-xs hidden sm:inline">
+              {t("settings.ai.title")}
+            </span>
           </Button>
         </div>
       </div>

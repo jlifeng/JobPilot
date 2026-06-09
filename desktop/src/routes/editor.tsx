@@ -52,6 +52,61 @@ function createFallbackResume(): Resume {
         createdAt: now,
         updatedAt: now,
       },
+      {
+        id: generateId(),
+        resumeId: id,
+        type: "summary",
+        title: "Summary",
+        sortOrder: 1,
+        visible: true,
+        content: { text: "" } as unknown as SectionContent,
+        createdAt: now,
+        updatedAt: now,
+      },
+      {
+        id: generateId(),
+        resumeId: id,
+        type: "work_experience",
+        title: "Work Experience",
+        sortOrder: 2,
+        visible: true,
+        content: { items: [] } as unknown as SectionContent,
+        createdAt: now,
+        updatedAt: now,
+      },
+      {
+        id: generateId(),
+        resumeId: id,
+        type: "education",
+        title: "Education",
+        sortOrder: 3,
+        visible: true,
+        content: { items: [] } as unknown as SectionContent,
+        createdAt: now,
+        updatedAt: now,
+      },
+      {
+        id: generateId(),
+        resumeId: id,
+        type: "certifications",
+        title: "Certifications",
+        sortOrder: 4,
+        visible: true,
+        content: { items: [] } as unknown as SectionContent,
+        createdAt: now,
+        updatedAt: now,
+      },
+      {
+        id: generateId(),
+        resumeId: id,
+        type: "skills",
+        title: "Skills",
+        sortOrder: 5,
+        visible: true,
+        content: { categories: [] } as unknown as SectionContent,
+        createdAt: now,
+        updatedAt: now,
+      },
     ],
     createdAt: now,
     updatedAt: now,
@@ -202,9 +257,9 @@ function EditorRoute() {
   }
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col gap-3 bg-slate-50 p-3 dark:bg-zinc-950">
       <EditorToolbar />
-      <div className="flex flex-1 overflow-hidden">
+      <div className="min-h-0 flex flex-1 gap-3 overflow-x-auto overflow-y-hidden">
         <EditorSidebar
           sections={sections}
           onAddSection={addSection}

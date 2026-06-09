@@ -75,6 +75,10 @@ pub struct WorkspaceWebdavSettings {
     pub username: String,
     #[serde(default = "default_webdav_remote_path")]
     pub remote_path: String,
+    #[serde(default = "default_webdav_sync_mode")]
+    pub sync_mode: String,
+    #[serde(default = "default_webdav_auto_sync_interval_minutes")]
+    pub auto_sync_interval_minutes: u32,
     #[serde(default)]
     pub last_snapshot_name: Option<String>,
     #[serde(default)]
@@ -89,6 +93,8 @@ impl Default for WorkspaceWebdavSettings {
             server_url: String::new(),
             username: String::new(),
             remote_path: default_webdav_remote_path(),
+            sync_mode: default_webdav_sync_mode(),
+            auto_sync_interval_minutes: default_webdav_auto_sync_interval_minutes(),
             last_snapshot_name: None,
             last_backup_at_epoch_ms: None,
             last_restore_at_epoch_ms: None,
@@ -722,6 +728,14 @@ fn default_webdav_remote_path() -> String {
     "JobPilot".into()
 }
 
+fn default_webdav_sync_mode() -> String {
+    "manual".into()
+}
+
+fn default_webdav_auto_sync_interval_minutes() -> u32 {
+    60
+}
+
 fn load_or_initialize_vault_fallback(
     workspace_root: &Path,
 ) -> Result<VaultFallbackDocument, String> {
@@ -895,7 +909,8 @@ fn evaluate_runtime_vault_state(
         }
         if warnings.is_empty() && keyring_active_count > 0 {
             #[cfg(target_os = "windows")]
-            warnings.push("Active secret descriptors are backed by Windows Credential Manager.".into());
+            warnings
+                .push("Active secret descriptors are backed by Windows Credential Manager.".into());
             #[cfg(target_os = "macos")]
             warnings.push("Active secret descriptors are backed by macOS Keychain.".into());
             #[cfg(not(any(target_os = "windows", target_os = "macos")))]

@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useResumeStore } from "../../stores/resume-store";
+import { saveAiAnalysisRecord } from "../../lib/desktop-api";
 import {
   downloadBlob,
   generateRequestId,
@@ -53,15 +54,21 @@ export function CoverLetterDialog({ open, onClose, resumeId }: CoverLetterDialog
       return;
     }
 
-    setJdText("");
-    setCompanyName("");
-    setJobTitle("");
-    setState("idle");
-    setCoverLetterTitle("");
-    setCoverLetter("");
-    setStreamingDraft("");
-    setErrorMessage("");
-    setCopyFeedback(false);
+    const resetTimer = window.setTimeout(() => {
+      setJdText("");
+      setCompanyName("");
+      setJobTitle("");
+      setState("idle");
+      setCoverLetterTitle("");
+      setCoverLetter("");
+      setStreamingDraft("");
+      setErrorMessage("");
+      setCopyFeedback(false);
+    }, 0);
+
+    return () => {
+      window.clearTimeout(resetTimer);
+    };
   }, [open]);
 
   const handleGenerate = async () => {
@@ -141,6 +148,24 @@ Write a polished cover letter that:
       setCoverLetter(parsed.content);
       setStreamingDraft(parsed.content);
       setState("completed");
+
+      void saveAiAnalysisRecord({
+        documentId: resumeId,
+        analysisType: "cover_letter",
+        payload: {
+          companyName,
+          jobTitle,
+          jobDescription: jdText,
+          title: parsed.title,
+          content: parsed.content,
+        },
+        score: null,
+        issueCount: null,
+        targetJobTitle: jobTitle,
+        targetCompany: companyName,
+      }).catch((error) => {
+        console.error("Failed to save cover letter record:", error);
+      });
     } catch (error) {
       setState("error");
       setErrorMessage(

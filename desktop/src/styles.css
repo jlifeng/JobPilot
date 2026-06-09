@@ -1,5 +1,11 @@
 @layer base {
   :root {
+    --jp-primary: #2563eb;
+    --jp-primary-hover: #1d4ed8;
+    --jp-primary-soft: #eff6ff;
+    --jp-primary-border: #bfdbfe;
+    --jp-primary-text: #1d4ed8;
+    --jp-primary-shadow: rgba(37, 99, 235, 0.2);
     color-scheme: light;
     font-family: "Segoe UI Variable", "Inter", "Aptos", "Noto Sans SC", sans-serif;
     background: linear-gradient(180deg, #fcfcfd 0%, #fafafa 100%);
@@ -10,9 +16,8 @@
     box-sizing: border-box;
   }
 
-  /* 文字选中高亮 - 黑白主题 */
   ::selection {
-    background: rgba(24, 24, 27, 0.15);
+    background: rgba(37, 99, 235, 0.18);
     color: inherit;
   }
 
@@ -446,15 +451,15 @@
 }
 
 .button--primary {
-  background: #18181b;
-  border-color: #18181b;
+  background: var(--jp-primary);
+  border-color: var(--jp-primary);
   color: #fff;
-  box-shadow: 0 8px 20px rgba(24, 24, 27, 0.15);
+  box-shadow: 0 8px 20px var(--jp-primary-shadow);
 }
 
 .button--primary:hover:not(:disabled) {
-  background: #27272a;
-  border-color: #27272a;
+  background: var(--jp-primary-hover);
+  border-color: var(--jp-primary-hover);
 }
 
 .button--secondary {
@@ -1192,8 +1197,8 @@
 .settings-field select:focus,
 .settings-field textarea:focus {
   outline: none;
-  border-color: #10b981;
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.14);
+  border-color: var(--jp-primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
 }
 
 .settings-checkbox {
@@ -1221,7 +1226,7 @@
   padding: 0 16px;
   border-radius: 12px;
   border: 1px solid transparent;
-  background: linear-gradient(135deg, #059669, #10b981);
+  background: linear-gradient(135deg, var(--jp-primary), #0ea5e9);
   color: #fff;
   font-weight: 700;
   cursor: pointer;
@@ -1229,7 +1234,7 @@
     transform 160ms ease,
     box-shadow 160ms ease,
     opacity 160ms ease;
-  box-shadow: 0 10px 24px rgba(5, 150, 105, 0.2);
+  box-shadow: 0 10px 24px var(--jp-primary-shadow);
 }
 
 .action-button:hover:not(:disabled) {
@@ -1691,7 +1696,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(15, 23, 42, 0.42);
   backdrop-filter: blur(4px);
   animation: fadeIn 0.2s ease-out;
 }
@@ -1708,12 +1713,12 @@
   max-width: 500px;
   max-height: 85vh;
   overflow: hidden;
-  background: white;
-  border: 1px solid rgba(228, 228, 231, 0.9);
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid rgba(191, 219, 254, 0.78);
   border-radius: 12px;
   box-shadow:
-    0 20px 25px -5px rgba(0, 0, 0, 0.1),
-    0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    0 22px 50px -24px rgba(37, 99, 235, 0.35),
+    0 18px 45px -28px rgba(15, 23, 42, 0.38);
   animation: scaleIn 0.2s ease-out;
 }
 
@@ -1738,13 +1743,13 @@
   align-items: center;
   justify-content: space-between;
   padding: 16px 20px;
-  border-bottom: 1px solid #e4e4e7;
+  border-bottom: 1px solid #e0ecff;
 }
 
 .dialog-title {
   font-size: 1.125rem;
   font-weight: 600;
-  color: #18181b;
+  color: #0f172a;
   margin: 0;
 }
 
@@ -1762,8 +1767,8 @@
 }
 
 .dialog-close:hover {
-  color: #18181b;
-  background: #f4f4f5;
+  color: var(--jp-primary-text);
+  background: var(--jp-primary-soft);
 }
 
 /* Dialog Tabs */
@@ -1771,8 +1776,8 @@
   display: flex;
   gap: 4px;
   padding: 0 20px;
-  border-bottom: 1px solid #e4e4e7;
-  background: #fafafa;
+  border-bottom: 1px solid #e0ecff;
+  background: #f8fbff;
 }
 
 .dialog-tab {
@@ -1791,13 +1796,13 @@
 }
 
 .dialog-tab:hover {
-  color: #18181b;
+  color: var(--jp-primary-text);
 }
 
 .dialog-tab--active {
-  color: #18181b;
-  border-bottom-color: #18181b;
-  background: white;
+  color: var(--jp-primary-text);
+  border-bottom-color: var(--jp-primary);
+  background: #ffffff;
 }
 
 /* Dialog Body */
@@ -1814,8 +1819,8 @@
   justify-content: flex-end;
   gap: 12px;
   padding: 16px 20px;
-  border-top: 1px solid #e4e4e7;
-  background: #fafafa;
+  border-top: 1px solid #e0ecff;
+  background: #f8fbff;
 }
 
 .dark .dialog-content {
@@ -1853,11 +1858,12 @@
 }
 
 .dark .dialog-tab:hover {
-  color: #f4f4f5;
+  color: #bfdbfe;
 }
 
 .dark .dialog-tab--active {
-  background: #09090b;
+  background: #172554;
+  color: #bfdbfe;
 }
 
 .dark .dialog-footer {
@@ -2013,12 +2019,12 @@
 }
 
 .template-option:hover {
-  border-color: #52525b;
+  border-color: var(--jp-primary-border);
 }
 
 .template-option--active {
-  border-color: #18181b;
-  background: rgba(24, 24, 27, 0.05);
+  border-color: var(--jp-primary);
+  background: var(--jp-primary-soft);
 }
 
 .template-option-label {
@@ -2038,7 +2044,7 @@
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: #18181b;
+  background: var(--jp-primary);
   color: white;
   display: flex;
   align-items: center;
@@ -2063,17 +2069,17 @@
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: #18181b;
+  background: var(--jp-primary);
   color: white;
   border: none;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(24, 24, 27, 0.25);
+  box-shadow: 0 4px 12px var(--jp-primary-shadow);
   transition: all 0.2s;
 }
 
 .ai-chat-bubble__button:hover {
   transform: scale(1.05);
-  box-shadow: 0 6px 20px rgba(24, 24, 27, 0.35);
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.28);
 }
 
 .ai-chat-panel {
@@ -2135,7 +2141,7 @@
 }
 
 .ai-chat-message--user .ai-chat-message-content {
-  background: #18181b;
+  background: var(--jp-primary);
   color: white;
   border-bottom-right-radius: 4px;
 }
@@ -2167,8 +2173,8 @@
   gap: 6px;
   padding: 6px 10px;
   font-size: 0.75rem;
-  color: #18181b;
-  background: rgba(24, 24, 27, 0.08);
+  color: var(--jp-primary-text);
+  background: rgba(37, 99, 235, 0.08);
   border: none;
   border-radius: 6px;
   cursor: pointer;
@@ -2176,7 +2182,7 @@
 }
 
 .ai-chat-suggestion:hover {
-  background: rgba(24, 24, 27, 0.12);
+  background: rgba(37, 99, 235, 0.12);
 }
 
 .ai-chat-input-area {
@@ -2215,7 +2221,7 @@
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: #18181b;
+  background: var(--jp-primary);
   color: white;
   border: none;
   cursor: pointer;
@@ -2223,7 +2229,7 @@
 }
 
 .ai-chat-send:hover:not(:disabled) {
-  background: #27272a;
+  background: var(--jp-primary-hover);
 }
 
 .ai-chat-send:disabled {
@@ -2260,8 +2266,8 @@
 }
 
 .export-option--selected {
-  border-color: #18181b;
-  background: rgba(24, 24, 27, 0.03);
+  border-color: var(--jp-primary);
+  background: var(--jp-primary-soft);
 }
 
 .export-status {

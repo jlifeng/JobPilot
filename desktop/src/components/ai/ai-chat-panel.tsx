@@ -1019,7 +1019,7 @@ export function AIChatContent({
                       ? "bg-zinc-700"
                       : message.error
                         ? "bg-red-500"
-                        : "bg-zinc-900 dark:bg-zinc-100"
+                        : "bg-blue-600 dark:bg-blue-500"
                   }`}
                 >
                   {isUser ? (
@@ -1079,8 +1079,8 @@ export function AIChatContent({
 
           {(streamingToolCalls.length > 0 || streamingText) && (
             <div className="flex gap-2.5">
-              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-zinc-900 dark:bg-zinc-100">
-                <Bot className="h-3 w-3 text-white dark:text-zinc-900" />
+              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-600 dark:bg-blue-500">
+                <Bot className="h-3 w-3 text-white" />
               </div>
               <div className="min-w-0 max-w-[calc(100%-2.5rem)] rounded-2xl bg-zinc-50 px-3 py-2 text-[13px] leading-relaxed text-zinc-700 ring-1 ring-zinc-200/60 dark:bg-zinc-900 dark:text-zinc-200 dark:ring-zinc-800/80">
                 <div className="space-y-2">

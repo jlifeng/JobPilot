@@ -25,9 +25,10 @@ use settings::{
     WorkspaceAppearanceSettingsUpdateInput, WorkspaceSettingsDocument,
 };
 use storage::{
-    CreateDocumentInput, CreateInterviewSessionInput, DocumentDetail, DocumentListItem,
-    ImportDocumentInput, InterviewMessageItem, InterviewReportRecord, InterviewSessionDetail,
-    InterviewSessionListItem, SaveDocumentInput, StorageSnapshot,
+    AiAnalysisRecordItem, CreateDocumentInput, CreateInterviewSessionInput, DocumentDetail,
+    DocumentListItem, ImportDocumentInput, InterviewMessageItem, InterviewReportRecord,
+    InterviewSessionDetail, InterviewSessionListItem, ListAiAnalysisRecordsInput,
+    SaveAiAnalysisRecordInput, SaveDocumentInput, StorageSnapshot,
     TemplateValidationExportWriteResult, TemplateValidationSnapshot, UpdateDocumentInput,
     UpdateInterviewMessageMetadataInput,
 };
@@ -181,6 +182,22 @@ fn rename_document(
 }
 
 #[tauri::command]
+fn save_ai_analysis_record(
+    app: tauri::AppHandle,
+    input: SaveAiAnalysisRecordInput,
+) -> Result<AiAnalysisRecordItem, String> {
+    storage::save_ai_analysis_record(&app, input)
+}
+
+#[tauri::command]
+fn list_ai_analysis_records(
+    app: tauri::AppHandle,
+    input: ListAiAnalysisRecordsInput,
+) -> Result<Vec<AiAnalysisRecordItem>, String> {
+    storage::list_ai_analysis_records(&app, input)
+}
+
+#[tauri::command]
 fn get_template_validation_snapshot(
     app: tauri::AppHandle,
 ) -> Result<TemplateValidationSnapshot, String> {
@@ -294,23 +311,17 @@ fn update_webdav_sync_settings(
 }
 
 #[tauri::command]
-async fn test_webdav_connection(
-    app: tauri::AppHandle,
-) -> Result<WebdavConnectivityResult, String> {
+async fn test_webdav_connection(app: tauri::AppHandle) -> Result<WebdavConnectivityResult, String> {
     sync::test_webdav_connection(&app).await
 }
 
 #[tauri::command]
-async fn upload_webdav_snapshot(
-    app: tauri::AppHandle,
-) -> Result<WebdavSnapshotReceipt, String> {
+async fn upload_webdav_snapshot(app: tauri::AppHandle) -> Result<WebdavSnapshotReceipt, String> {
     sync::upload_webdav_snapshot(&app).await
 }
 
 #[tauri::command]
-async fn restore_webdav_snapshot(
-    app: tauri::AppHandle,
-) -> Result<WebdavRestoreReceipt, String> {
+async fn restore_webdav_snapshot(app: tauri::AppHandle) -> Result<WebdavRestoreReceipt, String> {
     let _receipt = sync::restore_webdav_snapshot(&app).await?;
     // The database file was replaced on disk but the in-memory SQLite handles
     // are stale. Restart the app so fresh connections pick up the new data.
@@ -509,6 +520,10 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
+        .setup(|app| {
+            sync::start_auto_sync_scheduler(app.handle().clone());
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             restart_app,
             get_bootstrap_context,
@@ -525,6 +540,8 @@ pub fn run() {
             duplicate_document,
             import_document,
             rename_document,
+            save_ai_analysis_record,
+            list_ai_analysis_records,
             get_template_validation_snapshot,
             write_template_validation_export,
             write_export_file,

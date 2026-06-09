@@ -14,7 +14,7 @@ use std::os::windows::process::CommandExt;
 use tauri::{AppHandle, Manager, Url};
 use uuid::Uuid;
 
-const STORAGE_SCHEMA_VERSION: u32 = 2;
+const STORAGE_SCHEMA_VERSION: u32 = 3;
 const WORKSPACE_ROOT_DIR: &str = "workspace";
 const DATABASE_FILE: &str = "rolerover.db";
 const DEFAULT_WINDOW_WIDTH: i64 = 1480;
@@ -1239,6 +1239,8 @@ fn bootstrap_schema(connection: &Connection) -> Result<(), String> {
               summary TEXT NOT NULL,
               overall_feedback TEXT NOT NULL,
               improvement_suggestions_json TEXT NOT NULL DEFAULT '[]',
+              weak_points_json TEXT NOT NULL DEFAULT '[]',
+              training_plan_json TEXT NOT NULL DEFAULT '[]',
               created_at_epoch_ms INTEGER NOT NULL,
               updated_at_epoch_ms INTEGER NOT NULL,
               FOREIGN KEY(session_id) REFERENCES interview_sessions(id) ON DELETE CASCADE
@@ -1265,7 +1267,55 @@ fn bootstrap_schema(connection: &Connection) -> Result<(), String> {
               ON interview_reports(session_id);
             "#,
         )
-        .map_err(|error| format!("failed to bootstrap storage schema: {error}"))
+        .map_err(|error| format!("failed to bootstrap storage schema: {error}"))?;
+
+    ensure_column(
+        connection,
+        "interview_reports",
+        "weak_points_json",
+        "TEXT NOT NULL DEFAULT '[]'",
+    )?;
+    ensure_column(
+        connection,
+        "interview_reports",
+        "training_plan_json",
+        "TEXT NOT NULL DEFAULT '[]'",
+    )?;
+
+    Ok(())
+}
+
+fn ensure_column(
+    connection: &Connection,
+    table_name: &str,
+    column_name: &str,
+    column_definition: &str,
+) -> Result<(), String> {
+    let mut statement = connection
+        .prepare(&format!("PRAGMA table_info({table_name})"))
+        .map_err(|error| format!("failed to inspect table {table_name}: {error}"))?;
+    let columns = statement
+        .query_map([], |row| row.get::<_, String>(1))
+        .map_err(|error| format!("failed to read columns for table {table_name}: {error}"))?;
+
+    for column in columns {
+        let column = column
+            .map_err(|error| format!("failed to map column for table {table_name}: {error}"))?;
+        if column == column_name {
+            return Ok(());
+        }
+    }
+
+    connection
+        .execute(
+            &format!("ALTER TABLE {table_name} ADD COLUMN {column_name} {column_definition}"),
+            [],
+        )
+        .map_err(|error| {
+            format!("failed to add column {column_name} to table {table_name}: {error}")
+        })?;
+
+    Ok(())
 }
 
 fn seed_workspace_defaults(connection: &Connection, app_version: &str) -> Result<String, String> {
@@ -1505,8 +1555,28 @@ pub struct InterviewReportRecord {
     pub summary: String,
     pub overall_feedback: String,
     pub improvement_suggestions: Vec<String>,
+    pub weak_points: Vec<InterviewWeakPointRecord>,
+    pub training_plan: Vec<InterviewTrainingPlanItemRecord>,
     pub created_at_epoch_ms: i64,
     pub updated_at_epoch_ms: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InterviewWeakPointRecord {
+    pub title: String,
+    pub evidence: String,
+    pub severity: String,
+    pub training_focus: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InterviewTrainingPlanItemRecord {
+    pub title: String,
+    pub description: String,
+    pub priority: String,
+    pub drills: Vec<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -1550,6 +1620,8 @@ pub struct SaveInterviewReportInput {
     pub summary: String,
     pub overall_feedback: String,
     pub improvement_suggestions: Vec<String>,
+    pub weak_points: Vec<InterviewWeakPointRecord>,
+    pub training_plan: Vec<InterviewTrainingPlanItemRecord>,
 }
 
 pub fn list_interview_sessions(app: &AppHandle) -> Result<Vec<InterviewSessionListItem>, String> {
@@ -1624,9 +1696,9 @@ pub fn delete_interview_session(app: &AppHandle, session_id: &str) -> Result<boo
     }
 
     let mut connection = open_initialized_connection(app)?;
-    let transaction = connection
-        .transaction()
-        .map_err(|error| format!("failed to start interview session delete transaction: {error}"))?;
+    let transaction = connection.transaction().map_err(|error| {
+        format!("failed to start interview session delete transaction: {error}")
+    })?;
     let exists = transaction
         .query_row(
             "SELECT 1 FROM interview_sessions WHERE id = ?1",
@@ -1638,9 +1710,9 @@ pub fn delete_interview_session(app: &AppHandle, session_id: &str) -> Result<boo
         .unwrap_or(false);
 
     if !exists {
-        transaction
-            .commit()
-            .map_err(|error| format!("failed to close interview session delete transaction: {error}"))?;
+        transaction.commit().map_err(|error| {
+            format!("failed to close interview session delete transaction: {error}")
+        })?;
         return Ok(false);
     }
 
@@ -1660,7 +1732,9 @@ pub fn delete_interview_session(app: &AppHandle, session_id: &str) -> Result<boo
             "#,
             params![session_id],
         )
-        .map_err(|error| format!("failed to delete interview messages for {session_id}: {error}"))?;
+        .map_err(|error| {
+            format!("failed to delete interview messages for {session_id}: {error}")
+        })?;
     transaction
         .execute(
             "DELETE FROM interview_rounds WHERE session_id = ?1",
@@ -1674,9 +1748,9 @@ pub fn delete_interview_session(app: &AppHandle, session_id: &str) -> Result<boo
         )
         .map_err(|error| format!("failed to delete interview session {session_id}: {error}"))?;
 
-    transaction
-        .commit()
-        .map_err(|error| format!("failed to commit interview session delete transaction: {error}"))?;
+    transaction.commit().map_err(|error| {
+        format!("failed to commit interview session delete transaction: {error}")
+    })?;
 
     Ok(true)
 }
@@ -1966,11 +2040,7 @@ pub fn add_interview_start_message_once(
     }
 
     let metadata = normalize_metadata_value(input.metadata.unwrap_or_else(|| json!({})))?;
-    if metadata
-        .get("turnKind")
-        .and_then(|value| value.as_str())
-        != Some("start")
-    {
+    if metadata.get("turnKind").and_then(|value| value.as_str()) != Some("start") {
         return Err("start message metadata must include turnKind=start".into());
     }
 
@@ -2023,18 +2093,18 @@ pub fn add_interview_start_message_once(
         .map_err(|error| format!("failed to insert interview start message: {error}"))?;
 
     if inserted == 0 {
-        transaction
-            .commit()
-            .map_err(|error| format!("failed to close interview start-message transaction: {error}"))?;
+        transaction.commit().map_err(|error| {
+            format!("failed to close interview start-message transaction: {error}")
+        })?;
         return Ok(None);
     }
 
     touch_interview_round_and_session(&transaction, &round_id, now)?;
     let message = load_interview_message(&transaction, &message_id)?
         .ok_or_else(|| format!("interview message not found after insert: {message_id}"))?;
-    transaction
-        .commit()
-        .map_err(|error| format!("failed to commit interview start-message transaction: {error}"))?;
+    transaction.commit().map_err(|error| {
+        format!("failed to commit interview start-message transaction: {error}")
+    })?;
     Ok(Some(message))
 }
 
@@ -2200,6 +2270,10 @@ pub fn save_interview_report(
         .map_err(|error| {
             format!("failed to serialize interview improvement suggestions: {error}")
         })?;
+    let weak_points_json = serde_json::to_string(&input.weak_points)
+        .map_err(|error| format!("failed to serialize interview weak points: {error}"))?;
+    let training_plan_json = serde_json::to_string(&input.training_plan)
+        .map_err(|error| format!("failed to serialize interview training plan: {error}"))?;
 
     connection
         .execute(
@@ -2211,15 +2285,19 @@ pub fn save_interview_report(
               summary,
               overall_feedback,
               improvement_suggestions_json,
+              weak_points_json,
+              training_plan_json,
               created_at_epoch_ms,
               updated_at_epoch_ms
-            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?7)
+            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?9)
             ON CONFLICT(session_id) DO UPDATE SET
               id = excluded.id,
               overall_score = excluded.overall_score,
               summary = excluded.summary,
               overall_feedback = excluded.overall_feedback,
               improvement_suggestions_json = excluded.improvement_suggestions_json,
+              weak_points_json = excluded.weak_points_json,
+              training_plan_json = excluded.training_plan_json,
               updated_at_epoch_ms = excluded.updated_at_epoch_ms
             "#,
             params![
@@ -2229,6 +2307,8 @@ pub fn save_interview_report(
                 summary,
                 overall_feedback,
                 improvement_suggestions_json,
+                weak_points_json,
+                training_plan_json,
                 now
             ],
         )
@@ -2455,6 +2535,8 @@ fn load_interview_report(
               summary,
               overall_feedback,
               improvement_suggestions_json,
+              weak_points_json,
+              training_plan_json,
               created_at_epoch_ms,
               updated_at_epoch_ms
             FROM interview_reports
@@ -2472,8 +2554,10 @@ fn load_interview_report(
                         &row.get::<_, String>(5)?,
                         "[]",
                     ),
-                    created_at_epoch_ms: row.get::<_, i64>(6)?,
-                    updated_at_epoch_ms: row.get::<_, i64>(7)?,
+                    weak_points: parse_typed_array_or_default(&row.get::<_, String>(6)?, "[]"),
+                    training_plan: parse_typed_array_or_default(&row.get::<_, String>(7)?, "[]"),
+                    created_at_epoch_ms: row.get::<_, i64>(8)?,
+                    updated_at_epoch_ms: row.get::<_, i64>(9)?,
                 })
             },
         )
@@ -2580,6 +2664,13 @@ fn parse_string_array_or_default(raw: &str, fallback: &str) -> Vec<String> {
                 .collect::<Vec<_>>()
         })
         .unwrap_or_default()
+}
+
+fn parse_typed_array_or_default<T>(raw: &str, fallback: &str) -> Vec<T>
+where
+    T: for<'de> Deserialize<'de>,
+{
+    serde_json::from_value::<Vec<T>>(parse_json_or_default(raw, fallback)).unwrap_or_default()
 }
 
 // =====================================================
@@ -2703,6 +2794,60 @@ pub struct SaveDocumentInput {
     pub sections: Vec<SaveDocumentSectionInput>,
 }
 
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AiAnalysisRecordItem {
+    pub id: String,
+    pub document_id: String,
+    pub analysis_type: String,
+    pub payload_json: String,
+    pub score: Option<i64>,
+    pub issue_count: Option<i64>,
+    pub target_job_title: Option<String>,
+    pub target_company: Option<String>,
+    pub created_at_epoch_ms: i64,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SaveAiAnalysisRecordInput {
+    pub document_id: String,
+    pub analysis_type: String,
+    pub payload: Value,
+    pub score: Option<i64>,
+    pub issue_count: Option<i64>,
+    pub target_job_title: Option<String>,
+    pub target_company: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ListAiAnalysisRecordsInput {
+    pub document_id: Option<String>,
+    pub analysis_type: Option<String>,
+    pub limit: Option<u32>,
+}
+
+fn normalize_analysis_type(value: &str) -> Result<String, String> {
+    let normalized = value.trim().to_lowercase();
+    match normalized.as_str() {
+        "jd" | "jd_match" | "ats" => Ok("jd".into()),
+        "grammar" | "grammar_check" => Ok("grammar".into()),
+        "cover_letter" => Ok("cover_letter".into()),
+        _ => Err(format!("unsupported analysis type: {value}")),
+    }
+}
+
+fn clamp_optional_score(score: Option<i64>) -> Option<i64> {
+    score.map(|value| value.clamp(0, 100))
+}
+
+fn normalize_optional_text(value: Option<String>) -> Option<String> {
+    value
+        .map(|text| text.trim().to_string())
+        .filter(|text| !text.is_empty())
+}
+
 pub fn list_documents(app: &AppHandle) -> Result<Vec<DocumentListItem>, String> {
     let paths = resolve_storage_paths(app)?;
     ensure_storage_directory(&paths.workspace_root)?;
@@ -2761,6 +2906,166 @@ pub fn list_documents(app: &AppHandle) -> Result<Vec<DocumentListItem>, String> 
     }
 
     Ok(documents)
+}
+
+pub fn save_ai_analysis_record(
+    app: &AppHandle,
+    input: SaveAiAnalysisRecordInput,
+) -> Result<AiAnalysisRecordItem, String> {
+    let paths = resolve_storage_paths(app)?;
+    ensure_storage_directory(&paths.workspace_root)?;
+    let app_version = app.package_info().version.to_string();
+
+    let connection = Connection::open(&paths.database_path).map_err(|error| {
+        format!(
+            "failed to open sqlite database {}: {error}",
+            paths.database_path.display()
+        )
+    })?;
+    configure_connection(&connection)?;
+    bootstrap_schema(&connection)?;
+    seed_workspace_defaults(&connection, &app_version)?;
+
+    let document_id = input.document_id.trim().to_string();
+    if document_id.is_empty() {
+        return Err("documentId is required".into());
+    }
+
+    let document_exists = connection
+        .query_row(
+            "SELECT 1 FROM documents WHERE id = ?1",
+            params![&document_id],
+            |_| Ok(()),
+        )
+        .optional()
+        .map_err(|error| format!("failed to validate document before saving analysis: {error}"))?
+        .is_some();
+    if !document_exists {
+        return Err(format!("document not found: {document_id}"));
+    }
+
+    let analysis_type = normalize_analysis_type(&input.analysis_type)?;
+    let payload_json = serde_json::to_string(&input.payload)
+        .map_err(|error| format!("failed to serialize AI analysis payload: {error}"))?;
+    let score = clamp_optional_score(input.score);
+    let issue_count = input.issue_count.map(|value| value.max(0));
+    let target_job_title = normalize_optional_text(input.target_job_title);
+    let target_company = normalize_optional_text(input.target_company);
+    let created_at_epoch_ms = now_epoch_ms()? as i64;
+    let id = Uuid::new_v4().to_string();
+
+    connection
+        .execute(
+            r#"
+            INSERT INTO ai_analysis_records (
+              id,
+              document_id,
+              analysis_type,
+              payload_json,
+              score,
+              issue_count,
+              target_job_title,
+              target_company,
+              created_at_epoch_ms
+            )
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)
+            "#,
+            params![
+                &id,
+                &document_id,
+                &analysis_type,
+                &payload_json,
+                score,
+                issue_count,
+                target_job_title.as_deref(),
+                target_company.as_deref(),
+                created_at_epoch_ms,
+            ],
+        )
+        .map_err(|error| format!("failed to save AI analysis record: {error}"))?;
+
+    Ok(AiAnalysisRecordItem {
+        id,
+        document_id,
+        analysis_type,
+        payload_json,
+        score,
+        issue_count,
+        target_job_title,
+        target_company,
+        created_at_epoch_ms,
+    })
+}
+
+pub fn list_ai_analysis_records(
+    app: &AppHandle,
+    input: ListAiAnalysisRecordsInput,
+) -> Result<Vec<AiAnalysisRecordItem>, String> {
+    let paths = resolve_storage_paths(app)?;
+    ensure_storage_directory(&paths.workspace_root)?;
+    let app_version = app.package_info().version.to_string();
+
+    let connection = Connection::open(&paths.database_path).map_err(|error| {
+        format!(
+            "failed to open sqlite database {}: {error}",
+            paths.database_path.display()
+        )
+    })?;
+    configure_connection(&connection)?;
+    bootstrap_schema(&connection)?;
+    seed_workspace_defaults(&connection, &app_version)?;
+
+    let document_id = normalize_optional_text(input.document_id);
+    let analysis_type = input
+        .analysis_type
+        .as_deref()
+        .map(normalize_analysis_type)
+        .transpose()?;
+    let limit = input.limit.unwrap_or(10).clamp(1, 50) as i64;
+
+    let mut statement = connection
+        .prepare(
+            r#"
+            SELECT
+              id,
+              document_id,
+              analysis_type,
+              payload_json,
+              score,
+              issue_count,
+              target_job_title,
+              target_company,
+              created_at_epoch_ms
+            FROM ai_analysis_records
+            WHERE (?1 IS NULL OR document_id = ?1)
+              AND (?2 IS NULL OR analysis_type = ?2)
+            ORDER BY created_at_epoch_ms DESC
+            LIMIT ?3
+            "#,
+        )
+        .map_err(|error| format!("failed to prepare AI analysis query: {error}"))?;
+
+    let rows = statement
+        .query_map(
+            params![document_id.as_deref(), analysis_type.as_deref(), limit],
+            |row| {
+                Ok(AiAnalysisRecordItem {
+                    id: row.get(0)?,
+                    document_id: row.get(1)?,
+                    analysis_type: row.get(2)?,
+                    payload_json: row.get(3)?,
+                    score: row.get(4)?,
+                    issue_count: row.get(5)?,
+                    target_job_title: row.get(6)?,
+                    target_company: row.get(7)?,
+                    created_at_epoch_ms: row.get(8)?,
+                })
+            },
+        )
+        .map_err(|error| format!("failed to query AI analysis records: {error}"))?;
+
+    rows.collect::<Result<Vec<_>, _>>()
+        .map_err(|error| format!("failed to map AI analysis record: {error}"))
 }
 
 pub fn get_document(app: &AppHandle, document_id: &str) -> Result<Option<DocumentDetail>, String> {
@@ -2947,7 +3252,8 @@ fn create_default_sections(
         ("summary", "Summary", 1),
         ("work_experience", "Work Experience", 2),
         ("education", "Education", 3),
-        ("skills", "Skills", 4),
+        ("certifications", "Certifications", 4),
+        ("skills", "Skills", 5),
     ];
 
     let title_prefix = if language == "zh" {
@@ -2956,7 +3262,8 @@ fn create_default_sections(
             ("个人简介", 1),
             ("工作经历", 2),
             ("教育背景", 3),
-            ("技能特长", 4),
+            ("资格证书", 4),
+            ("技能特长", 5),
         ]
     } else {
         [
@@ -2964,7 +3271,8 @@ fn create_default_sections(
             ("Summary", 1),
             ("Work Experience", 2),
             ("Education", 3),
-            ("Skills", 4),
+            ("Certifications", 4),
+            ("Skills", 5),
         ]
     };
 
@@ -2978,6 +3286,19 @@ fn create_default_sections(
             .get(idx)
             .map(|(_, s)| *s)
             .unwrap_or(*_sort_order) as i32;
+        let content_json = match *section_type {
+            "personal_info" => json!({
+                "fullName": "",
+                "jobTitle": "",
+                "email": "",
+                "phone": "",
+                "location": ""
+            }),
+            "summary" => json!({ "text": "" }),
+            "skills" => json!({ "categories": [] }),
+            _ => json!({ "items": [] }),
+        }
+        .to_string();
 
         connection
             .execute(
@@ -2985,7 +3306,7 @@ fn create_default_sections(
                 INSERT INTO document_sections (
                   id, document_id, section_type, title, sort_order, visible,
                   content_json, created_at_epoch_ms, updated_at_epoch_ms
-                ) VALUES (?1, ?2, ?3, ?4, ?5, 1, '{}', ?6, ?6)
+                ) VALUES (?1, ?2, ?3, ?4, ?5, 1, ?6, ?7, ?7)
                 "#,
                 params![
                     section_id,
@@ -2993,6 +3314,7 @@ fn create_default_sections(
                     section_type,
                     title,
                     sort_order,
+                    content_json,
                     now
                 ],
             )

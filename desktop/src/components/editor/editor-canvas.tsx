@@ -75,9 +75,9 @@ export function EditorCanvas({
   const activeSection = activeId ? sections.find((s) => s.id === activeId) : null;
 
   return (
-    <div className="min-w-0 flex-[4] overflow-hidden bg-zinc-50 dark:bg-zinc-950">
+    <div className="min-w-[380px] flex-[4] overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-[0_4px_12px_rgba(15,23,42,0.05)] dark:border-white/10 dark:bg-card dark:shadow-[0_18px_44px_rgba(0,0,0,0.22)]">
       <ScrollArea className="h-full">
-        <div className="mx-auto max-w-3xl px-6 py-8">
+        <div className="mx-auto max-w-3xl px-6 py-7">
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}
@@ -103,7 +103,7 @@ export function EditorCanvas({
 
             <DragOverlay>
               {activeSection && (
-                <div className="rounded-lg border-2 border-zinc-400 dark:border-zinc-500 bg-white dark:bg-zinc-800 p-4 opacity-80 shadow-xl">
+                <div className="rounded-xl border-2 border-blue-300 bg-white p-4 opacity-90 shadow-xl dark:border-blue-500/60 dark:bg-zinc-900">
                   <p className="font-medium text-zinc-700 dark:text-zinc-200">{activeSection.title}</p>
                 </div>
               )}

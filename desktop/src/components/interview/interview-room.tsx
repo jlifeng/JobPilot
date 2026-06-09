@@ -3,9 +3,12 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import {
   AlertCircle,
+  AlertTriangle,
   BadgeHelp,
+  BarChart3,
   CheckCircle2,
   ChevronRight,
+  Lightbulb,
   Loader2,
   MessageSquareText,
   RotateCcw,
@@ -34,6 +37,7 @@ import {
   resolveInterviewLocale,
 } from "../../lib/interviewers";
 import type {
+  InterviewAnswerEvaluation,
   InterviewMessage,
   InterviewSessionDetail,
   InterviewTurnKind,
@@ -62,6 +66,118 @@ function formatTime(value: number, language: string): string {
     hour: "numeric",
     minute: "2-digit",
   }).format(new Date(value));
+}
+
+function getScoreTone(score: number): string {
+  if (score >= 80) {
+    return "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200";
+  }
+  if (score >= 60) {
+    return "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200";
+  }
+  return "border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-200";
+}
+
+interface AnswerEvaluationCardProps {
+  evaluation: InterviewAnswerEvaluation;
+}
+
+function AnswerEvaluationCard({ evaluation }: AnswerEvaluationCardProps) {
+  const { t } = useTranslation();
+
+  return (
+    <div className="mt-3 max-w-[85%] rounded-2xl border border-zinc-200 bg-white px-4 py-4 text-left text-sm shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <div className="inline-flex items-center gap-2 font-medium text-zinc-950 dark:text-zinc-50">
+            <BarChart3 className="h-4 w-4" />
+            {t("interview.practice.answerScore")}
+          </div>
+          {evaluation.summary ? (
+            <p className="mt-2 leading-6 text-zinc-600 dark:text-zinc-300">
+              {evaluation.summary}
+            </p>
+          ) : null}
+        </div>
+        <div className={`rounded-full border px-3 py-1 text-sm font-semibold ${getScoreTone(evaluation.overallScore)}`}>
+          {evaluation.overallScore}
+        </div>
+      </div>
+
+      {evaluation.dimensions.length > 0 ? (
+        <div className="mt-4 grid gap-2 md:grid-cols-2">
+          {evaluation.dimensions.map((dimension) => (
+            <div
+              key={dimension.id}
+              className="rounded-xl bg-zinc-50 px-3 py-3 dark:bg-zinc-900/70"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-medium text-zinc-800 dark:text-zinc-100">
+                  {dimension.label}
+                </span>
+                <span className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">
+                  {dimension.score}
+                </span>
+              </div>
+              {dimension.feedback ? (
+                <p className="mt-1 leading-5 text-zinc-500 dark:text-zinc-400">
+                  {dimension.feedback}
+                </p>
+              ) : null}
+            </div>
+          ))}
+        </div>
+      ) : null}
+
+      {evaluation.riskPoints.length > 0 ? (
+        <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-3 dark:border-amber-900 dark:bg-amber-950/30">
+          <div className="inline-flex items-center gap-2 font-medium text-amber-800 dark:text-amber-200">
+            <AlertTriangle className="h-4 w-4" />
+            {t("interview.practice.riskPoints")}
+          </div>
+          <ul className="mt-2 space-y-1 text-amber-700 dark:text-amber-200">
+            {evaluation.riskPoints.map((item, index) => (
+              <li key={`risk-${index}`}>{item}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {evaluation.followUpQuestion ? (
+        <div className="mt-3 rounded-xl bg-blue-50 px-3 py-3 text-blue-700 dark:bg-blue-950/30 dark:text-blue-200">
+          <div className="font-medium">{t("interview.practice.followUpQuestion")}</div>
+          <p className="mt-1 leading-6">{evaluation.followUpQuestion}</p>
+        </div>
+      ) : null}
+
+      {evaluation.trainingSuggestions.length > 0 ? (
+        <div className="mt-3 rounded-xl bg-emerald-50 px-3 py-3 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-200">
+          <div className="inline-flex items-center gap-2 font-medium">
+            <Lightbulb className="h-4 w-4" />
+            {t("interview.practice.trainingSuggestions")}
+          </div>
+          <ul className="mt-2 space-y-1">
+            {evaluation.trainingSuggestions.map((item, index) => (
+              <li key={`training-${index}`}>{item}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function AnswerEvaluationErrorCard() {
+  const { t } = useTranslation();
+
+  return (
+    <div className="mt-3 max-w-[85%] rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-left text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
+      <div className="inline-flex items-center gap-2 font-medium">
+        <AlertTriangle className="h-4 w-4" />
+        {t("interview.practice.answerEvaluationUnavailable")}
+      </div>
+    </div>
+  );
 }
 
 export function InterviewRoom({
@@ -527,6 +643,12 @@ export function InterviewRoom({
                           <p className="whitespace-pre-wrap">{cleanAssistantMessage(message.content)}</p>
                         </div>
                       </div>
+                      {isCandidate && message.metadata.answerEvaluation ? (
+                        <AnswerEvaluationCard evaluation={message.metadata.answerEvaluation} />
+                      ) : null}
+                      {isCandidate && message.metadata.answerEvaluationError ? (
+                        <AnswerEvaluationErrorCard />
+                      ) : null}
                     </div>
                   );
                 })}

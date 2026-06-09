@@ -4,6 +4,8 @@ import { relaunch } from "@tauri-apps/plugin-process";
 import type {
   CreateInterviewSessionInput,
   GenerateInterviewReportInput,
+  InterviewAnswerEvaluation,
+  InterviewAnswerEvaluationDimension,
   InterviewerConfig,
   InterviewMessage,
   InterviewMessageMetadata,
@@ -11,7 +13,9 @@ import type {
   InterviewSession,
   InterviewSessionDetail,
   InterviewRound,
+  InterviewTrainingPlanItem,
   StartInterviewTurnStreamInput,
+  InterviewWeakPoint,
   UpdateInterviewMessageMetadataInput,
 } from "../types/interview";
 
@@ -164,6 +168,36 @@ export interface ImportDocumentInput {
   sections: ImportDocumentSectionInput[];
 }
 
+export type AiAnalysisType = "jd" | "grammar" | "cover_letter";
+
+export interface AiAnalysisRecord {
+  id: string;
+  documentId: string;
+  analysisType: AiAnalysisType;
+  payloadJson: string;
+  score?: number | null;
+  issueCount?: number | null;
+  targetJobTitle?: string | null;
+  targetCompany?: string | null;
+  createdAtEpochMs: number;
+}
+
+export interface SaveAiAnalysisRecordInput {
+  documentId: string;
+  analysisType: AiAnalysisType;
+  payload: Record<string, unknown>;
+  score?: number | null;
+  issueCount?: number | null;
+  targetJobTitle?: string | null;
+  targetCompany?: string | null;
+}
+
+export interface ListAiAnalysisRecordsInput {
+  documentId?: string | null;
+  analysisType?: AiAnalysisType | null;
+  limit?: number;
+}
+
 export type WorkspaceModel = "single_workspace";
 
 export type ResumeSectionType =
@@ -292,6 +326,8 @@ export interface WorkspaceSettingsDocument {
       serverUrl: string;
       username: string;
       remotePath: string;
+      syncMode: "manual" | "auto";
+      autoSyncIntervalMinutes: number;
       lastSnapshotName?: string | null;
       lastBackupAtEpochMs?: number | null;
       lastRestoreAtEpochMs?: number | null;
@@ -391,6 +427,8 @@ export interface WebdavSyncStatus {
   serverUrl: string;
   username: string;
   remotePath: string;
+  syncMode: "manual" | "auto";
+  autoSyncIntervalMinutes: number;
   passwordConfigured: boolean;
   lastSnapshotName?: string | null;
   lastBackupAtEpochMs?: number | null;
@@ -401,6 +439,8 @@ export interface WebdavSettingsUpdateInput {
   serverUrl: string;
   username: string;
   remotePath: string;
+  syncMode: "manual" | "auto";
+  autoSyncIntervalMinutes: number;
   password?: string | null;
 }
 
@@ -807,6 +847,8 @@ interface RawInterviewReportRecord {
   summary: string;
   overallFeedback: string;
   improvementSuggestions: string[];
+  weakPoints?: unknown;
+  trainingPlan?: unknown;
   createdAtEpochMs: number;
   updatedAtEpochMs: number;
 }
@@ -1010,6 +1052,8 @@ const FALLBACK_SETTINGS: WorkspaceSettingsDocument = {
       serverUrl: "",
       username: "",
       remotePath: "JobPilot",
+      syncMode: "manual",
+      autoSyncIntervalMinutes: 60,
       lastSnapshotName: null,
       lastBackupAtEpochMs: null,
       lastRestoreAtEpochMs: null,
@@ -1023,6 +1067,8 @@ const FALLBACK_WEBDAV_SYNC_STATUS: WebdavSyncStatus = {
   serverUrl: "",
   username: "",
   remotePath: "JobPilot",
+  syncMode: "manual",
+  autoSyncIntervalMinutes: 60,
   passwordConfigured: false,
   lastSnapshotName: null,
   lastBackupAtEpochMs: null,
@@ -1496,11 +1542,121 @@ function normalizeInterviewerConfigList(value: unknown): InterviewerConfig[] {
   return value.map(normalizeInterviewerConfig);
 }
 
+function normalizeScore(value: unknown): number {
+  return typeof value === "number" && Number.isFinite(value)
+    ? Math.min(100, Math.max(0, Math.round(value)))
+    : 0;
+}
+
+function normalizeStringList(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.filter((item): item is string => {
+    return typeof item === "string" && item.trim().length > 0;
+  }).map((item) => item.trim());
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+function normalizeAnswerEvaluationDimension(
+  value: unknown,
+): InterviewAnswerEvaluationDimension | null {
+  const record = asRecord(value);
+  if (!record) {
+    return null;
+  }
+
+  const id = typeof record.id === "string" ? record.id.trim() : "";
+  const label = typeof record.label === "string" ? record.label.trim() : "";
+  if (!id || !label) {
+    return null;
+  }
+
+  return {
+    id,
+    label,
+    score: normalizeScore(record.score),
+    feedback: typeof record.feedback === "string" ? record.feedback.trim() : "",
+  };
+}
+
+function normalizeAnswerEvaluation(value: unknown): InterviewAnswerEvaluation | undefined {
+  const record = asRecord(value);
+  if (!record) {
+    return undefined;
+  }
+
+  const dimensions = Array.isArray(record.dimensions)
+    ? record.dimensions
+        .map(normalizeAnswerEvaluationDimension)
+        .filter((item): item is InterviewAnswerEvaluationDimension => item !== null)
+    : [];
+
+  return {
+    overallScore: normalizeScore(record.overallScore),
+    summary: typeof record.summary === "string" ? record.summary.trim() : "",
+    dimensions,
+    strengths: normalizeStringList(record.strengths),
+    riskPoints: normalizeStringList(record.riskPoints),
+    followUpQuestion:
+      typeof record.followUpQuestion === "string" && record.followUpQuestion.trim().length > 0
+        ? record.followUpQuestion.trim()
+        : null,
+    trainingSuggestions: normalizeStringList(record.trainingSuggestions),
+  };
+}
+
+function normalizeSeverity(value: unknown): "low" | "medium" | "high" {
+  return value === "low" || value === "medium" || value === "high" ? value : "medium";
+}
+
+function normalizeWeakPoint(value: unknown): InterviewWeakPoint | null {
+  const record = asRecord(value);
+  if (!record) {
+    return null;
+  }
+
+  const title = typeof record.title === "string" ? record.title.trim() : "";
+  if (!title) {
+    return null;
+  }
+
+  return {
+    title,
+    evidence: typeof record.evidence === "string" ? record.evidence.trim() : "",
+    severity: normalizeSeverity(record.severity),
+    trainingFocus:
+      typeof record.trainingFocus === "string" ? record.trainingFocus.trim() : "",
+  };
+}
+
+function normalizeTrainingPlanItem(value: unknown): InterviewTrainingPlanItem | null {
+  const record = asRecord(value);
+  if (!record) {
+    return null;
+  }
+
+  const title = typeof record.title === "string" ? record.title.trim() : "";
+  if (!title) {
+    return null;
+  }
+
+  return {
+    title,
+    description: typeof record.description === "string" ? record.description.trim() : "",
+    priority: normalizeSeverity(record.priority),
+    drills: normalizeStringList(record.drills),
+  };
+}
+
 function normalizeInterviewMessageMetadata(value: unknown): InterviewMessageMetadata {
-  const record =
-    typeof value === "object" && value !== null && !Array.isArray(value)
-      ? (value as Record<string, unknown>)
-      : {};
+  const record = asRecord(value) ?? {};
   const turnKind = record.turnKind;
 
   return {
@@ -1514,6 +1670,11 @@ function normalizeInterviewMessageMetadata(value: unknown): InterviewMessageMeta
       || turnKind === "skip"
       || turnKind === "end_round"
         ? turnKind
+        : undefined,
+    answerEvaluation: normalizeAnswerEvaluation(record.answerEvaluation),
+    answerEvaluationError:
+      typeof record.answerEvaluationError === "string"
+        ? record.answerEvaluationError
         : undefined,
   };
 }
@@ -1570,6 +1731,16 @@ function normalizeInterviewReport(
       ? item.improvementSuggestions.filter((suggestion): suggestion is string => {
           return typeof suggestion === "string" && suggestion.trim().length > 0;
         })
+      : [],
+    weakPoints: Array.isArray(item.weakPoints)
+      ? item.weakPoints
+          .map(normalizeWeakPoint)
+          .filter((weakPoint): weakPoint is InterviewWeakPoint => weakPoint !== null)
+      : [],
+    trainingPlan: Array.isArray(item.trainingPlan)
+      ? item.trainingPlan
+          .map(normalizeTrainingPlanItem)
+          .filter((item): item is InterviewTrainingPlanItem => item !== null)
       : [],
     createdAtEpochMs: item.createdAtEpochMs,
   };
@@ -1755,6 +1926,18 @@ export async function renameDocument(
     documentId,
     newTitle,
   });
+}
+
+export async function saveAiAnalysisRecord(
+  input: SaveAiAnalysisRecordInput,
+): Promise<AiAnalysisRecord> {
+  return invoke<AiAnalysisRecord>("save_ai_analysis_record", { input });
+}
+
+export async function listAiAnalysisRecords(
+  input: ListAiAnalysisRecordsInput = {},
+): Promise<AiAnalysisRecord[]> {
+  return invokeWithFallback<AiAnalysisRecord[]>("list_ai_analysis_records", [], { input });
 }
 
 export async function getWorkspaceSettingsSnapshot(): Promise<WorkspaceSettingsDocument> {

@@ -15,7 +15,7 @@ JobPilot's current UI is best described as:
 The codebase already shows a consistent pattern:
 
 - neutral zinc/white surfaces for the default shell
-- pink/rose as the only strong accent family
+- JobPilot blue as the only strong accent family
 - large but controlled radii (`rounded-xl` / `rounded-2xl`)
 - soft shadows and subtle lift on interactive cards
 - small, responsive micro-interactions instead of heavy animation systems
@@ -42,7 +42,7 @@ direction is:
 
 - **Pattern**: interactive demo + feature-rich
 - **Style**: micro-interactions
-- **Color posture**: editorial black + accent pink
+- **Color posture**: neutral productivity surfaces + JobPilot blue accent
 - **Product mood**: professional, approachable, modern, AI-assisted
 
 ---
@@ -66,7 +66,7 @@ Examples:
 
 ### Accent palette
 
-Pink is the primary accent family across the product:
+Blue is the primary accent family across the product:
 
 - primary CTA buttons
 - selected states
@@ -74,24 +74,27 @@ Pink is the primary accent family across the product:
 - feature highlights
 - progress or suggestion emphasis
 
-Use rose only as a supporting partner to pink, typically in gradients.
+Use cyan or sky only as a supporting partner to blue, typically in gradients.
 
 Good current patterns:
 
-- `bg-pink-500 hover:bg-pink-600`
-- `border-pink-200 bg-pink-50`
-- `bg-gradient-to-r from-pink-500 to-rose-500`
+- `bg-blue-600 hover:bg-blue-700`
+- `border-blue-200 bg-blue-50`
+- `bg-gradient-to-r from-blue-600 to-sky-500`
 
 Do:
 
-- keep pink as the single dominant accent family
+- keep blue as the single dominant accent family
 - use neutral zinc tones for the rest of the hierarchy
 - reserve gradients for hero/AI/CTA emphasis, not every component
+- use `src/app/globals.css` shadcn `--primary` tokens and desktop
+  `desktop/src/styles.css` `--jp-primary*` tokens before hardcoding a new
+  primary color
 
 Don't:
 
 - introduce additional unrelated brand accents per feature
-- mix blue, purple, green, and pink as competing primary accents
+- mix purple, green, pink, and blue as competing primary accents
 - make standard dashboard surfaces look like marketing banners
 
 ---
@@ -208,7 +211,7 @@ Avoid:
 
 Landing pages may be more expressive:
 
-- radial pink glows
+- blue or sky glows
 - gradient headline treatment
 - floating template previews
 - richer visual storytelling
@@ -226,7 +229,7 @@ more restrained:
 
 - neutral backgrounds
 - clear information hierarchy
-- accent pink only where it carries meaning
+- accent blue only where it carries meaning
 - card-driven layout and strong operational clarity
 
 Examples:
@@ -235,13 +238,31 @@ Examples:
 - `src/components/dashboard/resume-card.tsx`
 - `src/components/settings/settings-dialog.tsx`
 
+Desktop shell convention:
+
+- Desktop non-editor routes should feel like workspace surfaces, not centered
+  marketing pages.
+- Prefer a persistent app navigation rail/sidebar plus a compact toolbar for
+  desktop shells when the route is part of repeated work.
+- Avoid global `max-width` containers on desktop productivity shells; use the
+  available width for navigation, lists/grids, and status or inspector panels.
+- Keep the editor surface exempt when it needs full-screen, mode-specific
+  chrome.
+- Desktop settings should use direct, sectioned configuration groups instead of
+  tabbed drawers when the groups are short enough to scan in one page.
+- Keep cloud sync as its own workspace page when it has a dedicated sidebar
+  entry; the settings page should not duplicate the sync page content.
+- Editor-toolbar settings shortcuts should stay task-scoped; use the AI
+  configuration shortcut for provider/API settings rather than exposing the
+  full workspace settings page inside the editor.
+
 ### AI surfaces
 
 AI surfaces can sit between the two:
 
 - slightly stronger accent presence
 - gradient usage is acceptable for assistant identity
-- suggestion states may use pink-tinted backgrounds
+- suggestion states may use blue-tinted backgrounds
 - still must remain readable and operational
 
 Examples:
@@ -259,7 +280,7 @@ When adding new frontend work:
 - match the page type you are working within
 - reuse the same accent hierarchy already present on that surface
 - prefer existing button/card/dialog language before inventing a new one
-- keep badges, chips, and selected states visually compatible with current pink
+- keep badges, chips, and selected states visually compatible with current blue
   accent usage
 - treat AI, editor, dashboard, and landing as one family with different
   intensity levels, not different brands
@@ -286,7 +307,7 @@ If you need a new visual pattern:
 ## Review Checklist
 
 - Does the surface stay within the right page-type intensity level?
-- Is pink still the primary accent, with neutrals doing most of the work?
+- Is blue still the primary accent, with neutrals doing most of the work?
 - Are radius, border, and shadow choices compatible with nearby components?
 - Are hover and motion patterns subtle and performant?
 - If gradients are used, are they reserved for hero/AI/CTA emphasis?

@@ -11,6 +11,10 @@ use serde::{Deserialize, Serialize};
 use std::{
     fs,
     path::{Path, PathBuf},
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
     time::{Duration, Instant},
 };
 use tauri::{AppHandle, Manager};
@@ -27,6 +31,7 @@ const LATEST_FILE_NAME: &str = "latest.json";
 const ARGON2_MEMORY_KIB: u32 = 19_456;
 const ARGON2_ITERATIONS: u32 = 2;
 const ARGON2_PARALLELISM: u32 = 1;
+const AUTO_SYNC_POLL_SECONDS: u64 = 60;
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -34,6 +39,8 @@ pub struct WebdavSettingsUpdateInput {
     pub server_url: String,
     pub username: String,
     pub remote_path: String,
+    pub sync_mode: String,
+    pub auto_sync_interval_minutes: u32,
     pub password: Option<String>,
 }
 
@@ -44,6 +51,8 @@ pub struct WebdavSyncStatus {
     pub server_url: String,
     pub username: String,
     pub remote_path: String,
+    pub sync_mode: String,
+    pub auto_sync_interval_minutes: u32,
     pub password_configured: bool,
     pub last_snapshot_name: Option<String>,
     pub last_backup_at_epoch_ms: Option<u64>,
@@ -140,6 +149,52 @@ struct WebdavConfig {
     password: String,
 }
 
+pub fn start_auto_sync_scheduler(app: AppHandle) {
+    let sync_in_progress = Arc::new(AtomicBool::new(false));
+
+    std::thread::spawn(move || loop {
+        std::thread::sleep(Duration::from_secs(AUTO_SYNC_POLL_SECONDS));
+
+        if sync_in_progress.swap(true, Ordering::AcqRel) {
+            continue;
+        }
+
+        let should_sync = should_run_auto_sync(&app).unwrap_or_else(|error| {
+            eprintln!("[webdav-auto-sync] failed to evaluate schedule: {error}");
+            false
+        });
+
+        if should_sync {
+            match tauri::async_runtime::block_on(upload_webdav_snapshot(&app)) {
+                Ok(receipt) => {
+                    println!(
+                        "[webdav-auto-sync] uploaded {} to {}",
+                        receipt.snapshot_name, receipt.remote_path
+                    );
+                }
+                Err(error) => {
+                    eprintln!("[webdav-auto-sync] upload failed: {error}");
+                }
+            }
+        }
+
+        sync_in_progress.store(false, Ordering::Release);
+    });
+}
+
+fn should_run_auto_sync(app: &AppHandle) -> Result<bool, String> {
+    let status = get_webdav_sync_status(app)?;
+    if !status.configured || status.sync_mode != "auto" {
+        return Ok(false);
+    }
+
+    let now = settings::now_epoch_ms()?;
+    let interval_ms = u64::from(status.auto_sync_interval_minutes) * 60 * 1000;
+    let last_backup = status.last_backup_at_epoch_ms.unwrap_or(0);
+
+    Ok(last_backup == 0 || now.saturating_sub(last_backup) >= interval_ms)
+}
+
 pub fn get_webdav_sync_status(app: &AppHandle) -> Result<WebdavSyncStatus, String> {
     let workspace_root = resolve_workspace_root(app)?;
     let settings = settings::load_or_initialize_settings(&workspace_root)?;
@@ -160,10 +215,17 @@ pub fn update_webdav_sync_settings(
     if server_url.is_empty() {
         return Err("WebDAV server URL is required".into());
     }
+    let sync_mode = match input.sync_mode.trim() {
+        "auto" => "auto",
+        _ => "manual",
+    };
+    let auto_sync_interval_minutes = input.auto_sync_interval_minutes.clamp(5, 1440);
 
     document.sync.webdav.server_url = server_url;
     document.sync.webdav.username = input.username.trim().to_string();
     document.sync.webdav.remote_path = normalize_remote_path(&input.remote_path);
+    document.sync.webdav.sync_mode = sync_mode.into();
+    document.sync.webdav.auto_sync_interval_minutes = auto_sync_interval_minutes;
     settings::persist_settings(&workspace_root, document)?;
 
     if let Some(password) = input.password {
@@ -181,9 +243,7 @@ pub fn update_webdav_sync_settings(
     get_webdav_sync_status(app)
 }
 
-pub async fn test_webdav_connection(
-    app: &AppHandle,
-) -> Result<WebdavConnectivityResult, String> {
+pub async fn test_webdav_connection(app: &AppHandle) -> Result<WebdavConnectivityResult, String> {
     let start = Instant::now();
     match test_webdav_connection_inner(app).await {
         Ok(()) => Ok(WebdavConnectivityResult {
@@ -236,7 +296,10 @@ async fn test_webdav_connection_inner(app: &AppHandle) -> Result<(), String> {
         client
             .put(&test_path)
             .header("Content-Type", "text/plain")
-            .body(format!("JobPilot WebDAV test {}", settings::now_epoch_ms()?)),
+            .body(format!(
+                "JobPilot WebDAV test {}",
+                settings::now_epoch_ms()?
+            )),
         &config,
     )
     .send()
@@ -266,9 +329,7 @@ async fn test_webdav_connection_inner(app: &AppHandle) -> Result<(), String> {
     Ok(())
 }
 
-pub async fn upload_webdav_snapshot(
-    app: &AppHandle,
-) -> Result<WebdavSnapshotReceipt, String> {
+pub async fn upload_webdav_snapshot(app: &AppHandle) -> Result<WebdavSnapshotReceipt, String> {
     let config = load_webdav_config(app)?;
     let workspace_root = resolve_workspace_root(app)?;
     let created_at = settings::now_epoch_ms()?;
@@ -278,19 +339,15 @@ pub async fn upload_webdav_snapshot(
         .decode(&envelope.database.bytes_base64)
         .map_err(|error| format!("failed to count snapshot database bytes: {error}"))?
         .len();
-    let secret_count = decrypt_secret_payload(&envelope.encrypted_secrets, &config.password)?.secrets.len();
+    let secret_count = decrypt_secret_payload(&envelope.encrypted_secrets, &config.password)?
+        .secrets
+        .len();
     let payload = serde_json::to_vec_pretty(&envelope)
         .map_err(|error| format!("failed to serialize WebDAV snapshot: {error}"))?;
 
     let client = webdav_client()?;
     ensure_remote_collections(&client, &config).await?;
-    put_remote_file(
-        &client,
-        &config,
-        &snapshot_name,
-        payload.clone(),
-    )
-    .await?;
+    put_remote_file(&client, &config, &snapshot_name, payload.clone()).await?;
     put_remote_file(&client, &config, LATEST_FILE_NAME, payload).await?;
 
     let mut document = settings::load_or_initialize_settings(&workspace_root)?;
@@ -308,16 +365,17 @@ pub async fn upload_webdav_snapshot(
     })
 }
 
-pub async fn restore_webdav_snapshot(
-    app: &AppHandle,
-) -> Result<WebdavRestoreReceipt, String> {
+pub async fn restore_webdav_snapshot(app: &AppHandle) -> Result<WebdavRestoreReceipt, String> {
     let config = load_webdav_config(app)?;
 
     let client = webdav_client()?;
-    let response = authorized(client.get(remote_file_url(&config, LATEST_FILE_NAME)?), &config)
-        .send()
-        .await
-        .map_err(|error| format!("failed to download WebDAV snapshot: {error}"))?;
+    let response = authorized(
+        client.get(remote_file_url(&config, LATEST_FILE_NAME)?),
+        &config,
+    )
+    .send()
+    .await
+    .map_err(|error| format!("failed to download WebDAV snapshot: {error}"))?;
     ensure_success(response.status(), "download WebDAV snapshot")?;
     let bytes = response
         .bytes()
@@ -416,8 +474,12 @@ fn export_database_bytes(workspace_root: &Path) -> Result<Vec<u8>, String> {
     }
     drop(destination);
     drop(source);
-    let bytes = fs::read(&temp_path)
-        .map_err(|error| format!("failed to read sqlite snapshot {}: {error}", temp_path.display()))?;
+    let bytes = fs::read(&temp_path).map_err(|error| {
+        format!(
+            "failed to read sqlite snapshot {}: {error}",
+            temp_path.display()
+        )
+    })?;
     let _ = fs::remove_file(&temp_path);
     Ok(bytes)
 }
@@ -496,7 +558,9 @@ fn decrypt_secret_payload(
     let cipher = XChaCha20Poly1305::new((&key).into());
     let plaintext = cipher
         .decrypt(XNonce::from_slice(&nonce), ciphertext.as_slice())
-        .map_err(|_| "backup password is incorrect or the secret payload is corrupted".to_string())?;
+        .map_err(|_| {
+            "backup password is incorrect or the secret payload is corrupted".to_string()
+        })?;
     serde_json::from_slice(&plaintext)
         .map_err(|error| format!("failed to parse decrypted secret payload: {error}"))
 }
@@ -536,8 +600,12 @@ fn apply_snapshot_database(
                 .map_err(|error| format!("failed to remove {}: {error}", path.display()))?;
         }
     }
-    fs::write(&database_path, bytes)
-        .map_err(|error| format!("failed to restore database {}: {error}", database_path.display()))
+    fs::write(&database_path, bytes).map_err(|error| {
+        format!(
+            "failed to restore database {}: {error}",
+            database_path.display()
+        )
+    })
 }
 
 fn create_pre_restore_backup(workspace_root: &Path) -> Result<PathBuf, String> {
@@ -552,18 +620,27 @@ fn create_pre_restore_backup(workspace_root: &Path) -> Result<PathBuf, String> {
     })?;
     if workspace_root.join(DATABASE_FILE).exists() {
         let bytes = export_database_bytes(workspace_root)?;
-        fs::write(backup_root.join(DATABASE_FILE), bytes).map_err(|error| {
-            format!("failed to write pre-restore database backup: {error}")
-        })?;
+        fs::write(backup_root.join(DATABASE_FILE), bytes)
+            .map_err(|error| format!("failed to write pre-restore database backup: {error}"))?;
     }
-    copy_dir_if_exists(&workspace_root.join("settings"), &backup_root.join("settings"))?;
-    copy_dir_if_exists(&workspace_root.join("secrets"), &backup_root.join("secrets"))?;
+    copy_dir_if_exists(
+        &workspace_root.join("settings"),
+        &backup_root.join("settings"),
+    )?;
+    copy_dir_if_exists(
+        &workspace_root.join("secrets"),
+        &backup_root.join("secrets"),
+    )?;
     Ok(backup_root)
 }
 
 async fn ensure_remote_collections(client: &Client, config: &WebdavConfig) -> Result<(), String> {
     let mut current = String::new();
-    for part in config.remote_path.split('/').filter(|part| !part.is_empty()) {
+    for part in config
+        .remote_path
+        .split('/')
+        .filter(|part| !part.is_empty())
+    {
         if !current.is_empty() {
             current.push('/');
         }
@@ -608,7 +685,8 @@ async fn mkcol_if_needed_at_path(
     }
 
     // Collection does not exist — try MKCOL
-    let method = Method::from_bytes(b"MKCOL").map_err(|error| format!("invalid MKCOL method: {error}"))?;
+    let method =
+        Method::from_bytes(b"MKCOL").map_err(|error| format!("invalid MKCOL method: {error}"))?;
     let response = authorized(client.request(method, &url), config)
         .send()
         .await
@@ -616,7 +694,9 @@ async fn mkcol_if_needed_at_path(
     if response.status().is_success() {
         return Ok(());
     }
-    if response.status() == StatusCode::METHOD_NOT_ALLOWED || response.status() == StatusCode::CONFLICT {
+    if response.status() == StatusCode::METHOD_NOT_ALLOWED
+        || response.status() == StatusCode::CONFLICT
+    {
         // MKCOL not supported or conflict — verify the collection now exists via PROPFIND
         let response = authorized(
             client
@@ -686,10 +766,7 @@ fn webdav_client() -> Result<Client, String> {
         .map_err(|error| format!("failed to create WebDAV client: {error}"))
 }
 
-fn authorized(
-    request: reqwest::RequestBuilder,
-    config: &WebdavConfig,
-) -> reqwest::RequestBuilder {
+fn authorized(request: reqwest::RequestBuilder, config: &WebdavConfig) -> reqwest::RequestBuilder {
     if config.username.trim().is_empty() {
         request
     } else {
@@ -751,6 +828,8 @@ fn to_status(webdav: &WorkspaceWebdavSettings, password_configured: bool) -> Web
         server_url: webdav.server_url.clone(),
         username: webdav.username.clone(),
         remote_path: webdav.remote_path.clone(),
+        sync_mode: webdav.sync_mode.clone(),
+        auto_sync_interval_minutes: webdav.auto_sync_interval_minutes,
         password_configured,
         last_snapshot_name: webdav.last_snapshot_name.clone(),
         last_backup_at_epoch_ms: webdav.last_backup_at_epoch_ms,

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Languages,
@@ -17,6 +17,7 @@ import {
   listenToAiStreamEvents,
   type DesktopAiStreamEvent,
 } from "../../lib/desktop-api";
+import type { ResumeSection, SectionContent } from "../../types/resume";
 
 interface DialogProps {
   open: boolean;
@@ -74,7 +75,7 @@ export function TranslateDialog({ open, onClose, resumeId }: DialogProps) {
       const resume = useResumeStore.getState().currentResume;
       if (!resume) throw new Error("No resume loaded");
 
-      const sections = resume.sections.filter((s: any) => s.visible !== false);
+      const sections = resume.sections.filter((section) => section.visible !== false);
       const total = sections.length;
       setProgress({ completed: 0, total });
 
@@ -108,7 +109,7 @@ Return ONLY the JSON array, no markdown fences.`;
               const translated = JSON.parse(jsonMatch[0]) as Array<{
                 sectionId: string;
                 title: string;
-                content: any;
+                content: SectionContent;
               }>;
 
               if (mode === "overwrite") {
@@ -117,9 +118,15 @@ Return ONLY the JSON array, no markdown fences.`;
                   useResumeStore.getState().setResume({
                     ...current,
                     language: targetLanguage,
-                    sections: current.sections.map((s: any) => {
-                      const t = translated.find((tr) => tr.sectionId === s.id);
-                      return t ? { ...s, title: t.title, content: t.content } : s;
+                    sections: current.sections.map((section: ResumeSection) => {
+                      const translatedSection = translated.find((tr) => tr.sectionId === section.id);
+                      return translatedSection
+                        ? {
+                            ...section,
+                            title: translatedSection.title,
+                            content: translatedSection.content,
+                          }
+                        : section;
                     }),
                   });
                 }
@@ -147,11 +154,11 @@ Return ONLY the JSON array, no markdown fences.`;
           unlisten();
         }
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       setState("error");
-      setErrorMessage(err.message || t("translate.error"));
+      setErrorMessage(err instanceof Error ? err.message : t("translate.error"));
     }
-  }, [resumeId, targetLanguage, mode, onClose, t]);
+  }, [targetLanguage, mode, onClose, t]);
 
   const progressPercent =
     progress.total > 0
@@ -254,7 +261,7 @@ Return ONLY the JSON array, no markdown fences.`;
                         className={cn(
                           "flex h-8 w-8 items-center justify-center rounded-lg transition-colors",
                           active
-                            ? "bg-zinc-900 dark:bg-zinc-100 text-white"
+                            ? "bg-blue-600 text-white dark:bg-blue-500"
                             : "bg-zinc-100 text-zinc-500 dark:bg-zinc-700 dark:text-zinc-400",
                         )}
                       >

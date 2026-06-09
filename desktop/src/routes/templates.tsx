@@ -320,7 +320,7 @@ function TemplatesRoute() {
                       <Button
                         {...(isFirst ? { "data-tour": "tpl-use" } : {})}
                         size="sm"
-                        className="flex-1 cursor-pointer gap-1.5 bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-zinc-200 text-white dark:text-zinc-900"
+                        className="flex-1 cursor-pointer gap-1.5 bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-500 dark:text-white dark:hover:bg-blue-400"
                         onClick={() => void handleUseTemplate(template)}
                         disabled={isCreating}
                       >

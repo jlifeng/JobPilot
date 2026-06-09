@@ -12,12 +12,15 @@ interface EditorStore {
   selectedSectionId: string | null;
   showThemeEditor: boolean;
   showAiChat: boolean;
+  isSectionSidebarCollapsed: boolean;
   isDragging: boolean;
   undoStack: ResumeSnapshot[];
   redoStack: ResumeSnapshot[];
 
   selectSection: (id: string | null) => void;
   toggleThemeEditor: () => void;
+  toggleSectionSidebar: () => void;
+  setSectionSidebarCollapsed: (collapsed: boolean) => void;
   setDragging: (dragging: boolean) => void;
   pushUndo: (snapshot: ResumeSnapshot) => void;
   undo: () => ResumeSnapshot | null;
@@ -30,6 +33,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
   selectedSectionId: null,
   showThemeEditor: false,
   showAiChat: false,
+  isSectionSidebarCollapsed: true,
   isDragging: false,
   undoStack: [],
   redoStack: [],
@@ -37,6 +41,14 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
   selectSection: (id) => set({ selectedSectionId: id }),
 
   toggleThemeEditor: () => set((state) => ({ showThemeEditor: !state.showThemeEditor })),
+
+  toggleSectionSidebar: () =>
+    set((state) => ({
+      isSectionSidebarCollapsed: !state.isSectionSidebarCollapsed,
+    })),
+
+  setSectionSidebarCollapsed: (collapsed) =>
+    set({ isSectionSidebarCollapsed: collapsed }),
 
   toggleAiChat: () =>
     set((state) => ({ showAiChat: !state.showAiChat })),
@@ -84,6 +96,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
     set({
       selectedSectionId: null,
       showThemeEditor: false,
+      isSectionSidebarCollapsed: true,
       isDragging: false,
       undoStack: [],
       redoStack: [],

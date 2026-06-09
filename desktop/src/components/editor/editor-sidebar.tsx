@@ -31,6 +31,8 @@ import {
   Pencil,
   Github,
   QrCode,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
@@ -129,8 +131,8 @@ function SortableSidebarItem({
       className={cn(
         "group/item flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm transition-colors duration-150",
         isSelected
-          ? "bg-zinc-950 font-medium text-white shadow-sm dark:bg-zinc-100 dark:text-zinc-950"
-          : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100",
+          ? "bg-blue-600 font-medium text-white shadow-sm dark:bg-blue-500 dark:text-white"
+          : "text-slate-600 hover:bg-blue-50 hover:text-blue-700 dark:text-zinc-400 dark:hover:bg-blue-950/40 dark:hover:text-blue-200",
       )}
     >
       <GripVertical
@@ -195,7 +197,13 @@ export function EditorSidebar({
   onReorderSections,
 }: EditorSidebarProps) {
   const { t } = useTranslation();
-  const { selectedSectionId, selectSection } = useEditorStore();
+  const {
+    selectedSectionId,
+    selectSection,
+    isSectionSidebarCollapsed,
+    toggleSectionSidebar,
+    setSectionSidebarCollapsed,
+  } = useEditorStore();
   const { updateSectionTitle } = useResumeStore();
 
   const handleSelect = useCallback(
@@ -278,12 +286,83 @@ export function EditorSidebar({
     onAddSection(newSection);
   };
 
+  if (isSectionSidebarCollapsed) {
+    return (
+      <div
+        data-tour="sidebar"
+        className="flex w-14 shrink-0 flex-col overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-[0_4px_12px_rgba(15,23,42,0.05)] dark:border-white/10 dark:bg-card dark:shadow-[0_18px_44px_rgba(0,0,0,0.22)]"
+      >
+        <div className="flex h-12 items-center justify-center border-b border-slate-100 dark:border-white/10">
+          <button
+            type="button"
+            className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-blue-50 hover:text-blue-600 dark:text-zinc-400 dark:hover:bg-blue-950/40 dark:hover:text-blue-200"
+            aria-label={t("editor.sidebar.expand")}
+            title={t("editor.sidebar.expand")}
+            onClick={toggleSectionSidebar}
+          >
+            <PanelLeftOpen className="h-4 w-4" />
+          </button>
+        </div>
+        <ScrollArea className="min-h-0 flex-1">
+          <div className="space-y-1 p-2">
+            {sections.map((section) => {
+              const Icon = sectionIcons[section.type] || LayoutList;
+              const isSelected = selectedSectionId === section.id;
+
+              return (
+                <button
+                  key={section.id}
+                  type="button"
+                  className={cn(
+                    "flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg transition-colors",
+                    isSelected
+                      ? "bg-blue-600 text-white shadow-sm dark:bg-blue-500"
+                      : "text-slate-500 hover:bg-blue-50 hover:text-blue-700 dark:text-zinc-400 dark:hover:bg-blue-950/40 dark:hover:text-blue-200",
+                  )}
+                  aria-label={section.title}
+                  title={section.title}
+                  onClick={() => handleSelect(section.id)}
+                >
+                  <Icon className="h-4 w-4" />
+                </button>
+              );
+            })}
+
+            {availableTypes.length > 0 ? (
+              <>
+                <Separator className="my-2" />
+                <button
+                  type="button"
+                  className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-dashed border-blue-100 bg-blue-50/40 text-blue-600 transition-colors hover:bg-blue-50 dark:border-blue-500/20 dark:bg-blue-950/20 dark:text-blue-200"
+                  aria-label={t("editor.sidebar.addSection")}
+                  title={t("editor.sidebar.addSection")}
+                  onClick={() => setSectionSidebarCollapsed(false)}
+                >
+                  <Plus className="h-4 w-4" />
+                </button>
+              </>
+            ) : null}
+          </div>
+        </ScrollArea>
+      </div>
+    );
+  }
+
   return (
-    <div data-tour="sidebar" className="w-56 shrink-0 border-r bg-white dark:border-zinc-800 dark:bg-zinc-900">
-      <div className="px-3 py-4">
+    <div data-tour="sidebar" className="w-56 shrink-0 overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-[0_4px_12px_rgba(15,23,42,0.05)] dark:border-white/10 dark:bg-card dark:shadow-[0_18px_44px_rgba(0,0,0,0.22)]">
+      <div className="flex items-center justify-between px-3 py-4">
         <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
           {t("editor.sidebar.sections")}
         </h3>
+        <button
+          type="button"
+          className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-blue-50 hover:text-blue-600 dark:text-zinc-500 dark:hover:bg-blue-950/40 dark:hover:text-blue-200"
+          aria-label={t("editor.sidebar.collapse")}
+          title={t("editor.sidebar.collapse")}
+          onClick={toggleSectionSidebar}
+        >
+          <PanelLeftClose className="h-4 w-4" />
+        </button>
       </div>
       <ScrollArea className="h-[calc(100vh-7rem)]">
         <div className="space-y-1 px-2">
@@ -325,14 +404,14 @@ export function EditorSidebar({
               <p className="mb-2 px-2 text-[11px] font-medium uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
                 {t("editor.sidebar.addSection")}
               </p>
-              <div className="space-y-0.5 rounded-xl border border-dashed border-zinc-200 bg-zinc-50/70 p-1 dark:border-zinc-800 dark:bg-zinc-950/40">
+              <div className="space-y-0.5 rounded-xl border border-dashed border-blue-100 bg-blue-50/40 p-1 dark:border-blue-500/20 dark:bg-blue-950/20">
                 {availableTypes.map((type) => {
                   const Icon = sectionIcons[type] || LayoutList;
                   return (
                     <button
                       key={type}
                       type="button"
-                      className="flex w-full cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm text-zinc-500 transition-colors duration-150 hover:bg-white hover:text-zinc-800 hover:shadow-sm dark:text-zinc-500 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+                      className="flex w-full cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm text-slate-500 transition-colors duration-150 hover:bg-white hover:text-blue-700 hover:shadow-sm dark:text-zinc-500 dark:hover:bg-blue-950/40 dark:hover:text-blue-200"
                       onClick={() => handleAddSection(type)}
                     >
                       <Plus className="h-3 w-3 shrink-0 text-zinc-400" />

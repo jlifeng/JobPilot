@@ -32,11 +32,30 @@ export type InterviewRoundStatus =
 
 export type InterviewMessageRole = "interviewer" | "candidate" | "system";
 
+export interface InterviewAnswerEvaluationDimension {
+  id: string;
+  label: string;
+  score: number;
+  feedback: string;
+}
+
+export interface InterviewAnswerEvaluation {
+  overallScore: number;
+  summary: string;
+  dimensions: InterviewAnswerEvaluationDimension[];
+  strengths: string[];
+  riskPoints: string[];
+  followUpQuestion?: string | null;
+  trainingSuggestions: string[];
+}
+
 export interface InterviewMessageMetadata {
   marked?: boolean;
   hinted?: boolean;
   skipped?: boolean;
   turnKind?: InterviewTurnKind;
+  answerEvaluation?: InterviewAnswerEvaluation;
+  answerEvaluationError?: string;
 }
 
 export interface InterviewMessage {
@@ -75,7 +94,23 @@ export interface InterviewReport {
   summary: string;
   overallFeedback: string;
   improvementSuggestions: string[];
+  weakPoints: InterviewWeakPoint[];
+  trainingPlan: InterviewTrainingPlanItem[];
   createdAtEpochMs: number;
+}
+
+export interface InterviewWeakPoint {
+  title: string;
+  evidence: string;
+  severity: "low" | "medium" | "high";
+  trainingFocus: string;
+}
+
+export interface InterviewTrainingPlanItem {
+  title: string;
+  description: string;
+  priority: "low" | "medium" | "high";
+  drills: string[];
 }
 
 export interface InterviewSession {

@@ -1,0 +1,4 @@
+{"file":".trellis/spec/desktop/frontend/component-guidelines.md","reason":"Checked interview room and report UI against desktop frontend component conventions."}
+{"file":".trellis/spec/desktop/frontend/type-safety.md","reason":"Checked TypeScript API normalization and interview metadata/report types."}
+{"file":".trellis/spec/frontend/ai-experience-guidelines.md","reason":"Checked AI feedback presentation, failure handling, and practice-loop UX."}
+{"file":".trellis/spec/guides/desktop-runtime-boundary.md","reason":"Checked Rust storage/AI runtime boundary and frontend invoke normalization."}
