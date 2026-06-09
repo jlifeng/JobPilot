@@ -22,7 +22,7 @@ JobPilot is a **local-first AI job-search desktop app** focused on resume writin
 
 ## ✨ Key Features
 
-- **Native Desktop Workspace** — Built with Tauri 2, React, TypeScript, and Rust for a lightweight local app experience on Windows and macOS Apple Silicon.
+- **Native Desktop Workspace** — Built with Tauri 2, React, TypeScript, and Rust for a lightweight local app experience on Windows, macOS Apple Silicon, and Intel Mac.
 - **AI Resume Review & Editing** — Resume generation, rewriting, grammar checks, JD matching, and AI polishing with per-suggestion application for targeted edits.
 - **Anthropic Tool Use Support** — Native Anthropic `tool_use` / `tool_result` flow for resume editing, including precise `replaceResumeText` patches instead of whole-resume rewrites.
 - **Multi-Format Import** — Import resumes from JSON, Markdown, PDF, and images. Regular PDFs and scanned documents can be parsed with multimodal AI.
@@ -34,6 +34,7 @@ JobPilot is a **local-first AI job-search desktop app** focused on resume writin
 
 ## 🚀 Recent Highlights
 
+- **v1.4.1** — Added Intel Mac release builds alongside Windows and macOS Apple Silicon artifacts.
 - **v1.4.0** — Export data masking, Anthropic resume editing tools, precise text replacement, and more stable AI streaming output.
 - **v1.3.0** — Redesigned workspace layout, improved editor preview/sidebar, interview deletion/restart, and Anthropic interview streaming.
 - **v1.2.2** — Encrypted WebDAV cloud sync with snapshot backup and restore.

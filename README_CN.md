@@ -23,7 +23,7 @@ JobPilot 是一款本地优先的 AI 求职桌面应用，聚焦简历编写、A
 
 ## 功能特色
 
-- **原生桌面工作台** — 基于 Tauri 2、React、TypeScript 和 Rust 构建，提供轻量、本地化的 Windows 与 macOS Apple Silicon 体验。
+- **原生桌面工作台** — 基于 Tauri 2、React、TypeScript 和 Rust 构建，提供轻量、本地化的 Windows、macOS Apple Silicon 与 Intel Mac 体验。
 - **AI 简历评审与编辑** — 支持简历生成、改写、语法检查、JD 匹配和 AI 润色，专用入口可按建议逐条应用修改。
 - **Anthropic 工具调用支持** — 支持 Anthropic 原生 `tool_use` / `tool_result` 调用链，AI 助手可通过 `replaceResumeText` 精确替换文本片段，而不是整份简历覆盖。
 - **多格式导入** — 支持 JSON、Markdown、PDF、图片等格式导入；普通 PDF 和扫描件可结合多模态 AI 解析为结构化简历。
@@ -35,6 +35,7 @@ JobPilot 是一款本地优先的 AI 求职桌面应用，聚焦简历编写、A
 
 ## 近期亮点
 
+- **v1.4.1** — 发布流程新增 Intel Mac 构建，与 Windows 和 macOS Apple Silicon 安装包一并生成。
 - **v1.4.0** — 导出数据脱敏、Anthropic 简历编辑工具、局部文本替换和更稳定的 AI 流式输出。
 - **v1.3.0** — 工作台布局重构、编辑器预览与侧边栏优化、面试删除/重新开始、Anthropic 面试流式对话。
 - **v1.2.2** — WebDAV 加密云端同步，支持快照备份与恢复。
