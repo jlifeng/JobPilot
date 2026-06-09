@@ -45,6 +45,9 @@ JobPilot 是一款本地优先的 AI 求职桌面应用，聚焦简历编写、A
 
 查看 [CHANGELOG.md](./CHANGELOG.md) 了解详细的版本更新记录。
 
+<img width="1024" height="1536" alt="image" src="https://github.com/user-attachments/assets/f922263b-4c92-46e6-8bbf-78672be0d076" />
+
+
 ## 后续计划
 
 以下是计划在后续版本中开发的功能：
