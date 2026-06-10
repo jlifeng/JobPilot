@@ -284,10 +284,10 @@ function WatercolorSectionContent({ section, lang }: { section: any; lang?: stri
         {items.map((item: any) => (
           <div key={item.id} className="rounded-xl p-3" style={{ backgroundColor: WASH }}>
             <div className="flex items-baseline justify-between">
-              <span className="text-sm font-bold" style={{ color: PRIMARY }}>{item.name}</span>
+              <span className="text-sm font-bold" style={{ color: PRIMARY }}>{item.name}{item.repoUrl && (<a href={item.repoUrl} target="_blank" rel="noopener noreferrer" className="ml-1 text-xs font-normal text-blue-500 hover:underline">{item.repoUrl}</a>)}</span>
               <span className="shrink-0 text-xs" style={{ color: TEXT }}>{item.stars?.toLocaleString()}</span>
             </div>
-            {item.language && <span className="text-xs" style={{ color: ACCENT }}>{item.language}</span>}
+{item.language && <span className="text-xs" style={{ color: ACCENT }}>{item.language}</span>}
             {item.description && <p className="mt-1 text-sm" style={{ color: TEXT }} dangerouslySetInnerHTML={{ __html: md(item.description) }} />}
           </div>
         ))}

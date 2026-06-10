@@ -222,6 +222,8 @@ pub struct ProviderConfigUpdateInput {
     pub set_as_default: bool,
     pub resume_import_vision_model: Option<String>,
     pub exa_pool_base_url: Option<String>,
+    pub clear_base_url: Option<bool>,
+    pub clear_model: Option<bool>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -386,27 +388,48 @@ pub fn update_ai_provider_settings(
 ) -> Result<WorkspaceSettingsDocument, String> {
     let normalized_provider = normalize_provider_key(&input.provider)
         .ok_or_else(|| format!("unsupported provider '{}'", input.provider.trim()))?;
-    let base_url = input.base_url.trim();
-    if base_url.is_empty() {
-        return Err("provider baseUrl is required".into());
-    }
-
-    let model = input.model.trim();
-    if model.is_empty() {
-        return Err("provider model is required".into());
-    }
 
     let mut document = load_or_initialize_settings(workspace_root)?;
-    document.ai.provider_configs.insert(
-        normalized_provider.into(),
-        ProviderRuntimeSettings {
-            base_url: base_url.into(),
-            model: model.into(),
-        },
-    );
+
+    let clear_base_url = input.clear_base_url.unwrap_or(false);
+    let clear_model = input.clear_model.unwrap_or(false);
+
+    let base_url = input.base_url.trim();
+    let model = input.model.trim();
+    let provider_key: String = normalized_provider.into();
+
+    if clear_base_url && clear_model {
+        // Remove the entire provider config
+        document.ai.provider_configs.remove(&provider_key);
+    } else {
+        // Build the config: use new values if non-empty, otherwise keep existing
+        let existing = document.ai.provider_configs.get(&provider_key);
+        let final_base_url = if clear_base_url {
+            String::new()
+        } else if !base_url.is_empty() {
+            base_url.into()
+        } else {
+            existing.map(|c| c.base_url.clone()).unwrap_or_default()
+        };
+        let final_model = if clear_model {
+            String::new()
+        } else if !model.is_empty() {
+            model.into()
+        } else {
+            existing.map(|c| c.model.clone()).unwrap_or_default()
+        };
+
+        document.ai.provider_configs.insert(
+            provider_key.clone(),
+            ProviderRuntimeSettings {
+                base_url: final_base_url,
+                model: final_model,
+            },
+        );
+    }
 
     if input.set_as_default {
-        document.ai.default_provider = normalized_provider.into();
+        document.ai.default_provider = provider_key;
     }
 
     if let Some(vision_model) = input.resume_import_vision_model {

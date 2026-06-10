@@ -48,7 +48,7 @@ function buildNordicSectionContent(section: Section, lang: string): string {
 
   if (section.type === 'projects') {
     return `<div class="space-y-3">${((c as ProjectsContent).items || []).map((it: any) => `<div class="rounded-sm p-3" style="background-color:${SLATE_50}">
-      <div class="flex items-baseline justify-between"><span class="text-sm font-medium" style="color:${SLATE_500}">${esc(it.name)}</span>${it.startDate ? `<span class="shrink-0 text-xs font-light" style="color:${SLATE_400}">${esc(it.startDate)} - ${it.endDate ? esc(it.endDate) : (lang === 'zh' ? '至今' : 'Present')}</span>` : ''}</div>
+      <div class="flex items-baseline justify-between"><span class="text-sm font-medium" style="color:${SLATE_500}">${esc(it.name)}${it.repoUrl ? ` <a href="${esc(it.repoUrl)}" target="_blank" rel="noopener noreferrer" class="ml-1 text-xs font-normal text-blue-500">${esc(it.repoUrl)}</a>` : ''}</span>${it.startDate ? `<span class="shrink-0 text-xs font-light" style="color:${SLATE_400}">${esc(it.startDate)} - ${it.endDate ? esc(it.endDate) : (lang === 'zh' ? '至今' : 'Present')}</span>` : ''}</div>
       ${it.description ? `<div class="mt-1 text-sm font-light" style="color:${SLATE_500}">${md(it.description)}</div>` : ''}
       ${it.technologies?.length ? `<p class="mt-0.5 text-xs font-light" style="color:${SLATE_400}">${lang === 'zh' ? '技术栈' : 'Tech'}: ${esc(it.technologies.join(', '))}</p>` : ''}
       ${it.highlights?.length ? `<ul class="mt-1.5 list-disc pl-4">${it.highlights.map((h: string) => `<li class="text-sm font-light" style="color:${SLATE_500}">${md(h)}</li>`).join('')}</ul>` : ''}
@@ -57,7 +57,7 @@ function buildNordicSectionContent(section: Section, lang: string): string {
 
   if (section.type === 'certifications') {
     return `<div class="space-y-1.5">${((c as CertificationsContent).items || []).map((it: any) =>
-      `<div><span class="text-sm font-medium" style="color:${SLATE_500}">${esc(it.name)}</span>${it.issuer ? `<span class="text-sm font-light" style="color:${SLATE_400}"> — ${esc(it.issuer)}</span>` : ''}${it.date ? `<span class="text-sm font-light" style="color:${SLATE_400}"> (${esc(it.date)})</span>` : ''}</div>`
+      `<div><span class="text-sm font-medium" style="color:${SLATE_500}">${esc(it.name)}${it.repoUrl ? ` <a href="${esc(it.repoUrl)}" target="_blank" rel="noopener noreferrer" class="ml-1 text-xs font-normal text-blue-500">${esc(it.repoUrl)}</a>` : ''}</span>${it.issuer ? `<span class="text-sm font-light" style="color:${SLATE_400}"> — ${esc(it.issuer)}</span>` : ''}${it.date ? `<span class="text-sm font-light" style="color:${SLATE_400}"> (${esc(it.date)})</span>` : ''}</div>`
     ).join('')}</div>`;
   }
 
@@ -69,7 +69,7 @@ function buildNordicSectionContent(section: Section, lang: string): string {
 
   if (section.type === 'github') {
     return `<div class="space-y-3">${((c as GitHubContent).items || []).map((it: any) => `<div class="rounded-sm p-3" style="background-color:${SLATE_50}">
-      <div class="flex items-baseline justify-between"><span class="text-sm font-medium" style="color:${SLATE_500}">${esc(it.name)}</span><span class="text-xs font-light" style="color:${SLATE_400}">⭐ ${it.stars?.toLocaleString() ?? 0}</span></div>
+      <div class="flex items-baseline justify-between"><span class="text-sm font-medium" style="color:${SLATE_500}">${esc(it.name)}${it.repoUrl ? ` <a href="${esc(it.repoUrl)}" target="_blank" rel="noopener noreferrer" class="ml-1 text-xs font-normal text-blue-500">${esc(it.repoUrl)}</a>` : ''}</span><span class="text-xs font-light" style="color:${SLATE_400}">⭐ ${it.stars?.toLocaleString() ?? 0}</span></div>
       ${it.language ? `<span class="text-xs font-light" style="color:${SLATE_400}">${esc(it.language)}</span>` : ''}
       ${it.description ? `<div class="mt-1 text-sm font-light" style="color:${SLATE_500}">${md(it.description)}</div>` : ''}
     </div>`).join('')}</div>`;

@@ -706,6 +706,8 @@ const legacyResources = {
       dashboardRelativeMinutes: "{count} 分钟前",
       dashboardRelativeHours: "{count} 小时前",
       dashboardRelativeDays: "{count} 天前",
+      dashboardApiKeyNotConfigured: "AI 功能需要配置 API Key 才能使用，包括智能导入、AI 助手、JD 分析等。",
+      dashboardGoToSettings: "去配置",
       // Template i18n keys
       dashboardTemplateClassic: "经典",
       dashboardTemplateModern: "现代",
@@ -968,6 +970,8 @@ const legacyResources = {
       aiConnectionFailed: "连接失败",
       aiNoModelsFound: "未找到模型",
       aiFetchingModels: "正在获取模型...",
+      aiSaveSuccess: "保存成功",
+      aiSaveError: "保存失败",
       aiApiKeyMissing: "API Key 未配置",
       aiApiKeyMissingHint: "请先在 AI 配置中保存 API Key，然后再使用 AI 功能。",
       aiApiKeyMissingBubble: "API Key 未配置，请前往设置。",
@@ -1139,6 +1143,8 @@ const legacyResources = {
       dashboardRelativeMinutes: "{count} minutes ago",
       dashboardRelativeHours: "{count} hours ago",
       dashboardRelativeDays: "{count} days ago",
+      dashboardApiKeyNotConfigured: "AI features require an API Key, including smart import, AI assistant, JD analysis, and more.",
+      dashboardGoToSettings: "Configure",
       // Template i18n keys
       dashboardTemplateClassic: "Classic",
       dashboardTemplateModern: "Modern",
@@ -1361,6 +1367,8 @@ const legacyResources = {
       aiConnectionFailed: "Connection Failed",
       aiNoModelsFound: "No models found",
       aiFetchingModels: "Fetching models...",
+      aiSaveSuccess: "Saved",
+      aiSaveError: "Save failed",
       // AI
       aiPanelTitle: "AI Assistant",
       aiPlaceholder: "Describe what you want to improve...",

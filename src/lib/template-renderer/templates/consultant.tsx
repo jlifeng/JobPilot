@@ -240,7 +240,14 @@ function ConsultantSectionContent({
         {items.map((item) => (
           <div key={item.id}>
             <div className="flex items-baseline justify-between">
-              <span className="text-sm font-bold" style={{ color: GRAY_700 }}>{item.name}</span>
+              <span className="text-sm font-bold" style={{ color: GRAY_700 }}>{item.name}
+                {item.repoUrl && (
+                  <a href={item.repoUrl} target="_blank" rel="noopener noreferrer"
+                     className="ml-1 text-xs font-normal text-blue-500 hover:underline">
+                    {item.repoUrl}
+                  </a>
+                )}
+              </span>
               <span className="text-xs text-gray-400">⭐ {item.stars?.toLocaleString()}</span>
             </div>
             {item.language && <span className="text-xs text-gray-400">{item.language}</span>}
@@ -376,7 +383,7 @@ function buildConsultantSectionHtml(
   if (section.type === 'github') {
     const items = (content as unknown as GitHubContent).items || [];
     return `<div class="space-y-3">${items.map((it) => `<div>
-      <div class="flex items-baseline justify-between"><span class="text-sm font-bold" style="color:${GRAY_700}">${esc(it.name)}</span><span class="text-xs text-gray-400">⭐ ${it.stars?.toLocaleString() ?? 0}</span></div>
+      <div class="flex items-baseline justify-between"><span class="text-sm font-bold" style="color:${GRAY_700}">${esc(it.name)}${it.repoUrl ? ` <a href="${esc(it.repoUrl)}" target="_blank" rel="noopener noreferrer" class="ml-1 text-xs font-normal text-blue-500">${esc(it.repoUrl)}</a>` : ''}</span><span class="text-xs text-gray-400">⭐ ${it.stars?.toLocaleString() ?? 0}</span></div>
       ${it.language ? `<span class="text-xs text-gray-400">${esc(it.language)}</span>` : ''}
       ${it.description ? `<p class="mt-1 text-sm text-gray-600">${md(it.description)}</p>` : ''}
     </div>`).join('')}</div>`;

@@ -161,7 +161,7 @@ function EngineerSectionContent({ section, lang }: { section: CanonicalResume['s
   }
   if (section.type === 'github') {
     const items = (content as unknown as GitHubContent).items || [];
-    return <div className="space-y-3">{items.map((item) => <EngineerExperience key={item.id} title={item.name} date={`★ ${item.stars?.toLocaleString() ?? 0}`} description={item.description} language={item.language} />)}</div>;
+    return <div className="space-y-3">{items.map((item) => <EngineerExperience key={item.id} title={item.name} date={`★ ${item.stars?.toLocaleString() ?? 0}`} description={item.description} language={item.language} link={item.repoUrl} />)}</div>;
   }
   if (section.type === 'certifications') {
     const items = (content as unknown as CertificationsContent).items || [];
@@ -183,14 +183,16 @@ function EngineerSectionContent({ section, lang }: { section: CanonicalResume['s
   return null;
 }
 
-function EngineerExperience({ title, subtitle, date, description, technologies, highlights, lang, language }: { title: string; subtitle?: string; date?: string; description?: string; technologies?: string[]; highlights?: string[]; lang?: string; language?: string }): React.ReactElement {
+function EngineerExperience({ title, subtitle, date, description, technologies, highlights, lang, language, link }: { title: string; subtitle?: string; date?: string; description?: string; technologies?: string[]; highlights?: string[]; lang?: string; language?: string; link?: string }): React.ReactElement {
   const responsibilityItems = lang ? extractMarkdownBulletItems(description) : null;
 
   return (
     <div>
       <div className="flex items-baseline justify-between">
         <div>
-          <span className="text-sm font-bold" style={{ color: PRIMARY }}>{title}</span>
+          <span className="text-sm font-bold" style={{ color: PRIMARY }}>{title}
+            {link && <a href={link} target="_blank" rel="noopener noreferrer" className="ml-1 text-xs font-normal text-blue-500 hover:underline">{link}</a>}
+          </span>
           {subtitle && <span className="text-sm font-medium" style={{ color: ACCENT }}> | {subtitle}</span>}
         </div>
         {date && <span className="shrink-0 px-2 py-0.5 text-[10px] font-medium uppercase" style={{ fontFamily: MONO, color: SECONDARY, backgroundColor: LIGHT_BG }}>{date}</span>}
@@ -283,7 +285,7 @@ function buildEngineerSectionHtml(section: CanonicalResume['sections'][number], 
   }
   if (section.type === 'github') {
     const items = (content as unknown as GitHubContent).items || [];
-    return `<div class="space-y-3">${items.map((item) => experienceHtml(`<div class="flex items-baseline justify-between"><span class="text-sm font-bold" style="color:${PRIMARY}">${esc(item.name)}</span><span class="shrink-0 px-2 py-0.5 text-[10px] font-medium uppercase" style="font-family:${MONO};color:${SECONDARY};background-color:${LIGHT_BG}">★ ${item.stars?.toLocaleString() ?? 0}</span></div>${item.language ? `<span class="text-xs" style="font-family:${MONO};color:${ACCENT}">${esc(item.language)}</span>` : ''}${item.description ? `<p class="mt-1 text-sm" style="color:${BODY_TEXT}">${md(item.description)}</p>` : ''}`)).join('')}</div>`;
+    return `<div class="space-y-3">${items.map((item) => experienceHtml(`<div class="flex items-baseline justify-between"><span class="text-sm font-bold" style="color:${PRIMARY}">${esc(item.name)}${item.repoUrl ? ` <a href="${esc(item.repoUrl)}" target="_blank" rel="noopener noreferrer" class="ml-1 text-xs font-normal text-blue-500">${esc(item.repoUrl)}</a>` : ''}</span><span class="shrink-0 px-2 py-0.5 text-[10px] font-medium uppercase" style="font-family:${MONO};color:${SECONDARY};background-color:${LIGHT_BG}">★ ${item.stars?.toLocaleString() ?? 0}</span></div>${item.language ? `<span class="text-xs" style="font-family:${MONO};color:${ACCENT}">${esc(item.language)}</span>` : ''}${item.description ? `<p class="mt-1 text-sm" style="color:${BODY_TEXT}">${md(item.description)}</p>` : ''}`)).join('')}</div>`;
   }
   if (section.type === 'certifications') {
     const items = (content as unknown as CertificationsContent).items || [];

@@ -56,7 +56,7 @@ function buildLuxeSectionContent(section: Section, lang: string): string {
 
   if (section.type === 'projects') {
     return `<div class="space-y-4">${((c as ProjectsContent).items || []).map((it: any) => `<div class="border-l-2 pl-4" style="border-color:${GOLD}">
-      <div class="flex items-baseline justify-between"><h3 class="text-sm font-bold" style="color:${TEXT}">${esc(it.name)}</h3>${it.startDate ? `<span class="shrink-0 text-xs italic" style="color:#a8a29e">${esc(it.startDate)} \u2013 ${it.endDate ? esc(it.endDate) : (lang === 'zh' ? '至今' : 'Present')}</span>` : ''}</div>
+      <div class="flex items-baseline justify-between"><h3 class="text-sm font-bold" style="color:${TEXT}">${esc(it.name)}${it.repoUrl ? ` <a href="${esc(it.repoUrl)}" target="_blank" rel="noopener noreferrer" class="ml-1 text-xs font-normal text-blue-500">${esc(it.repoUrl)}</a>` : ''}</h3>${it.startDate ? `<span class="shrink-0 text-xs italic" style="color:#a8a29e">${esc(it.startDate)} \u2013 ${it.endDate ? esc(it.endDate) : (lang === 'zh' ? '至今' : 'Present')}</span>` : ''}</div>
       ${it.description ? `<div class="mt-0.5 text-sm" style="color:#44403c">${md(it.description)}</div>` : ''}
       ${it.technologies?.length ? `<p class="mt-0.5 text-xs italic" style="color:#a8a29e">${lang === 'zh' ? '技术栈' : 'Tech'}: ${esc(it.technologies.join(', '))}</p>` : ''}
       ${it.highlights?.length ? buildLuxeBulletList(it.highlights, 'mt-1 list-none space-y-0.5') : ''}
@@ -65,7 +65,7 @@ function buildLuxeSectionContent(section: Section, lang: string): string {
 
   if (section.type === 'certifications') {
     return `<div class="space-y-2">${((c as CertificationsContent).items || []).map((it: any) =>
-      `<div class="flex items-baseline justify-between"><div><span class="text-sm font-bold" style="color:${TEXT}">${esc(it.name)}</span>${it.issuer ? `<span class="text-sm" style="color:#a8a29e"> &mdash; ${esc(it.issuer)}</span>` : ''}</div>${it.date ? `<span class="shrink-0 text-xs italic" style="color:${GOLD}">${esc(it.date)}</span>` : ''}</div>`
+      `<div class="flex items-baseline justify-between"><div><span class="text-sm font-bold" style="color:${TEXT}">${esc(it.name)}${it.repoUrl ? ` <a href="${esc(it.repoUrl)}" target="_blank" rel="noopener noreferrer" class="ml-1 text-xs font-normal text-blue-500">${esc(it.repoUrl)}</a>` : ''}</span>${it.issuer ? `<span class="text-sm" style="color:#a8a29e"> &mdash; ${esc(it.issuer)}</span>` : ''}</div>${it.date ? `<span class="shrink-0 text-xs italic" style="color:${GOLD}">${esc(it.date)}</span>` : ''}</div>`
     ).join('')}</div>`;
   }
 
@@ -77,7 +77,7 @@ function buildLuxeSectionContent(section: Section, lang: string): string {
 
   if (section.type === 'github') {
     return `<div class="space-y-4">${((c as GitHubContent).items || []).map((it: any) => `<div class="border-l-2 pl-4" style="border-color:${GOLD}">
-      <div class="flex items-baseline justify-between"><h3 class="text-sm font-bold" style="color:${TEXT}">${esc(it.name)}</h3><span class="shrink-0 text-xs italic" style="color:#a8a29e">&#11088; ${it.stars?.toLocaleString() ?? 0}</span></div>
+      <div class="flex items-baseline justify-between"><h3 class="text-sm font-bold" style="color:${TEXT}">${esc(it.name)}${it.repoUrl ? ` <a href="${esc(it.repoUrl)}" target="_blank" rel="noopener noreferrer" class="ml-1 text-xs font-normal text-blue-500">${esc(it.repoUrl)}</a>` : ''}</h3><span class="shrink-0 text-xs italic" style="color:#a8a29e">&#11088; ${it.stars?.toLocaleString() ?? 0}</span></div>
       ${it.language ? `<span class="text-xs" style="color:${GOLD}">${esc(it.language)}</span>` : ''}
       ${it.description ? `<div class="mt-0.5 text-sm" style="color:#44403c">${md(it.description)}</div>` : ''}
     </div>`).join('')}</div>`;

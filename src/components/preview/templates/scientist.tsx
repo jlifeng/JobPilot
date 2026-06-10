@@ -242,11 +242,11 @@ function ScientistSectionContent({ section, resume }: { section: any; resume: Re
             <div className="flex items-baseline justify-between">
               <div>
                 <span className="text-xs font-bold" style={{ color: ACCENT }}>[{idx + 1}]</span>
-                <span className="ml-1.5 text-sm font-bold" style={{ color: PRIMARY }}>{item.name}</span>
+                <span className="ml-1.5 text-sm font-bold" style={{ color: PRIMARY }}>{item.name}{item.repoUrl && (<a href={item.repoUrl} target="_blank" rel="noopener noreferrer" className="ml-1 text-xs font-normal text-blue-500 hover:underline">{item.repoUrl}</a>)}</span>
               </div>
               <span className="shrink-0 text-xs" style={{ color: MUTED }}>⭐ {item.stars?.toLocaleString()}</span>
             </div>
-            {item.language && (
+{item.language && (
               <span className="pl-6 text-xs italic" style={{ color: ACCENT }}>{item.language}</span>
             )}
             {item.description && <p className="mt-0.5 pl-6 text-sm" style={{ color: BODY_TEXT }} dangerouslySetInnerHTML={{ __html: md(item.description) }} />}

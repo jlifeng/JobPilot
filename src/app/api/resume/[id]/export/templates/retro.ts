@@ -59,7 +59,7 @@ function buildRetroSectionContent(section: Section, lang: string): string {
 
   if (section.type === 'projects') {
     return `<div class="space-y-3">${((c as ProjectsContent).items || []).map((it: any) => `<div>
-      <div class="flex items-baseline justify-between"><h3 class="text-sm font-bold" style="color:${PRIMARY}">${esc(it.name)}</h3>${it.startDate ? `<span class="text-xs" style="color:${ACCENT};font-family:'Courier New',monospace">${esc(it.startDate)} - ${it.endDate ? esc(it.endDate) : (lang === 'zh' ? '至今' : 'Present')}</span>` : ''}</div>
+      <div class="flex items-baseline justify-between"><h3 class="text-sm font-bold" style="color:${PRIMARY}">${esc(it.name)}${it.repoUrl ? ` <a href="${esc(it.repoUrl)}" target="_blank" rel="noopener noreferrer" class="ml-1 text-xs font-normal text-blue-500">${esc(it.repoUrl)}</a>` : ''}</h3>${it.startDate ? `<span class="text-xs" style="color:${ACCENT};font-family:'Courier New',monospace">${esc(it.startDate)} - ${it.endDate ? esc(it.endDate) : (lang === 'zh' ? '至今' : 'Present')}</span>` : ''}</div>
       ${it.description ? `<div class="mt-0.5 text-sm" style="color:${TEXT}">${md(it.description)}</div>` : ''}
       ${it.technologies?.length ? `<p class="mt-1 text-xs italic" style="color:${ACCENT}">${lang === 'zh' ? '技术栈' : 'Technologies'}: ${esc(it.technologies.join(', '))}</p>` : ''}
       ${it.highlights?.length ? buildRetroBulletList(it.highlights, 'mt-1 space-y-0.5') : ''}
@@ -68,7 +68,7 @@ function buildRetroSectionContent(section: Section, lang: string): string {
 
   if (section.type === 'certifications') {
     return `<div class="space-y-1.5">${((c as CertificationsContent).items || []).map((it: any) =>
-      `<div class="flex items-baseline gap-2"><span class="shrink-0 text-xs" style="color:${PRIMARY}">&diams;</span><span class="text-sm font-bold" style="color:${PRIMARY}">${esc(it.name)}</span>${it.issuer || it.date ? `<span class="text-xs" style="color:${ACCENT}">${it.issuer ? esc(it.issuer) : ''}${it.issuer && it.date ? ' ' : ''}${it.date ? `(${esc(it.date)})` : ''}</span>` : ''}</div>`
+      `<div class="flex items-baseline gap-2"><span class="shrink-0 text-xs" style="color:${PRIMARY}">&diams;</span><span class="text-sm font-bold" style="color:${PRIMARY}">${esc(it.name)}${it.repoUrl ? ` <a href="${esc(it.repoUrl)}" target="_blank" rel="noopener noreferrer" class="ml-1 text-xs font-normal text-blue-500">${esc(it.repoUrl)}</a>` : ''}</span>${it.issuer || it.date ? `<span class="text-xs" style="color:${ACCENT}">${it.issuer ? esc(it.issuer) : ''}${it.issuer && it.date ? ' ' : ''}${it.date ? `(${esc(it.date)})` : ''}</span>` : ''}</div>`
     ).join('')}</div>`;
   }
 
@@ -80,7 +80,7 @@ function buildRetroSectionContent(section: Section, lang: string): string {
 
   if (section.type === 'github') {
     return `<div class="space-y-3">${((c as GitHubContent).items || []).map((it: any) => `<div>
-      <div class="flex items-baseline justify-between"><span class="text-sm font-bold" style="color:${PRIMARY}">${esc(it.name)}</span><span class="text-xs" style="color:${ACCENT};font-family:'Courier New',monospace">\u2B50 ${it.stars?.toLocaleString() ?? 0}</span></div>
+      <div class="flex items-baseline justify-between"><span class="text-sm font-bold" style="color:${PRIMARY}">${esc(it.name)}${it.repoUrl ? ` <a href="${esc(it.repoUrl)}" target="_blank" rel="noopener noreferrer" class="ml-1 text-xs font-normal text-blue-500">${esc(it.repoUrl)}</a>` : ''}</span><span class="text-xs" style="color:${ACCENT};font-family:'Courier New',monospace">\u2B50 ${it.stars?.toLocaleString() ?? 0}</span></div>
       ${it.language ? `<span class="text-xs italic" style="color:${ACCENT}">${esc(it.language)}</span>` : ''}
       ${it.description ? `<div class="mt-1 text-sm" style="color:${TEXT}">${md(it.description)}</div>` : ''}
     </div>`).join('')}</div>`;

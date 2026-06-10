@@ -273,10 +273,10 @@ function NeonSectionContent({ section, resume }: { section: any; resume: Resume 
         {items.map((item: any) => (
           <div key={item.id} className="rounded-lg p-4" style={{ border: `1px solid ${CYAN}20`, backgroundColor: `${CYAN}05` }}>
             <div className="flex items-baseline justify-between">
-              <span className="text-sm font-bold" style={{ color: CYAN }}>{item.name}</span>
+              <span className="text-sm font-bold" style={{ color: CYAN }}>{item.name}{item.repoUrl && (<a href={item.repoUrl} target="_blank" rel="noopener noreferrer" className="ml-1 text-xs font-normal text-blue-500 hover:underline">{item.repoUrl}</a>)}</span>
               <span className="text-xs" style={{ color: TEXT_DIM }}>{'\u2B50'} {item.stars?.toLocaleString()}</span>
             </div>
-            {item.language && <span className="text-xs" style={{ color: VIOLET }}>{item.language}</span>}
+{item.language && <span className="text-xs" style={{ color: VIOLET }}>{item.language}</span>}
             {item.description && <p className="mt-1 text-sm" style={{ color: TEXT }} dangerouslySetInnerHTML={{ __html: md(item.description) }} />}
           </div>
         ))}

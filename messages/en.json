@@ -132,7 +132,9 @@
         "saving": "Saving to workspace",
         "savingDescription": "Writing the imported resume into the local workspace."
       }
-    }
+    },
+    "apiKeyNotConfigured": "AI features require an API Key, including smart import, AI assistant, JD analysis, and more.",
+    "goToSettings": "Configure"
   },
   "interview": {
     "navLabel": "Mock Interview",
@@ -408,6 +410,9 @@
       "apiKey": "API Key",
       "apiKeyPlaceholder": "Enter your API Key...",
       "apiKeyHint": "Your API Key is stored locally and sent directly to the model provider per request.",
+      "freeApiKeyHint": "No API Key?",
+      "freeApiKeyLink": "Check free tier providers",
+      "freeApiKeyUrl": "https://github.com/jlifeng/JobPilot/blob/main/docs/free-api-key-guide.md",
       "baseURL": "Base URL",
       "model": "Default Model",
       "modelPlaceholder": "Enter model name...",
@@ -979,3 +984,4 @@
     "openInApp": "Open in JobPilot"
   }
 }
+

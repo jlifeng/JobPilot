@@ -133,31 +133,37 @@ export function GitHubSection({ section, onUpdate }: Props) {
                 <Loader2 className="absolute right-2 top-7 h-4 w-4 animate-spin text-zinc-400" />
               )}
             </div>
-            {item.name && (
-              <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-500">
-                <span className="font-medium text-zinc-700 dark:text-zinc-300">{item.name}</span>
-                {item.stars > 0 && (
-                  <span className="inline-flex items-center gap-0.5">
-                    <Star className="h-3 w-3 text-amber-500" />
-                    {item.stars.toLocaleString()}
-                  </span>
-                )}
-                {item.language && (
-                  <span className="inline-flex items-center gap-0.5">
-                    <Code2 className="h-3 w-3" />
-                    {item.language}
-                  </span>
-                )}
-                <button
-                  type="button"
-                  className="inline-flex cursor-pointer items-center gap-0.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
-                  onClick={() => fetchRepo(index, item.repoUrl)}
-                  disabled={loadingIds.has(item.id)}
-                >
-                  <RefreshCw className={`h-3 w-3 ${loadingIds.has(item.id) ? 'animate-spin' : ''}`} />
-                </button>
+            <EditableText
+              label={t('repoName')}
+              value={item.name}
+              onChange={(v) => updateItem(index, { name: v })}
+            />
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1.5">
+                <Star className="h-3.5 w-3.5 text-amber-500" />
+                <input
+                  type="number"
+                  min={0}
+                  value={item.stars}
+                  onChange={(e) => updateItem(index, { stars: parseInt(e.target.value, 10) || 0 })}
+                  className="w-20 rounded border border-zinc-200 bg-transparent px-2 py-1 text-xs text-zinc-600 dark:border-zinc-700 dark:text-zinc-400"
+                />
               </div>
-            )}
+              {item.language && (
+                <span className="inline-flex items-center gap-0.5 text-xs text-zinc-500">
+                  <Code2 className="h-3 w-3" />
+                  {item.language}
+                </span>
+              )}
+              <button
+                type="button"
+                className="inline-flex cursor-pointer items-center gap-0.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+                onClick={() => fetchRepo(index, item.repoUrl)}
+                disabled={loadingIds.has(item.id)}
+              >
+                <RefreshCw className={`h-3 w-3 ${loadingIds.has(item.id) ? 'animate-spin' : ''}`} />
+              </button>
+            </div>
             <EditableRichText label={t('description')} value={item.description} onChange={(v) => updateItem(index, { description: v })} />
           </div>
         </div>

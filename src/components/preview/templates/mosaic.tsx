@@ -225,10 +225,10 @@ function MosaicSectionContent({ section, color, resume }: { section: any; color:
         {items.map((item: any) => (
           <div key={item.id} className="rounded-md bg-white p-3 shadow-sm">
             <div className="flex items-baseline justify-between">
-              <span className="text-sm font-semibold" style={{ color }}>{item.name}</span>
+              <span className="text-sm font-semibold" style={{ color }}>{item.name}{item.repoUrl && (<a href={item.repoUrl} target="_blank" rel="noopener noreferrer" className="ml-1 text-xs font-normal text-blue-500 hover:underline">{item.repoUrl}</a>)}</span>
               <span className="shrink-0 text-xs text-zinc-400">⭐ {item.stars?.toLocaleString()}</span>
             </div>
-            {item.language && <span className="text-xs text-zinc-400">{item.language}</span>}
+{item.language && <span className="text-xs text-zinc-400">{item.language}</span>}
             {item.description && <p className="mt-1 text-sm text-zinc-600" dangerouslySetInnerHTML={{ __html: md(item.description) }} />}
           </div>
         ))}

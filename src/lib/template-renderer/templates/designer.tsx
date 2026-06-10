@@ -217,7 +217,14 @@ function DesignerSectionContent({
         {items.map((item) => (
           <Card key={item.id}>
             <div className="flex items-baseline justify-between">
-              <span className="text-sm font-bold text-black">{item.name}</span>
+              <span className="text-sm font-bold text-black">{item.name}
+                {item.repoUrl && (
+                  <a href={item.repoUrl} target="_blank" rel="noopener noreferrer"
+                     className="ml-1 text-xs font-normal text-blue-500 hover:underline">
+                    {item.repoUrl}
+                  </a>
+                )}
+              </span>
               <span className="shrink-0 text-xs text-zinc-400">★ {item.stars?.toLocaleString()}</span>
             </div>
             {item.language && <span className="text-xs font-medium" style={{ color: CORAL }}>{item.language}</span>}
@@ -347,7 +354,7 @@ function buildDesignerSectionHtml(section: CanonicalResume['sections'][number], 
   if (section.type === 'github') {
     const items = (content as unknown as GitHubContent).items || [];
     return `<div class="space-y-3">${items.map((item) => `<div class="rounded-lg bg-zinc-50 p-4">
-      <div class="flex items-baseline justify-between"><span class="text-sm font-bold text-black">${esc(item.name)}</span><span class="shrink-0 text-xs text-zinc-400">★ ${item.stars?.toLocaleString() ?? 0}</span></div>
+      <div class="flex items-baseline justify-between"><span class="text-sm font-bold text-black">${esc(item.name)}${item.repoUrl ? ` <a href="${esc(item.repoUrl)}" target="_blank" rel="noopener noreferrer" class="ml-1 text-xs font-normal text-blue-500">${esc(item.repoUrl)}</a>` : ''}</span><span class="shrink-0 text-xs text-zinc-400">★ ${item.stars?.toLocaleString() ?? 0}</span></div>
       ${item.language ? `<span class="text-xs font-medium" style="color:${CORAL}">${esc(item.language)}</span>` : ''}
       ${item.description ? `<p class="mt-1 text-sm text-zinc-600">${md(item.description)}</p>` : ''}
     </div>`).join('')}</div>`;

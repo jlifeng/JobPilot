@@ -241,10 +241,10 @@ function CardSectionContent({ section, resume }: { section: any; resume: Resume 
         {items.map((item: any) => (
           <div key={item.id} className="rounded-md bg-white p-3" style={{ border: '1px solid #f4f4f5' }}>
             <div className="flex items-baseline justify-between">
-              <span className="text-sm font-semibold" style={{ color: ACCENT }}>{item.name}</span>
+              <span className="text-sm font-semibold" style={{ color: ACCENT }}>{item.name}{item.repoUrl && (<a href={item.repoUrl} target="_blank" rel="noopener noreferrer" className="ml-1 text-xs font-normal text-blue-500 hover:underline">{item.repoUrl}</a>)}</span>
               <span className="text-xs text-zinc-400">&#11088; {item.stars?.toLocaleString()}</span>
             </div>
-            {item.language && <span className="text-xs text-zinc-500">{item.language}</span>}
+{item.language && <span className="text-xs text-zinc-500">{item.language}</span>}
             {item.description && <p className="mt-1 text-sm text-zinc-600" dangerouslySetInnerHTML={{ __html: md(item.description) }} />}
           </div>
         ))}

@@ -129,7 +129,7 @@ function CreativeSectionContent({ section, lang }: { section: CanonicalResume['s
   }
   if (section.type === 'github') {
     const items = (content as unknown as GitHubContent).items || [];
-    return <div className="space-y-3">{items.map((item) => <CreativeCard key={item.id} title={item.name} date={`★ ${item.stars?.toLocaleString() ?? 0}`} description={item.description} subtitle={item.language} />)}</div>;
+    return <div className="space-y-3">{items.map((item) => <CreativeCard key={item.id} title={item.name} date={`★ ${item.stars?.toLocaleString() ?? 0}`} description={item.description} subtitle={item.language} link={item.repoUrl} />)}</div>;
   }
   if (section.type === 'custom') {
     const items = (content as unknown as CustomContent).items || [];
@@ -143,14 +143,16 @@ function CreativeSectionContent({ section, lang }: { section: CanonicalResume['s
   return null;
 }
 
-function CreativeCard({ title, subtitle, location, date, description, technologies, highlights, label, highlightLabel, accentBar, gpa }: { title: string; subtitle?: string; location?: string; date?: string; description?: string; technologies?: string[]; highlights?: string[]; label?: string; highlightLabel?: string; accentBar?: boolean; gpa?: string }): React.ReactElement {
+function CreativeCard({ title, subtitle, location, date, description, technologies, highlights, label, highlightLabel, accentBar, gpa, link }: { title: string; subtitle?: string; location?: string; date?: string; description?: string; technologies?: string[]; highlights?: string[]; label?: string; highlightLabel?: string; accentBar?: boolean; gpa?: string; link?: string }): React.ReactElement {
   const descriptionBulletItems = label ? extractMarkdownBulletItems(description) : null;
 
   return (
     <div className="relative rounded-lg border border-zinc-100 p-4">
       {accentBar && <div className="absolute left-0 top-0 h-full w-1 rounded-l-lg" style={{ background: GRADIENT }} />}
       <div className="flex items-baseline justify-between">
-        <h3 className="text-sm font-bold" style={{ color: subtitle ? undefined : PRIMARY }}>{title}</h3>
+        <h3 className="text-sm font-bold" style={{ color: subtitle ? undefined : PRIMARY }}>{title}
+          {link && <a href={link} target="_blank" rel="noopener noreferrer" className="ml-1 text-xs font-normal text-blue-500 hover:underline">{link}</a>}
+        </h3>
         {date && <span className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold text-white" style={{ background: PRIMARY }}>{date}</span>}
       </div>
       {subtitle && <p className="text-sm font-medium" style={{ color: PRIMARY }}>{subtitle}{location && <span className="text-xs font-normal text-zinc-400">, {location}</span>}</p>}
@@ -184,12 +186,12 @@ function buildDotList(items: string[]): string {
   return `<ul class="space-y-0.5">${items.map((item) => `<li class="flex items-start gap-2 text-sm text-zinc-600"><span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" style="background:${EXPORT_GRADIENT}"></span><span>${md(item)}</span></li>`).join('')}</ul>`;
 }
 
-function buildCreativeCardHtml({ title, subtitle, location, date, description, technologies, highlights, label, highlightLabel, accentBar, gpa, titlePrimary = false }: { title: string; subtitle?: string; location?: string; date?: string; description?: string; technologies?: string[]; highlights?: string[]; label?: string; highlightLabel?: string; accentBar?: boolean; gpa?: string; titlePrimary?: boolean }): string {
+function buildCreativeCardHtml({ title, subtitle, location, date, description, technologies, highlights, label, highlightLabel, accentBar, gpa, titlePrimary = false, link }: { title: string; subtitle?: string; location?: string; date?: string; description?: string; technologies?: string[]; highlights?: string[]; label?: string; highlightLabel?: string; accentBar?: boolean; gpa?: string; titlePrimary?: boolean; link?: string }): string {
   const descriptionBulletItems = label ? extractMarkdownBulletItems(description) : null;
 
   return `<div class="relative rounded-lg border border-zinc-100 p-4">
     ${accentBar ? `<div class="absolute left-0 top-0 h-full w-1 rounded-l-lg" style="background:${EXPORT_GRADIENT}"></div>` : ''}
-    <div class="flex items-baseline justify-between"><h3 class="text-sm font-bold"${titlePrimary ? ` style="color:${PRIMARY}"` : ''}>${esc(title)}</h3>${date ? `<span class="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold text-white" style="background:${PRIMARY}">${esc(date)}</span>` : ''}</div>
+    <div class="flex items-baseline justify-between"><h3 class="text-sm font-bold"${titlePrimary ? ` style="color:${PRIMARY}"` : ''}>${esc(title)}${link ? ` <a href="${esc(link)}" target="_blank" rel="noopener noreferrer" class="ml-1 text-xs font-normal text-blue-500">${esc(link)}</a>` : ''}</h3>${date ? `<span class="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold text-white" style="background:${PRIMARY}">${esc(date)}</span>` : ''}</div>
     ${subtitle ? `<p class="text-sm font-medium" style="color:${PRIMARY}">${esc(subtitle)}${location ? `<span class="text-xs font-normal text-zinc-400">, ${esc(location)}</span>` : ''}</p>` : ''}
     ${description && descriptionBulletItems ? `<div class="mt-1">${label ? `<p class="mb-0.5 text-xs font-medium text-zinc-500">${esc(label)}:</p>` : ''}${buildDotList(descriptionBulletItems)}</div>` : ''}
     ${description && !descriptionBulletItems ? `<p class="mt-1 text-sm text-zinc-600">${label ? `<span class="font-medium text-zinc-700">${esc(label)}: </span>` : ''}<span>${md(description)}</span></p>` : ''}
@@ -234,7 +236,7 @@ function buildCreativeSectionHtml(section: CanonicalResume['sections'][number], 
   }
   if (section.type === 'github') {
     const items = (content as unknown as GitHubContent).items || [];
-    return `<div class="space-y-3">${items.map((item) => buildCreativeCardHtml({ title: item.name, date: `★ ${item.stars?.toLocaleString() ?? 0}`, subtitle: item.language, description: item.description, titlePrimary: true })).join('')}</div>`;
+    return `<div class="space-y-3">${items.map((item) => buildCreativeCardHtml({ title: item.name, date: `★ ${item.stars?.toLocaleString() ?? 0}`, subtitle: item.language, description: item.description, link: item.repoUrl, titlePrimary: true })).join('')}</div>`;
   }
   if (section.type === 'custom') {
     const items = (content as unknown as CustomContent).items || [];

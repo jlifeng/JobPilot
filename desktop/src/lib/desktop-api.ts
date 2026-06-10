@@ -405,6 +405,8 @@ export interface ProviderConfigUpdateInput {
   setAsDefault: boolean;
   resumeImportVisionModel?: string;
   exaPoolBaseUrl?: string;
+  clearBaseUrl?: boolean;
+  clearModel?: boolean;
 }
 
 export interface WorkspaceAppearanceSettingsUpdateInput {

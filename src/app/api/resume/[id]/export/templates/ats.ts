@@ -37,7 +37,7 @@ function buildAtsSectionContent(section: Section, lang: string): string {
   }
   if (section.type === 'projects') {
     return `<div class="space-y-3">${((c as ProjectsContent).items || []).map((it: any) => `<div>
-      <div class="flex items-baseline justify-between"><span class="text-sm font-bold text-black">${esc(it.name)}</span>${it.startDate ? `<span class="shrink-0 text-sm text-zinc-600">${esc(it.startDate)} - ${it.endDate ? esc(it.endDate) : (lang === 'zh' ? '至今' : 'Present')}</span>` : ''}</div>
+      <div class="flex items-baseline justify-between"><span class="text-sm font-bold text-black">${esc(it.name)}${it.repoUrl ? ` <a href="${esc(it.repoUrl)}" target="_blank" rel="noopener noreferrer" class="ml-1 text-xs font-normal text-blue-500">${esc(it.repoUrl)}</a>` : ''}</span>${it.startDate ? `<span class="shrink-0 text-sm text-zinc-600">${esc(it.startDate)} - ${it.endDate ? esc(it.endDate) : (lang === 'zh' ? '至今' : 'Present')}</span>` : ''}</div>
       ${it.description ? `<div class="mt-0.5 text-sm text-zinc-700">${md(it.description)}</div>` : ''}
       ${it.technologies?.length ? `<p class="text-sm text-zinc-600">${lang === 'zh' ? '技术栈' : 'Technologies'}: ${esc(it.technologies.join(', '))}</p>` : ''}
       ${it.highlights?.length ? `<ul class="mt-1 list-disc pl-5">${buildHighlights(it.highlights, 'text-sm text-zinc-700')}</ul>` : ''}
@@ -45,7 +45,7 @@ function buildAtsSectionContent(section: Section, lang: string): string {
   }
   if (section.type === 'certifications') {
     return `<div class="space-y-1">${((c as CertificationsContent).items || []).map((it: any) =>
-      `<p class="text-sm text-zinc-700"><span class="font-bold text-black">${esc(it.name)}</span>${it.issuer ? `<span> - ${esc(it.issuer)}</span>` : ''}${it.date ? `<span> (${esc(it.date)})</span>` : ''}</p>`
+      `<p class="text-sm text-zinc-700"><span class="font-bold text-black">${esc(it.name)}${it.repoUrl ? ` <a href="${esc(it.repoUrl)}" target="_blank" rel="noopener noreferrer" class="ml-1 text-xs font-normal text-blue-500">${esc(it.repoUrl)}</a>` : ''}</span>${it.issuer ? `<span> - ${esc(it.issuer)}</span>` : ''}${it.date ? `<span> (${esc(it.date)})</span>` : ''}</p>`
     ).join('')}</div>`;
   }
   if (section.type === 'languages') {
@@ -55,7 +55,7 @@ function buildAtsSectionContent(section: Section, lang: string): string {
   }
   if (section.type === 'github') {
     return `<div class="space-y-3">${((c as GitHubContent).items || []).map((it: any) => `<div>
-      <div class="flex items-baseline justify-between"><span class="text-sm font-bold text-black">${esc(it.name)}</span><span class="text-xs text-zinc-600">\u2B50 ${it.stars?.toLocaleString() ?? 0}</span></div>
+      <div class="flex items-baseline justify-between"><span class="text-sm font-bold text-black">${esc(it.name)}${it.repoUrl ? ` <a href="${esc(it.repoUrl)}" target="_blank" rel="noopener noreferrer" class="ml-1 text-xs font-normal text-blue-500">${esc(it.repoUrl)}</a>` : ''}</span><span class="text-xs text-zinc-600">\u2B50 ${it.stars?.toLocaleString() ?? 0}</span></div>
       ${it.language ? `<span class="text-xs text-zinc-600">${esc(it.language)}</span>` : ''}
       ${it.description ? `<div class="mt-0.5 text-sm text-zinc-700">${md(it.description)}</div>` : ''}
     </div>`).join('')}</div>`;

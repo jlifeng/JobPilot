@@ -184,7 +184,14 @@ function CorporateSectionContent({
         {items.map((item) => (
           <div key={item.id}>
             <div className="flex items-baseline justify-between">
-              <span className="text-sm font-bold" style={{ color: NAVY }}>{item.name}</span>
+              <span className="text-sm font-bold" style={{ color: NAVY }}>{item.name}
+                {item.repoUrl && (
+                  <a href={item.repoUrl} target="_blank" rel="noopener noreferrer"
+                     className="ml-1 text-xs font-normal text-blue-500 hover:underline">
+                    {item.repoUrl}
+                  </a>
+                )}
+              </span>
               <span className="text-xs text-slate-400">★ {item.stars?.toLocaleString()}</span>
             </div>
             {item.language && <span className="text-xs text-slate-400">{item.language}</span>}
@@ -272,7 +279,7 @@ function buildCorporateSectionHtml(section: CanonicalResume['sections'][number],
   }
   if (section.type === 'github') {
     const items = (content as unknown as GitHubContent).items || [];
-    return `<div class="space-y-3">${items.map((item) => `<div><div class="flex items-baseline justify-between"><span class="text-sm font-bold" style="color:${NAVY}">${esc(item.name)}</span><span class="text-xs text-slate-400">★ ${item.stars?.toLocaleString() ?? 0}</span></div>${item.language ? `<span class="text-xs text-slate-400">${esc(item.language)}</span>` : ''}${item.description ? `<p class="mt-1 text-sm text-slate-600">${md(item.description)}</p>` : ''}</div>`).join('')}</div>`;
+    return `<div class="space-y-3">${items.map((item) => `<div><div class="flex items-baseline justify-between"><span class="text-sm font-bold" style="color:${NAVY}">${esc(item.name)}${item.repoUrl ? ` <a href="${esc(item.repoUrl)}" target="_blank" rel="noopener noreferrer" class="ml-1 text-xs font-normal text-blue-500">${esc(item.repoUrl)}</a>` : ''}</span><span class="text-xs text-slate-400">★ ${item.stars?.toLocaleString() ?? 0}</span></div>${item.language ? `<span class="text-xs text-slate-400">${esc(item.language)}</span>` : ''}${item.description ? `<p class="mt-1 text-sm text-slate-600">${md(item.description)}</p>` : ''}</div>`).join('')}</div>`;
   }
   if (section.type === 'custom') {
     const items = (content as unknown as CustomContent).items || [];

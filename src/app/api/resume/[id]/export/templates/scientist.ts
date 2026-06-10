@@ -50,7 +50,7 @@ function buildScientistSectionContent(section: Section, sectionIdx: number, lang
 
   if (section.type === 'projects') {
     return `<div class="space-y-3">${((c as ProjectsContent).items || []).map((it: any, idx: number) => `<div>
-      <div class="flex items-baseline justify-between"><div><span class="text-xs font-bold" style="color:${ACCENT}">[${idx + 1}]</span><span class="ml-1.5 text-sm font-bold" style="color:${PRIMARY}">${esc(it.name)}</span></div>${it.startDate ? `<span class="shrink-0 text-xs" style="color:${MUTED}">${esc(it.startDate)} - ${it.endDate ? esc(it.endDate) : (lang === 'zh' ? '至今' : 'Present')}</span>` : ''}</div>
+      <div class="flex items-baseline justify-between"><div><span class="text-xs font-bold" style="color:${ACCENT}">[${idx + 1}]</span><span class="ml-1.5 text-sm font-bold" style="color:${PRIMARY}">${esc(it.name)}${it.repoUrl ? ` <a href="${esc(it.repoUrl)}" target="_blank" rel="noopener noreferrer" class="ml-1 text-xs font-normal text-blue-500">${esc(it.repoUrl)}</a>` : ''}</span></div>${it.startDate ? `<span class="shrink-0 text-xs" style="color:${MUTED}">${esc(it.startDate)} - ${it.endDate ? esc(it.endDate) : (lang === 'zh' ? '至今' : 'Present')}</span>` : ''}</div>
       ${it.description ? `<div class="mt-1 pl-6 text-sm" style="color:${BODY_TEXT}">${md(it.description)}</div>` : ''}
       ${it.technologies?.length ? `<p class="pl-6 text-xs italic" style="color:${MUTED}">${lang === 'zh' ? '技术栈' : 'Methods/Tools'}: ${esc(it.technologies.join(', '))}</p>` : ''}
       ${it.highlights?.length ? `<ul class="mt-1 pl-6 space-y-0.5">${it.highlights.filter(Boolean).map((h: string) => `<li class="flex items-start gap-2 text-sm" style="color:${BODY_TEXT}"><span class="mt-1.5 shrink-0 text-xs" style="color:${ACCENT}">-</span>${md(h)}</li>`).join('')}</ul>` : ''}
@@ -59,7 +59,7 @@ function buildScientistSectionContent(section: Section, sectionIdx: number, lang
 
   if (section.type === 'certifications') {
     return `<div class="space-y-1.5">${((c as CertificationsContent).items || []).map((it: any, idx: number) =>
-      `<div class="text-sm"><span class="text-xs font-bold" style="color:${ACCENT}">[${idx + 1}]</span><span class="ml-1.5 font-medium" style="color:${PRIMARY}">${esc(it.name)}</span><span style="color:${MUTED}">${it.issuer ? `, ${esc(it.issuer)}` : ''}${it.date ? `, ${esc(it.date)}` : ''}</span></div>`
+      `<div class="text-sm"><span class="text-xs font-bold" style="color:${ACCENT}">[${idx + 1}]</span><span class="ml-1.5 font-medium" style="color:${PRIMARY}">${esc(it.name)}${it.repoUrl ? ` <a href="${esc(it.repoUrl)}" target="_blank" rel="noopener noreferrer" class="ml-1 text-xs font-normal text-blue-500">${esc(it.repoUrl)}</a>` : ''}</span><span style="color:${MUTED}">${it.issuer ? `, ${esc(it.issuer)}` : ''}${it.date ? `, ${esc(it.date)}` : ''}</span></div>`
     ).join('')}</div>`;
   }
 
@@ -78,7 +78,7 @@ function buildScientistSectionContent(section: Section, sectionIdx: number, lang
 
   if (section.type === 'github') {
     return `<div class="space-y-3">${((c as GitHubContent).items || []).map((it: any, idx: number) => `<div>
-      <div class="flex items-baseline justify-between"><div><span class="text-xs font-bold" style="color:${ACCENT}">[${idx + 1}]</span><span class="ml-1.5 text-sm font-bold" style="color:${PRIMARY}">${esc(it.name)}</span></div><span class="shrink-0 text-xs" style="color:${MUTED}">\u2B50 ${it.stars?.toLocaleString() ?? 0}</span></div>
+      <div class="flex items-baseline justify-between"><div><span class="text-xs font-bold" style="color:${ACCENT}">[${idx + 1}]</span><span class="ml-1.5 text-sm font-bold" style="color:${PRIMARY}">${esc(it.name)}${it.repoUrl ? ` <a href="${esc(it.repoUrl)}" target="_blank" rel="noopener noreferrer" class="ml-1 text-xs font-normal text-blue-500">${esc(it.repoUrl)}</a>` : ''}</span></div><span class="shrink-0 text-xs" style="color:${MUTED}">\u2B50 ${it.stars?.toLocaleString() ?? 0}</span></div>
       ${it.language ? `<span class="pl-6 text-xs italic" style="color:${ACCENT}">${esc(it.language)}</span>` : ''}
       ${it.description ? `<div class="mt-0.5 pl-6 text-sm" style="color:${BODY_TEXT}">${md(it.description)}</div>` : ''}
     </div>`).join('')}</div>`;

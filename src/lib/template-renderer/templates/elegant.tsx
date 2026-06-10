@@ -230,7 +230,14 @@ function ElegantSectionContent({
         {items.map((item) => (
           <div key={item.id}>
             <div className="flex items-baseline justify-between">
-              <span className="text-sm font-bold" style={{ color: TEXT }}>{item.name}</span>
+              <span className="text-sm font-bold" style={{ color: TEXT }}>{item.name}
+                {item.repoUrl && (
+                  <a href={item.repoUrl} target="_blank" rel="noopener noreferrer"
+                     className="ml-1 text-xs font-normal text-blue-500 hover:underline">
+                    {item.repoUrl}
+                  </a>
+                )}
+              </span>
               <span className="text-xs italic text-zinc-400">★ {item.stars?.toLocaleString()}</span>
             </div>
             {item.language && <span className="text-xs italic text-zinc-400">{item.language}</span>}
@@ -365,7 +372,7 @@ function buildElegantSectionHtml(section: CanonicalResume['sections'][number], l
   if (section.type === 'github') {
     const items = (content as unknown as GitHubContent).items || [];
     return `<div class="space-y-4">${items.map((item) => `<div>
-      <div class="flex items-baseline justify-between"><span class="text-sm font-bold" style="color:${TEXT}">${esc(item.name)}</span><span class="text-xs italic text-zinc-400">★ ${item.stars?.toLocaleString() ?? 0}</span></div>
+      <div class="flex items-baseline justify-between"><span class="text-sm font-bold" style="color:${TEXT}">${esc(item.name)}${item.repoUrl ? ` <a href="${esc(item.repoUrl)}" target="_blank" rel="noopener noreferrer" class="ml-1 text-xs font-normal text-blue-500">${esc(item.repoUrl)}</a>` : ''}</span><span class="text-xs italic text-zinc-400">★ ${item.stars?.toLocaleString() ?? 0}</span></div>
       ${item.language ? `<span class="text-xs text-zinc-400 italic">${esc(item.language)}</span>` : ''}
       ${item.description ? `<p class="mt-1 text-sm text-zinc-600">${md(item.description)}</p>` : ''}
     </div>`).join('')}</div>`;

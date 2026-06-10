@@ -397,10 +397,17 @@ function CoderMainContent({ section, resume }: { section: any; resume: Resume })
         {items.map((item: any) => (
           <div key={item.id}>
             <div className="flex items-baseline justify-between">
-              <h3 className="text-sm font-bold" style={{ color: BLUE }}>{item.name}</h3>
+              <h3 className="text-sm font-bold" style={{ color: BLUE }}>{item.name}
+                {item.repoUrl && (
+                  <a href={item.repoUrl} target="_blank" rel="noopener noreferrer"
+                     className="ml-1 text-xs font-normal text-blue-500 hover:underline">
+                    {item.repoUrl}
+                  </a>
+                )}
+              </h3>
               <span className="text-xs text-zinc-400">{'\u2B50'} {item.stars?.toLocaleString()}</span>
             </div>
-            {item.language && (
+{item.language && (
               <span className="rounded-sm px-1.5 py-0.5 text-[10px] font-medium" style={{ backgroundColor: '#f6f8fa', color: '#57606a', border: '1px solid #d0d7de' }}>
                 {item.language}
               </span>

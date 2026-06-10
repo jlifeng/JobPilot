@@ -54,7 +54,7 @@ function buildSwissSectionContent(section: Section, lang: string): string {
     return `<div class="space-y-3">${((c as ProjectsContent).items || []).map((it: any) => `<div class="grid grid-cols-[140px_1fr] gap-4">
       ${it.startDate ? `<span class="text-xs" style="color:#71717a">${esc(it.startDate)} \u2013 ${it.endDate ? esc(it.endDate) : (lang === 'zh' ? '至今' : 'Present')}</span>` : '<span></span>'}
       <div>
-        <h3 class="text-sm font-bold" style="color:${TEXT}">${esc(it.name)}</h3>
+        <h3 class="text-sm font-bold" style="color:${TEXT}">${esc(it.name)}${it.repoUrl ? ` <a href="${esc(it.repoUrl)}" target="_blank" rel="noopener noreferrer" class="ml-1 text-xs font-normal text-blue-500">${esc(it.repoUrl)}</a>` : ''}</h3>
         ${it.description ? `<div class="mt-0.5 text-sm" style="color:#3f3f46">${md(it.description)}</div>` : ''}
         ${it.technologies?.length ? `<p class="mt-0.5 text-xs" style="color:#71717a">${lang === 'zh' ? '技术栈' : 'Tech'}: ${esc(it.technologies.join(', '))}</p>` : ''}
         ${it.highlights?.length ? `<ul class="mt-1 list-none space-y-0.5">${it.highlights.filter(Boolean).map((h: string) => `<li class="flex items-start gap-2 text-sm" style="color:#3f3f46"><span class="mt-1.5 inline-block h-1 w-1 shrink-0" style="background-color:${RED}"></span>${md(h)}</li>`).join('')}</ul>` : ''}
@@ -64,7 +64,7 @@ function buildSwissSectionContent(section: Section, lang: string): string {
 
   if (section.type === 'certifications') {
     return `<div class="space-y-1.5">${((c as CertificationsContent).items || []).map((it: any) =>
-      `<div class="grid grid-cols-[140px_1fr] gap-4"><span class="text-xs" style="color:#71717a">${it.date ? esc(it.date) : '&nbsp;'}</span><div><span class="text-sm font-bold" style="color:${TEXT}">${esc(it.name)}</span>${it.issuer ? `<span class="text-sm" style="color:#3f3f46"> &mdash; ${esc(it.issuer)}</span>` : ''}</div></div>`
+      `<div class="grid grid-cols-[140px_1fr] gap-4"><span class="text-xs" style="color:#71717a">${it.date ? esc(it.date) : '&nbsp;'}</span><div><span class="text-sm font-bold" style="color:${TEXT}">${esc(it.name)}${it.repoUrl ? ` <a href="${esc(it.repoUrl)}" target="_blank" rel="noopener noreferrer" class="ml-1 text-xs font-normal text-blue-500">${esc(it.repoUrl)}</a>` : ''}</span>${it.issuer ? `<span class="text-sm" style="color:#3f3f46"> &mdash; ${esc(it.issuer)}</span>` : ''}</div></div>`
     ).join('')}</div>`;
   }
 
@@ -78,7 +78,7 @@ function buildSwissSectionContent(section: Section, lang: string): string {
     return `<div class="space-y-3">${((c as GitHubContent).items || []).map((it: any) => `<div class="grid grid-cols-[140px_1fr] gap-4">
       <span class="text-xs" style="color:#71717a">&#11088; ${it.stars?.toLocaleString() ?? 0}</span>
       <div>
-        <h3 class="text-sm font-bold" style="color:${TEXT}">${esc(it.name)}</h3>
+        <h3 class="text-sm font-bold" style="color:${TEXT}">${esc(it.name)}${it.repoUrl ? ` <a href="${esc(it.repoUrl)}" target="_blank" rel="noopener noreferrer" class="ml-1 text-xs font-normal text-blue-500">${esc(it.repoUrl)}</a>` : ''}</h3>
         ${it.language ? `<span class="text-xs" style="color:${RED}">${esc(it.language)}</span>` : ''}
         ${it.description ? `<div class="mt-0.5 text-sm" style="color:#3f3f46">${md(it.description)}</div>` : ''}
       </div>

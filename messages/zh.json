@@ -132,7 +132,9 @@
         "saving": "保存到工作区",
         "savingDescription": "正在写入本地工作区并创建新简历。"
       }
-    }
+    },
+    "apiKeyNotConfigured": "AI 功能需要配置 API Key 才能使用，包括智能导入、AI 助手、JD 分析等。",
+    "goToSettings": "去配置"
   },
   "interview": {
     "navLabel": "模拟面试",
@@ -417,6 +419,9 @@
       "apiKey": "API Key",
       "apiKeyPlaceholder": "输入你的 API Key...",
       "apiKeyHint": "API Key 保存在本地，每次请求直接发送给模型服务商。",
+      "freeApiKeyHint": "没有 API Key？",
+      "freeApiKeyLink": "查看免费额度平台",
+      "freeApiKeyUrl": "https://github.com/jlifeng/JobPilot/blob/main/docs/free-api-key-guide.md",
       "baseURL": "API 地址",
       "model": "默认模型",
       "modelPlaceholder": "输入模型名称...",
@@ -988,3 +993,4 @@
     "openInApp": "前往 JobPilot"
   }
 }
+

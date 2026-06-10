@@ -291,7 +291,14 @@ function ModernSectionContent({
         {items.map((item) => (
           <div key={item.id} className="border-l-2 pl-4" style={{ borderColor: ACCENT_COLOR }}>
             <div className="flex items-baseline justify-between">
-              <h3 className="text-sm font-semibold text-zinc-800">{item.name}</h3>
+              <h3 className="text-sm font-semibold text-zinc-800">{item.name}
+                {item.repoUrl && (
+                  <a href={item.repoUrl} target="_blank" rel="noopener noreferrer"
+                     className="ml-1 text-xs font-normal text-blue-500 hover:underline">
+                    {item.repoUrl}
+                  </a>
+                )}
+              </h3>
               <span className="shrink-0 rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs text-zinc-500">
                 {item.stars?.toLocaleString() ?? 0}
               </span>
@@ -484,7 +491,7 @@ function buildModernSectionContentHtml(
       .map(
         (it) => `<div class="border-l-2 pl-4" style="border-color:${ACCENT_COLOR}">
       <div class="flex items-baseline justify-between">
-        <h3 class="text-sm font-semibold text-zinc-800">${esc(it.name)}</h3>
+        <h3 class="text-sm font-semibold text-zinc-800">${esc(it.name)}${it.repoUrl ? ` <a href="${esc(it.repoUrl)}" target="_blank" rel="noopener noreferrer" class="ml-1 text-xs font-normal text-blue-500">${esc(it.repoUrl)}</a>` : ''}</h3>
         <span class="shrink-0 rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs text-zinc-500">${it.stars?.toLocaleString() ?? 0}</span>
       </div>
       ${it.language ? `<span class="text-xs text-zinc-500">${esc(it.language)}</span>` : ''}

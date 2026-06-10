@@ -222,11 +222,18 @@ function SwissSectionContent({ section, lang }: { section: any; lang?: string })
           <div key={item.id} className="grid grid-cols-[140px_1fr] gap-4">
             <span className="text-xs" style={{ color: '#52525b' }}>&#11088; {item.stars?.toLocaleString()}</span>
             <div>
-              <h3 className="text-sm font-bold" style={{ color: TEXT }}>{item.name}</h3>
+              <h3 className="text-sm font-bold" style={{ color: TEXT }}>{item.name}
+                {item.repoUrl && (
+                  <a href={item.repoUrl} target="_blank" rel="noopener noreferrer"
+                     className="ml-1 text-xs font-normal text-blue-500 hover:underline">
+                    {item.repoUrl}
+                  </a>
+                )}
+              </h3>
               {item.language && <span className="text-xs" style={{ color: RED }}>{item.language}</span>}
               {item.description && <p className="mt-0.5 text-sm" style={{ color: '#3f3f46' }} dangerouslySetInnerHTML={{ __html: md(item.description) }} />}
             </div>
-          </div>
+</div>
         ))}
       </div>
     );

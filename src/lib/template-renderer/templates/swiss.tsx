@@ -133,7 +133,7 @@ function SwissSectionContent({ section, lang }: { section: CanonicalSection; lan
 
   if (section.type === 'github') {
     const items = (content as unknown as GitHubContent).items || [];
-    return <div className="space-y-3">{items.map((item) => <SwissGridItem key={item.id} aside={`★ ${item.stars?.toLocaleString() ?? 0}`}><h3 className="text-sm font-bold" style={{ color: TEXT }}>{item.name}</h3>{item.language && <span className="text-xs" style={{ color: RED }}>{item.language}</span>}{item.description && <p className="mt-0.5 text-sm" style={{ color: BODY }} dangerouslySetInnerHTML={{ __html: md(item.description) }} />}</SwissGridItem>)}</div>;
+    return <div className="space-y-3">{items.map((item) => <SwissGridItem key={item.id} aside={`★ ${item.stars?.toLocaleString() ?? 0}`}><h3 className="text-sm font-bold" style={{ color: TEXT }}>{item.name}{item.repoUrl && (<a href={item.repoUrl} target="_blank" rel="noopener noreferrer" className="ml-1 text-xs font-normal text-blue-500 hover:underline">{item.repoUrl}</a>)}</h3>{item.language && <span className="text-xs" style={{ color: RED }}>{item.language}</span>}{item.description && <p className="mt-0.5 text-sm" style={{ color: BODY }} dangerouslySetInnerHTML={{ __html: md(item.description) }} />}</SwissGridItem>)}</div>;
   }
 
   if (section.type === 'custom') {
@@ -226,7 +226,7 @@ function buildSwissSectionHtml(section: CanonicalSection, lang: string): string 
   }
   if (section.type === 'github') {
     const items = (content as unknown as GitHubContent).items || [];
-    return `<div class="space-y-3">${items.map((item) => buildSwissGridItem(`★ ${item.stars?.toLocaleString() ?? 0}`, `<h3 class="text-sm font-bold" style="color:${TEXT}">${esc(item.name)}</h3>${item.language ? `<span class="text-xs" style="color:${RED}">${esc(item.language)}</span>` : ''}${item.description ? `<p class="mt-0.5 text-sm" style="color:${BODY}">${md(item.description)}</p>` : ''}`)).join('')}</div>`;
+    return `<div class="space-y-3">${items.map((item) => buildSwissGridItem(`★ ${item.stars?.toLocaleString() ?? 0}`, `<h3 class="text-sm font-bold" style="color:${TEXT}">${esc(item.name)}${item.repoUrl ? ` <a href="${esc(item.repoUrl)}" target="_blank" rel="noopener noreferrer" class="ml-1 text-xs font-normal text-blue-500">${esc(item.repoUrl)}</a>` : ''}</h3>${item.language ? `<span class="text-xs" style="color:${RED}">${esc(item.language)}</span>` : ''}${item.description ? `<p class="mt-0.5 text-sm" style="color:${BODY}">${md(item.description)}</p>` : ''}`)).join('')}</div>`;
   }
   if (section.type === 'custom') {
     const items = (content as unknown as CustomContent).items || [];

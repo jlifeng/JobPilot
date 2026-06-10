@@ -246,10 +246,17 @@ function RoseSectionContent({ section, resume }: { section: any; resume: Resume 
         {items.map((item: any) => (
           <div key={item.id} className="rounded-xl border p-4" style={{ borderColor: ROSE_100 }}>
             <div className="flex items-baseline justify-between">
-              <h3 className="text-sm font-semibold" style={{ color: PRIMARY }}>{item.name}</h3>
+              <h3 className="text-sm font-semibold" style={{ color: PRIMARY }}>{item.name}
+                {item.repoUrl && (
+                  <a href={item.repoUrl} target="_blank" rel="noopener noreferrer"
+                     className="ml-1 text-xs font-normal text-blue-500 hover:underline">
+                    {item.repoUrl}
+                  </a>
+                )}
+              </h3>
               <span className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium" style={{ backgroundColor: ROSE_50, color: ACCENT }}>&#11088; {item.stars?.toLocaleString()}</span>
             </div>
-            {item.language && <span className="text-xs font-medium" style={{ color: ACCENT }}>{item.language}</span>}
+{item.language && <span className="text-xs font-medium" style={{ color: ACCENT }}>{item.language}</span>}
             {item.description && <p className="mt-0.5 text-sm text-zinc-600" dangerouslySetInnerHTML={{ __html: md(item.description) }} />}
           </div>
         ))}

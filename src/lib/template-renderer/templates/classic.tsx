@@ -263,6 +263,12 @@ function ClassicSectionContent({
             <div className="flex items-baseline justify-between">
               <span className="font-semibold text-zinc-800 text-sm">
                 {item.name}
+                {item.repoUrl && (
+                  <a href={item.repoUrl} target="_blank" rel="noopener noreferrer"
+                     className="ml-1 text-xs font-normal text-blue-500 hover:underline">
+                    {item.repoUrl}
+                  </a>
+                )}
               </span>
               <span className="text-xs text-zinc-400">
                 {item.stars?.toLocaleString()}
@@ -447,9 +453,7 @@ function buildClassicSectionContentHtml(
       .map(
         (it) => `<div>
       <div class="flex items-baseline justify-between">
-        <span class="font-semibold text-zinc-800 text-sm">${esc(it.name)}</span>
-        <span class="text-xs text-zinc-400">${it.stars?.toLocaleString() ?? 0}</span>
-      </div>
+        <span class="font-semibold text-zinc-800 text-sm">${esc(it.name)}${it.repoUrl ? ` <a href="${esc(it.repoUrl)}" target="_blank" rel="noopener noreferrer" class="ml-1 text-xs font-normal text-blue-500">${esc(it.repoUrl)}</a>` : ''}</span><span class="text-xs text-zinc-400">${it.stars?.toLocaleString() ?? 0}</span></div>
       ${it.language ? `<span class="text-xs text-zinc-500">${esc(it.language)}</span>` : ''}
       ${it.description ? `<div class="mt-1 text-sm text-zinc-600">${md(it.description)}</div>` : ''}
     </div>`

@@ -5,6 +5,28 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 并且本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.5.1] - 2026-06-11
+
+### 新增
+
+- **免费 API Key 平台指南** — AI 配置区域增加「没有 API Key？查看免费额度平台」提示，引导用户到免费 API Key 获取指南
+- **工作台未配置 API Key 提示** — Dashboard 顶部增加琥珀色引导提示条，未配置 API Key 时显示提示并支持一键跳转设置页
+- **GitHub 模块编辑增强** — 仓库名称和 Stars 数改为可编辑输入框，不再依赖 GitHub API 自动获取；API 自动填充仍保留
+- **GitHub 仓库链接渲染** — 所有简历模板预览和导出中显示 GitHub 仓库链接，链接与项目名称同行显示
+- **讯飞星辰平台** — 免费 API Key 指南新增讯飞星辰平台（Qwen 模型服务免费开放，高并发不限量）
+
+### 优化
+
+- **AI 配置字段顺序调整** — 设置页 AI 配置区域字段顺序改为：协议 → API 地址 → 免费 Key 提示 → API Key，更符合配置流程
+- **设置页保存按钮** — AI 配置卡片底部增加保存按钮，保存成功/失败有即时反馈
+- **清空配置支持** — 支持清空 API 地址和 API Key，后端新增 `clearBaseUrl`/`clearModel` 标志，空值不再报错
+
+### 修复
+
+- 修复设置页清空 API 地址后保存失败的问题（后端校验不允许空值）
+- 修复清空 API Key 后重新打开仍显示旧值的问题（空值时跳过了写入）
+- 修复工作台「去配置」按钮点击无反应的问题（Dashboard 无 SettingsDialog）
+
 ## [1.5.0] - 2026-06-09
 
 ### 新增
@@ -250,7 +272,8 @@
 - 中英双语 — 完整的国际化支持
 - 本地优先 — 数据存储在本地，隐私安全有保障
 
-[Unreleased]: https://github.com/jlifeng/JobPilot/compare/v1.5.0...HEAD
+[Unreleased]: https://github.com/jlifeng/JobPilot/compare/v1.5.1...HEAD
+[1.5.1]: https://github.com/jlifeng/JobPilot/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/jlifeng/JobPilot/compare/v1.4.1...v1.5.0
 [1.4.1]: https://github.com/jlifeng/JobPilot/compare/v1.4.0...v1.4.1
 [1.4.0]: https://github.com/jlifeng/JobPilot/compare/v1.3.0...v1.4.0

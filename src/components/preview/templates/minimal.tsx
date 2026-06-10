@@ -148,10 +148,10 @@ function MinimalSectionContent({ section, lang }: { section: any; lang?: string 
         {items.map((item: any) => (
           <div key={item.id}>
             <div className="flex items-baseline justify-between">
-              <span className="text-sm font-medium text-zinc-800">{item.name}</span>
+              <span className="text-sm font-medium text-zinc-800">{item.name}{item.repoUrl && (<a href={item.repoUrl} target="_blank" rel="noopener noreferrer" className="ml-1 text-xs font-normal text-blue-500 hover:underline">{item.repoUrl}</a>)}</span>
               <span className="text-xs text-zinc-400">{item.stars?.toLocaleString()}</span>
             </div>
-            {item.language && <span className="text-xs text-zinc-400">{item.language}</span>}
+{item.language && <span className="text-xs text-zinc-400">{item.language}</span>}
             {item.description && <p className="mt-1 text-sm text-zinc-600" dangerouslySetInnerHTML={{ __html: md(item.description) }} />}
           </div>
         ))}

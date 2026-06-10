@@ -12,6 +12,7 @@ import {
   MoreHorizontal,
   Pencil,
   Plus,
+  Settings,
   Sparkles,
   Target,
   Trash2,
@@ -28,6 +29,8 @@ import {
   deleteDocument,
   duplicateDocument,
   getDocument,
+  getSecretInventorySnapshot,
+  getWorkspaceSettingsSnapshot,
   listAiAnalysisRecords,
   listInterviewSessions,
   listDocuments,
@@ -546,6 +549,38 @@ function DashboardRoute() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [hasApiKey, setHasApiKey] = useState(true); // default true to avoid flash
+
+  const checkApiKey = useCallback(async () => {
+    try {
+      const [settings, inventory] = await Promise.all([
+        getWorkspaceSettingsSnapshot(),
+        getSecretInventorySnapshot(),
+      ]);
+      const provider = settings.ai?.defaultProvider || "openai";
+      const configured = inventory.entries.some(
+        (entry) =>
+          entry.key === `provider.${provider}.api_key` && entry.isConfigured,
+      );
+      setHasApiKey(configured);
+    } catch {
+      setHasApiKey(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void checkApiKey();
+  }, [checkApiKey]);
+
+  useEffect(() => {
+    const handleSettingsChanged = () => {
+      void checkApiKey();
+    };
+    window.addEventListener("ai-settings-changed", handleSettingsChanged);
+    return () => {
+      window.removeEventListener("ai-settings-changed", handleSettingsChanged);
+    };
+  }, [checkApiKey]);
 
   const refreshResumes = useCallback(async () => {
     setIsLoading(true);
@@ -707,6 +742,21 @@ function DashboardRoute() {
 
   return (
     <div className="mx-auto w-full max-w-[1180px] space-y-5 pb-8">
+      {!hasApiKey && (
+        <div className="flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-900/60 dark:bg-amber-950/30">
+          <Settings className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+          <span className="flex-1 text-[13px] leading-relaxed text-amber-700 dark:text-amber-300">
+            {t("dashboardApiKeyNotConfigured")}
+          </span>
+          <button
+            type="button"
+            className="shrink-0 cursor-pointer rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-amber-700 dark:bg-amber-700 dark:hover:bg-amber-600"
+            onClick={() => navigate({ to: "/settings" })}
+          >
+            {t("dashboardGoToSettings")}
+          </button>
+        </div>
+      )}
       <HeroCard
         latestResume={latestResume}
         relativeLabels={relativeLabels}

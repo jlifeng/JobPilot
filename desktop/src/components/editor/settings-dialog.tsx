@@ -12,6 +12,7 @@ import {
   Plug,
   RefreshCw,
   Cloud,
+  ExternalLink,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -51,6 +52,7 @@ import {
   type ConnectivityTestResult,
   type WebdavSyncStatus,
   type WebdavConnectivityResult,
+  openExternalUrl,
 } from "../../lib/desktop-api";
 
 const AI_PROVIDERS: { value: AiProvider; label: string }[] = [
@@ -147,6 +149,7 @@ export function SettingsContent({
     useState<ConnectivityTestResult | null>(null);
   const [exaTesting, setExaTesting] = useState(false);
   const [aiSaving, setAiSaving] = useState(false);
+  const [aiSaveResult, setAiSaveResult] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   // Load AI settings
   const loadAiSettings = useCallback(async () => {
@@ -367,16 +370,14 @@ export function SettingsContent({
   };
 
   const handleApiKeyBlur = async () => {
-    if (aiApiKey.trim()) {
-      try {
-        await writeSecretValue({
-          key: `provider.${aiProvider}.api_key`,
-          provider: aiProvider,
-          value: aiApiKey.trim(),
-        });
-      } catch (error) {
-        console.error("Failed to save API key:", error);
-      }
+    try {
+      await writeSecretValue({
+        key: `provider.${aiProvider}.api_key`,
+        provider: aiProvider,
+        value: aiApiKey.trim(),
+      });
+    } catch (error) {
+      console.error("Failed to save API key:", error);
     }
   };
 
@@ -389,16 +390,14 @@ export function SettingsContent({
   };
 
   const handleExaApiKeyBlur = async () => {
-    if (exaPoolApiKey.trim()) {
-      try {
-        await writeSecretValue({
-          key: "provider.exa_pool.api_key",
-          provider: "openai",
-          value: exaPoolApiKey.trim(),
-        });
-      } catch (error) {
-        console.error("Failed to save Exa API key:", error);
-      }
+    try {
+      await writeSecretValue({
+        key: "provider.exa_pool.api_key",
+        provider: "openai",
+        value: exaPoolApiKey.trim(),
+      });
+    } catch (error) {
+      console.error("Failed to save Exa API key:", error);
     }
   };
 
@@ -527,6 +526,7 @@ export function SettingsContent({
 
   const handleManualSave = useCallback(async () => {
     setAiSaving(true);
+    setAiSaveResult(null);
     try {
       // Save AI provider config
       const payload: ProviderConfigUpdateInput = {
@@ -536,31 +536,39 @@ export function SettingsContent({
         setAsDefault: true,
         resumeImportVisionModel,
         exaPoolBaseUrl: exaPoolBaseURL,
+        clearBaseUrl: !aiBaseURL.trim(),
+        clearModel: !aiModel.trim(),
       };
       await updateAiProviderSettings(payload);
 
-      // Save API key
-      if (aiApiKey.trim()) {
+      // Save or clear API key
+      try {
         await writeSecretValue({
           key: `provider.${aiProvider}.api_key`,
           provider: aiProvider,
           value: aiApiKey.trim(),
         });
+      } catch {
+        // Non-fatal: keyring write failure should not block save
       }
 
-      // Save Exa API key
-      if (exaPoolApiKey.trim()) {
+      // Save or clear Exa API key
+      try {
         await writeSecretValue({
           key: "provider.exa_pool.api_key",
           provider: "openai",
           value: exaPoolApiKey.trim(),
         });
+      } catch {
+        // Non-fatal: keyring write failure should not block save
       }
 
       window.dispatchEvent(new Event("ai-settings-changed"));
+      setAiSaveResult({ type: "success", text: t("aiSaveSuccess") });
       onClose?.();
     } catch (error) {
       console.error("Failed to save AI settings:", error);
+      setAiSaveResult({ type: "error", text: t("aiSaveError") });
     } finally {
       setAiSaving(false);
     }
@@ -573,6 +581,7 @@ export function SettingsContent({
     aiApiKey,
     exaPoolApiKey,
     onClose,
+    t,
   ]);
 
   const handleCancelAi = useCallback(() => {
@@ -680,6 +689,30 @@ export function SettingsContent({
                   </Select>
                 </div>
 
+                {/* Base URL */}
+                <div className="space-y-2">
+                  <Label>{t("settings.ai.baseURL")}</Label>
+                  <Input
+                    value={aiBaseURL}
+                    onChange={(e) => handleBaseURLChange(e.target.value)}
+                    onBlur={() => void handleBaseURLBlur()}
+                    placeholder="https://api.openai.com/v1"
+                  />
+                </div>
+
+                {/* Free API Key Hint */}
+                <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-zinc-400 -mt-1">
+                  <span>{t("settings.ai.freeApiKeyHint")}</span>
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-0.5 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 hover:underline cursor-pointer"
+                    onClick={() => void openExternalUrl(t("settings.ai.freeApiKeyUrl"))}
+                  >
+                    {t("settings.ai.freeApiKeyLink")}
+                    <ExternalLink className="h-3 w-3" />
+                  </button>
+                </div>
+
                 {/* API Key */}
                 <div className="space-y-2">
                   <Label>{t("settings.ai.apiKey")}</Label>
@@ -706,17 +739,6 @@ export function SettingsContent({
                       )}
                     </Button>
                   </div>
-                </div>
-
-                {/* Base URL */}
-                <div className="space-y-2">
-                  <Label>{t("settings.ai.baseURL")}</Label>
-                  <Input
-                    value={aiBaseURL}
-                    onChange={(e) => handleBaseURLChange(e.target.value)}
-                    onBlur={() => void handleBaseURLBlur()}
-                    placeholder="https://api.openai.com/v1"
-                  />
                 </div>
 
                 {/* Model */}
@@ -1030,6 +1052,36 @@ export function SettingsContent({
                     </span>
                   )}
                 </div>
+
+                {/* Save button for sectioned page mode */}
+                {isSectionedPage && (
+                  <div className="flex items-center justify-end gap-2 pt-1">
+                    {aiSaveResult && (
+                      <span
+                        className={cn(
+                          "text-xs font-medium",
+                          aiSaveResult.type === "success"
+                            ? "text-green-600"
+                            : "text-red-500",
+                        )}
+                      >
+                        {aiSaveResult.text}
+                      </span>
+                    )}
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="cursor-pointer gap-1.5"
+                      disabled={aiSaving}
+                      onClick={() => void handleManualSave()}
+                    >
+                      {aiSaving ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : null}
+                      {t("settings.ai.save")}
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
 
@@ -1333,3 +1385,4 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
     />
   );
 }
+

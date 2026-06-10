@@ -184,10 +184,17 @@ function ModernSectionContent({ section, lang }: { section: any; lang?: string }
         {items.map((item: any) => (
           <div key={item.id} className="border-l-2 pl-4" style={{ borderColor: '#e94560' }}>
             <div className="flex items-baseline justify-between">
-              <h3 className="text-sm font-semibold text-zinc-800">{item.name}</h3>
+              <h3 className="text-sm font-semibold text-zinc-800">{item.name}
+                {item.repoUrl && (
+                  <a href={item.repoUrl} target="_blank" rel="noopener noreferrer"
+                     className="ml-1 text-xs font-normal text-blue-500 hover:underline">
+                    {item.repoUrl}
+                  </a>
+                )}
+              </h3>
               <span className="shrink-0 rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs text-zinc-500">{item.stars?.toLocaleString()}</span>
             </div>
-            {item.language && <span className="text-xs text-zinc-500">{item.language}</span>}
+{item.language && <span className="text-xs text-zinc-500">{item.language}</span>}
             {item.description && <p className="mt-1 text-sm text-zinc-600" dangerouslySetInnerHTML={{ __html: md(item.description) }} />}
           </div>
         ))}

@@ -409,6 +409,12 @@ function ModernMinimalSectionContent({
             <div className="flex items-center justify-between">
               <span className="text-sm font-semibold" style={{ color: TEXT_PRIMARY }}>
                 {item.name}
+                {item.repoUrl && (
+                  <a href={item.repoUrl} target="_blank" rel="noopener noreferrer"
+                     className="ml-1 text-xs font-normal text-blue-500 hover:underline">
+                    {item.repoUrl}
+                  </a>
+                )}
               </span>
               {item.stars != null && (
                 <span className="text-xs" style={{ color: TEXT_SECONDARY }}>
@@ -666,7 +672,7 @@ function buildModernMinimalSectionHtml(
     const items = (content as unknown as GitHubContent).items || [];
     const cardsHtml = items.map((it) => `<div style="border:1px solid ${DIVIDER};border-radius:12px;padding:12px;break-inside:avoid">
       <div style="display:flex;justify-content:space-between;align-items:center">
-        <span style="font-size:14px;font-weight:600;color:${TEXT_PRIMARY}">${esc(it.name)}</span>
+        <span style="font-size:14px;font-weight:600;color:${TEXT_PRIMARY}">${esc(it.name)}${it.repoUrl ? ` <a href="${esc(it.repoUrl)}" target="_blank" rel="noopener noreferrer" class="ml-1 text-xs font-normal text-blue-500">${esc(it.repoUrl)}</a>` : ''}</span>
         ${it.stars != null ? `<span style="font-size:11px;color:${TEXT_SECONDARY}">★ ${it.stars.toLocaleString()}</span>` : ''}
       </div>
       ${it.language ? `<span style="font-size:11px;color:${ACCENT}">${esc(it.language)}</span>` : ''}

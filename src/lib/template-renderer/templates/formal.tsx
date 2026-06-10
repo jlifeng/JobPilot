@@ -222,7 +222,14 @@ function FormalSectionContent({
         {items.map((item) => (
           <div key={item.id}>
             <div className="flex items-baseline justify-between">
-              <span className="text-sm font-bold" style={{ color: DARK_GREEN }}>{item.name}</span>
+              <span className="text-sm font-bold" style={{ color: DARK_GREEN }}>{item.name}
+                {item.repoUrl && (
+                  <a href={item.repoUrl} target="_blank" rel="noopener noreferrer"
+                     className="ml-1 text-xs font-normal text-blue-500 hover:underline">
+                    {item.repoUrl}
+                  </a>
+                )}
+              </span>
               <span className="shrink-0 text-xs italic text-zinc-400">★ {item.stars?.toLocaleString()}</span>
             </div>
             {item.language && <span className="text-xs text-zinc-500">{item.language}</span>}
@@ -345,7 +352,7 @@ function buildFormalSectionHtml(section: CanonicalResume['sections'][number], la
   if (section.type === 'github') {
     const items = (content as unknown as GitHubContent).items || [];
     return `<div class="space-y-3">${items.map((item) => `<div>
-      <div class="flex items-baseline justify-between"><span class="text-sm font-bold" style="color:${DARK_GREEN}">${esc(item.name)}</span><span class="shrink-0 text-xs italic text-zinc-400">★ ${item.stars?.toLocaleString() ?? 0}</span></div>
+      <div class="flex items-baseline justify-between"><span class="text-sm font-bold" style="color:${DARK_GREEN}">${esc(item.name)}${item.repoUrl ? ` <a href="${esc(item.repoUrl)}" target="_blank" rel="noopener noreferrer" class="ml-1 text-xs font-normal text-blue-500">${esc(item.repoUrl)}</a>` : ''}</span><span class="shrink-0 text-xs italic text-zinc-400">★ ${item.stars?.toLocaleString() ?? 0}</span></div>
       ${item.language ? `<span class="text-xs text-zinc-500">${esc(item.language)}</span>` : ''}
       ${item.description ? `<p class="mt-0.5 text-sm text-zinc-600">${md(item.description)}</p>` : ''}
     </div>`).join('')}</div>`;

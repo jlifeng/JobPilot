@@ -216,10 +216,17 @@ function JapaneseSectionContent({ section, lang }: { section: any; lang?: string
         {items.map((item: any) => (
           <div key={item.id}>
             <div className="flex items-baseline justify-between">
-              <h3 className="text-sm font-normal" style={{ color: PRIMARY }}>{item.name}</h3>
+              <h3 className="text-sm font-normal" style={{ color: PRIMARY }}>{item.name}
+                {item.repoUrl && (
+                  <a href={item.repoUrl} target="_blank" rel="noopener noreferrer"
+                     className="ml-1 text-xs font-normal text-blue-500 hover:underline">
+                    {item.repoUrl}
+                  </a>
+                )}
+              </h3>
               <span className="shrink-0 text-[10px] font-light" style={{ color: ACCENT }}>&#11088; {item.stars?.toLocaleString()}</span>
             </div>
-            {item.language && <p className="mt-0.5 text-xs font-light" style={{ color: ACCENT }}>{item.language}</p>}
+{item.language && <p className="mt-0.5 text-xs font-light" style={{ color: ACCENT }}>{item.language}</p>}
             {item.description && <p className="mt-1 text-sm font-light leading-relaxed" style={{ color: PRIMARY }} dangerouslySetInnerHTML={{ __html: md(item.description) }} />}
           </div>
         ))}

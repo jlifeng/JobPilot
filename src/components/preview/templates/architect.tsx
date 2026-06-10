@@ -278,7 +278,7 @@ function ArchitectSectionContent({ section, resume }: { section: any; resume: Re
         {items.map((item: any) => (
           <div key={item.id} className="border-l-2 pl-4" style={{ borderColor: ACCENT }}>
             <div className="flex items-baseline justify-between">
-              <span className="text-sm font-bold" style={{ color: PRIMARY }}>{item.name}</span>
+              <span className="text-sm font-bold" style={{ color: PRIMARY }}>{item.name}{item.repoUrl && (<a href={item.repoUrl} target="_blank" rel="noopener noreferrer" className="ml-1 text-xs font-normal text-blue-500 hover:underline">{item.repoUrl}</a>)}</span>
               <span
                 className="shrink-0 px-1.5 py-0.5 text-[10px] font-medium"
                 style={{ fontFamily: 'JetBrains Mono, Consolas, monospace', color: MUTED, backgroundColor: GRID }}
@@ -286,7 +286,7 @@ function ArchitectSectionContent({ section, resume }: { section: any; resume: Re
                 ⭐ {item.stars?.toLocaleString()}
               </span>
             </div>
-            {item.language && (
+{item.language && (
               <span className="text-xs" style={{ color: ACCENT }}>{item.language}</span>
             )}
             {item.description && <p className="mt-1 text-sm" style={{ color: BODY_TEXT }} dangerouslySetInnerHTML={{ __html: md(item.description) }} />}
