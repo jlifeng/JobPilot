@@ -5,6 +5,13 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 并且本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.5.2] - 2026-06-11
+
+### 修复
+
+- 修复 PDF 导出中 GitHub 仓库链接显示为黑色而非蓝色的问题（HTML 导出使用 inline style 替代 Tailwind class）
+- 修复同步设置页面缺少手动同步按钮的问题，新增「立即同步」按钮
+
 ## [1.5.1] - 2026-06-11
 
 ### 新增
@@ -272,7 +279,8 @@
 - 中英双语 — 完整的国际化支持
 - 本地优先 — 数据存储在本地，隐私安全有保障
 
-[Unreleased]: https://github.com/jlifeng/JobPilot/compare/v1.5.1...HEAD
+[Unreleased]: https://github.com/jlifeng/JobPilot/compare/v1.5.2...HEAD
+[1.5.2]: https://github.com/jlifeng/JobPilot/compare/v1.5.1...v1.5.2
 [1.5.1]: https://github.com/jlifeng/JobPilot/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/jlifeng/JobPilot/compare/v1.4.1...v1.5.0
 [1.4.1]: https://github.com/jlifeng/JobPilot/compare/v1.4.0...v1.4.1
