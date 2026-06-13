@@ -37,16 +37,47 @@ JobPilot requires an AI provider to use intelligent features:
 1. Open **Settings** (gear icon in sidebar)
 2. Navigate to **AI Assistant**
 3. Choose your provider:
-   - **OpenAI** (GPT-4, GPT-3.5)
+   - **OpenAI** (GPT-4, GPT-3.5-Turbo)
    - **Anthropic** (Claude 3.5 Sonnet, Claude 3 Opus)
-   - **Google** (Gemini Pro)
-4. Enter your API key
+   - **Google** (Gemini 1.5 Pro, Gemini 1.5 Flash)
+   - **OpenAI-Compatible** (for Chinese models like DeepSeek, Moonshot, Zhipu)
+4. Enter your API key and API base URL (if using OpenAI-compatible)
 5. Select a model
 
 **Getting API Keys:**
+
+**International Providers:**
 - OpenAI: [platform.openai.com/api-keys](https://platform.openai.com/api-keys)
 - Anthropic: [console.anthropic.com](https://console.anthropic.com/)
 - Google: [ai.google.dev](https://ai.google.dev/)
+
+**Chinese Model Providers (国内大模型):**
+
+JobPilot supports Chinese AI models through OpenAI-compatible API:
+
+| Provider | API Base URL | Get API Key | Recommended Models |
+|----------|--------------|-------------|-------------------|
+| **DeepSeek (深度求索)** | `https://api.deepseek.com` | [platform.deepseek.com](https://platform.deepseek.com/) | `deepseek-chat` |
+| **Moonshot (月之暗面)** | `https://api.moonshot.cn/v1` | [platform.moonshot.cn](https://platform.moonshot.cn/) | `moonshot-v1-8k`, `moonshot-v1-32k` |
+| **Zhipu AI (智谱)** | `https://open.bigmodel.cn/api/paas/v4` | [open.bigmodel.cn](https://open.bigmodel.cn/) | `glm-4`, `glm-4-flash` |
+| **Alibaba Qwen (通义千问)** | `https://dashscope.aliyuncs.com/compatible-mode/v1` | [dashscope.console.aliyun.com](https://dashscope.console.aliyun.com/) | `qwen-plus`, `qwen-turbo` |
+| **Baidu (文心一言)** | API via SDK only | [console.bce.baidu.com](https://console.bce.baidu.com/) | Use OpenAI-compatible proxy |
+| **SiliconFlow (硅基流动)** | `https://api.siliconflow.cn/v1` | [siliconflow.cn](https://siliconflow.cn/) | `Qwen/Qwen2.5-7B-Instruct` (Free tier available) |
+
+**How to use Chinese models:**
+1. Select **"OpenAI-Compatible"** as provider
+2. Enter the **API Base URL** from the table above
+3. Enter your **API key** from the provider
+4. Enter the **model name** (e.g., `deepseek-chat`, `moonshot-v1-8k`)
+5. Click **"Test Connection"** to verify
+
+**Cost Comparison (as of 2025):**
+- DeepSeek: ~¥0.001/1K tokens (very affordable)
+- Moonshot: ~¥0.012/1K tokens
+- Zhipu GLM-4: ~¥0.05/1K tokens
+- SiliconFlow: Free tier available for testing
+
+**Note:** Chinese models work best with Chinese-language prompts. For English resumes, international providers (OpenAI, Anthropic) may provide better results.
 
 ### Creating Your First Resume
 
@@ -194,16 +225,47 @@ JobPilot 需要配置 AI 服务商才能使用智能功能：
 1. 打开**设置**（侧边栏齿轮图标）
 2. 进入 **AI 助手**
 3. 选择服务商：
-   - **OpenAI**（GPT-4、GPT-3.5）
+   - **OpenAI**（GPT-4、GPT-3.5-Turbo）
    - **Anthropic**（Claude 3.5 Sonnet、Claude 3 Opus）
-   - **Google**（Gemini Pro）
-4. 输入 API 密钥
+   - **Google**（Gemini 1.5 Pro、Gemini 1.5 Flash）
+   - **OpenAI 兼容**（用于国内大模型如 DeepSeek、Moonshot、智谱等）
+4. 输入 API 密钥和 API Base URL（如使用 OpenAI 兼容模式）
 5. 选择模型
 
 **获取 API 密钥：**
+
+**国际服务商：**
 - OpenAI: [platform.openai.com/api-keys](https://platform.openai.com/api-keys)
 - Anthropic: [console.anthropic.com](https://console.anthropic.com/)
 - Google: [ai.google.dev](https://ai.google.dev/)
+
+**国内大模型服务商：**
+
+JobPilot 通过 OpenAI 兼容 API 支持国内大模型：
+
+| 服务商 | API Base URL | 获取密钥 | 推荐模型 |
+|--------|--------------|---------|---------|
+| **DeepSeek（深度求索）** | `https://api.deepseek.com` | [platform.deepseek.com](https://platform.deepseek.com/) | `deepseek-chat` |
+| **Moonshot（月之暗面）** | `https://api.moonshot.cn/v1` | [platform.moonshot.cn](https://platform.moonshot.cn/) | `moonshot-v1-8k`, `moonshot-v1-32k` |
+| **智谱 AI（Zhipu）** | `https://open.bigmodel.cn/api/paas/v4` | [open.bigmodel.cn](https://open.bigmodel.cn/) | `glm-4`, `glm-4-flash` |
+| **阿里通义千问（Qwen）** | `https://dashscope.aliyuncs.com/compatible-mode/v1` | [dashscope.console.aliyun.com](https://dashscope.console.aliyun.com/) | `qwen-plus`, `qwen-turbo` |
+| **百度文心一言** | 需通过 SDK 或代理 | [console.bce.baidu.com](https://console.bce.baidu.com/) | 使用 OpenAI 兼容代理 |
+| **SiliconFlow（硅基流动）** | `https://api.siliconflow.cn/v1` | [siliconflow.cn](https://siliconflow.cn/) | `Qwen/Qwen2.5-7B-Instruct`（有免费额度）|
+
+**如何使用国内大模型：**
+1. 选择 **"OpenAI 兼容"** 作为服务商
+2. 输入上表中的 **API Base URL**
+3. 输入从服务商获取的 **API 密钥**
+4. 输入 **模型名称**（例如：`deepseek-chat`、`moonshot-v1-8k`）
+5. 点击 **"测试连接"** 验证配置
+
+**价格对比（2025 年参考）：**
+- DeepSeek：~¥0.001/1K tokens（性价比极高）
+- Moonshot：~¥0.012/1K tokens
+- 智谱 GLM-4：~¥0.05/1K tokens
+- SiliconFlow：有免费额度可供测试
+
+**注意：** 国内大模型对中文简历效果最佳。如需处理英文简历，建议使用国际服务商（OpenAI、Anthropic）以获得更好效果。
 
 ### 创建第一份简历
 
