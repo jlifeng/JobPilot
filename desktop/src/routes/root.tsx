@@ -474,7 +474,16 @@ function RootLayout() {
     };
 
     void loadWebdavStatus();
-  }, [runtimeIsFallback]);
+
+    const handleWebdavSettingsChanged = () => {
+      void loadWebdavStatus();
+    };
+
+    window.addEventListener("webdav-settings-changed", handleWebdavSettingsChanged);
+    return () => {
+      window.removeEventListener("webdav-settings-changed", handleWebdavSettingsChanged);
+    };
+  }, [runtimeIsFallback, location.pathname]);
 
   return (
     <div className="h-screen overflow-hidden bg-white font-sans dark:bg-background">

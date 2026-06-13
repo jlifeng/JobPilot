@@ -484,6 +484,7 @@ export function SettingsContent({
       setWebdavAutoSyncIntervalMinutes(nextStatus.autoSyncIntervalMinutes);
       setWebdavPassword("");
       setWebdavMessage({ type: "success", text: t("webdavSettingsSaved") });
+      window.dispatchEvent(new CustomEvent("webdav-settings-changed"));
     } catch (error) {
       setWebdavMessage({
         type: "error",
