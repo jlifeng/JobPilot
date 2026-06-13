@@ -686,7 +686,9 @@ export function AIChatContent({
 
   useEffect(() => {
     if (aiChatInitialPrompt) {
-      setInput(aiChatInitialPrompt);
+      queueMicrotask(() => {
+        setInput(aiChatInitialPrompt);
+      });
     }
   }, [aiChatInitialPrompt]);
 
