@@ -1220,7 +1220,7 @@ export function AIChatPanel({ resumeId }: AIChatPanelProps) {
         variant="ghost"
         size="sm"
         className="absolute right-1 top-1 h-7 w-7 cursor-pointer p-0"
-        onClick={toggleAiChat}
+        onClick={() => toggleAiChat()}
       >
         <X className="h-4 w-4" />
       </Button>

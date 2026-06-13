@@ -257,7 +257,7 @@ export function AIChatBubble({ resumeId }: AIChatBubbleProps) {
           <button
             type="button"
             className="rounded p-1 text-white/80 transition-colors hover:bg-white/20 hover:text-white"
-            onClick={toggleAiChat}
+            onClick={() => toggleAiChat()}
             title={translate("close", "Close")}
           >
             <Minus className="h-4 w-4" />
