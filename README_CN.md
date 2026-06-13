@@ -23,7 +23,7 @@
 
 ## 🎥 演示视频
 
-> **👉 [观看 60 秒演示视频](https://github.com/jlifeng/JobPilot/assets/demo.mp4)** 或查看下方截图
+> **👉 [观看 60 秒演示视频](https://www.bilibili.com/video/BV11pJp6sEt2/?share_source=copy_web&vd_source=8389da06f877de3cbf53d43b449f8022)** 或查看下方截图
 
 JobPilot 是一款本地优先的 AI 求职桌面应用，聚焦简历编写、AI 辅助评审、JD 匹配、模拟面试和本地求职资料管理。它把导入、编辑、导出、同步和持续优化整合进桌面端工作台，下载安装后即可使用，无需搭建服务端。
 

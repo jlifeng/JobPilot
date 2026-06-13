@@ -23,7 +23,7 @@
 
 ## 🎥 Demo
 
-> **👉 [Watch 60s Demo Video](https://github.com/jlifeng/JobPilot/assets/demo.mp4)** or see screenshots below
+> **👉 [Watch 60s Demo Video](https://www.bilibili.com/video/BV11pJp6sEt2/?share_source=copy_web&vd_source=8389da06f877de3cbf53d43b449f8022)** or see screenshots below
 
 JobPilot is a **local-first AI job-search desktop app** focused on resume writing, AI-assisted review, JD matching, mock interviews, and private document management. It packages the job-search workflow into a native desktop workspace, so you can import, edit, export, sync, and iterate on your materials without running a server.
 
