@@ -591,7 +591,7 @@ fn resolve_storage_paths(app: &AppHandle) -> Result<StoragePaths, String> {
     })
 }
 
-fn open_initialized_connection(app: &AppHandle) -> Result<Connection, String> {
+pub(crate) fn open_initialized_connection(app: &AppHandle) -> Result<Connection, String> {
     let paths = resolve_storage_paths(app)?;
     ensure_storage_directory(&paths.workspace_root)?;
     let app_version = app.package_info().version.to_string();
@@ -1259,6 +1259,31 @@ fn bootstrap_schema(connection: &Connection) -> Result<(), String> {
               created_at_epoch_ms INTEGER NOT NULL
             );
 
+            CREATE TABLE IF NOT EXISTS skills (
+              id TEXT PRIMARY KEY,
+              name TEXT NOT NULL,
+              description TEXT NOT NULL DEFAULT '',
+              version TEXT NOT NULL DEFAULT '1.0.0',
+              author TEXT,
+              source TEXT NOT NULL DEFAULT 'custom',
+              icon TEXT,
+              tags_json TEXT NOT NULL DEFAULT '[]',
+              capabilities_json TEXT NOT NULL DEFAULT '[]',
+              references_json TEXT NOT NULL DEFAULT '[]',
+              required_context_json TEXT NOT NULL DEFAULT '[]',
+              variables_json TEXT NOT NULL DEFAULT '[]',
+              enabled INTEGER NOT NULL DEFAULT 1,
+              created_at_epoch_ms INTEGER NOT NULL,
+              updated_at_epoch_ms INTEGER NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS skill_settings (
+              id INTEGER PRIMARY KEY CHECK (id = 1),
+              default_selections_json TEXT NOT NULL DEFAULT '{}',
+              variable_values_json TEXT NOT NULL DEFAULT '{}',
+              updated_at_epoch_ms INTEGER NOT NULL
+            );
+
             CREATE INDEX IF NOT EXISTS idx_interview_rounds_session_sort
               ON interview_rounds(session_id, sort_order);
             CREATE INDEX IF NOT EXISTS idx_interview_messages_round_created
@@ -1389,6 +1414,8 @@ fn collect_table_counts(connection: &Connection) -> Result<Vec<TableCountSnapsho
         "interview_messages",
         "interview_reports",
         "migration_audit",
+        "skills",
+        "skill_settings",
     ];
 
     tables

@@ -1,0 +1,10 @@
+{"file": ".trellis/spec/guides/desktop-runtime-boundary.md", "reason": "Tauri/Rust 命令层与渲染层契约——storage.rs/ai.rs/lib.rs 新增 skills 表、commands、system_prompt 字段都受此边界约束"}
+{"file": ".trellis/spec/desktop/frontend/state-management.md", "reason": "Zustand store 规范——skill-store.ts 管理已安装 Skill/选中 capability/变量值需遵循"}
+{"file": ".trellis/spec/desktop/frontend/type-safety.md", "reason": "类型组织与 invoke 返回值类型化规范——skill.ts 类型定义和 desktop-api.ts 封装需遵循"}
+{"file": ".trellis/spec/desktop/frontend/directory-structure.md", "reason": "桌面端目录与 @/ 别名规范——新增 types/lib/stores/components/skills 路径需对齐"}
+{"file": ".trellis/spec/desktop/frontend/hook-guidelines.md", "reason": "数据获取走 desktop-api 不写自定义 hook——skill-api 封装需遵循"}
+{"file": ".trellis/spec/desktop/frontend/component-guidelines.md", "reason": "桌面端组件分层与目录约定——SkillSelector/SkillVariableForm 需符合"}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "复用思考——内置 Skill 应原样包装现有 buildResumeEditSystemPrompt/getPresetInterviewers，不重写"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "跨层思考——面试 system_prompt 从前端经 desktop-api 到 Rust ai.rs 的链路需跨层一致"}
+{"file": ".trellis/tasks/06-15-skills-plugin-system/research/anthropic-skills-spec.md", "reason": "SKILL.md frontmatter 与 references/ 目录格式——Rust zip 解析与前端导入器需遵循"}
+{"file": ".trellis/tasks/06-15-skills-plugin-system/research/skills-ecosystem.md", "reason": "外部 Skill 包结构与分发机制——Phase 4 导入器需理解社区包长什么样"}

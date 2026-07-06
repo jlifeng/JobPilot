@@ -1,0 +1,6 @@
+{"file": ".trellis/spec/desktop/frontend/quality-guidelines.md", "reason": "桌面端代码质量校验清单：lint/typecheck/组件规范——check 阶段核对前端改动"}
+{"file": ".trellis/spec/guides/desktop-runtime-boundary.md", "reason": "Rust↔前端边界——check 阶段核对 skills.rs 命令注册、system_prompt 透传是否符合 Tauri 运行时边界"}
+{"file": ".trellis/spec/desktop/frontend/index.md", "reason": "桌面端规范索引——check 阶段核对 store/组件/类型是否合规"}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "check 阶段核对是否复用现有 buildResumeEditSystemPrompt/getPresetInterviewers 而非重复实现"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "check 阶段核对 Skill 数据流前后端一致性（capabilities JSON 序列化、system_prompt 透传）"}
+{"file": ".trellis/tasks/06-15-skills-plugin-system/prd.md", "reason": "验收标准与 Out of Scope 边界核对依据"}

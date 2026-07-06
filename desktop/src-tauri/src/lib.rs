@@ -4,6 +4,7 @@ mod importer;
 mod legacy_import_contract;
 mod release;
 mod settings;
+mod skills;
 mod storage;
 mod sync;
 mod workspace;
@@ -24,6 +25,7 @@ use settings::{
     ProviderConfigUpdateInput, SecretInventorySnapshot, SecretValueWriteInput, SecretVaultStatus,
     WorkspaceAppearanceSettingsUpdateInput, WorkspaceSettingsDocument,
 };
+use skills::{SetDefaultSkillSelectionInput, Skill, SkillSettings};
 use storage::{
     AiAnalysisRecordItem, CreateDocumentInput, CreateInterviewSessionInput, DocumentDetail,
     DocumentListItem, ImportDocumentInput, InterviewMessageItem, InterviewReportRecord,
@@ -454,6 +456,39 @@ async fn parse_pdf_resume(
     ai::parse_pdf_resume(&workspace_root, input).await
 }
 
+#[tauri::command]
+fn list_skills(app: tauri::AppHandle) -> Result<Vec<Skill>, String> {
+    skills::list_skills(app)
+}
+
+#[tauri::command]
+fn get_skill(app: tauri::AppHandle, skill_id: String) -> Result<Option<Skill>, String> {
+    skills::get_skill(app, skill_id)
+}
+
+#[tauri::command]
+fn save_skill(app: tauri::AppHandle, skill: Skill) -> Result<Skill, String> {
+    skills::save_skill(app, skill)
+}
+
+#[tauri::command]
+fn delete_skill(app: tauri::AppHandle, skill_id: String) -> Result<bool, String> {
+    skills::delete_skill(app, skill_id)
+}
+
+#[tauri::command]
+fn get_skill_settings(app: tauri::AppHandle) -> Result<SkillSettings, String> {
+    skills::get_skill_settings(app)
+}
+
+#[tauri::command]
+fn set_default_skill_selection(
+    app: tauri::AppHandle,
+    input: SetDefaultSkillSelectionInput,
+) -> Result<SkillSettings, String> {
+    skills::set_default_skill_selection(app, input)
+}
+
 fn build_importer_snapshot(
     app: &tauri::AppHandle,
     mode: ImporterExecutionMode,
@@ -576,7 +611,13 @@ pub fn run() {
             execute_importer_staging,
             execute_importer_migration,
             parse_markdown_resume,
-            parse_pdf_resume
+            parse_pdf_resume,
+            list_skills,
+            get_skill,
+            save_skill,
+            delete_skill,
+            get_skill_settings,
+            set_default_skill_selection
         ])
         .run(tauri::generate_context!())
         .expect("failed to run JobPilot desktop shell");

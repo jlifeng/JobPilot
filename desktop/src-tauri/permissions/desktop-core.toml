@@ -52,4 +52,10 @@ commands.allow = [
   "test_webdav_connection",
   "upload_webdav_snapshot",
   "restore_webdav_snapshot",
+  "list_skills",
+  "get_skill",
+  "save_skill",
+  "delete_skill",
+  "get_skill_settings",
+  "set_default_skill_selection",
 ]
