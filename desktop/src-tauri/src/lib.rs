@@ -557,6 +557,9 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(|app| {
             sync::start_auto_sync_scheduler(app.handle().clone());
+            if let Err(error) = skills::bootstrap_builtin_skills(app.handle()) {
+                eprintln!("[skills] failed to bootstrap built-in skills: {error}");
+            }
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

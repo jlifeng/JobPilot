@@ -350,6 +350,9 @@
       "clear": "清除",
       "dateDisplay": "{year}年{month}",
       "months": {
+        "10": "10月",
+        "11": "11月",
+        "12": "12月",
         "01": "1月",
         "02": "2月",
         "03": "3月",
@@ -358,10 +361,7 @@
         "06": "6月",
         "07": "7月",
         "08": "8月",
-        "09": "9月",
-        "10": "10月",
-        "11": "11月",
-        "12": "12月"
+        "09": "9月"
       }
     }
   },
@@ -991,6 +991,11 @@
     "invalidPassword": "密码错误，请重试。",
     "notFound": "此简历不存在或已被删除。",
     "openInApp": "前往 JobPilot"
+  },
+  "skill": {
+    "selectorDefault": "默认助手",
+    "selectorLabel": "Skill",
+    "variableFormTitle": "变量配置",
+    "noVariables": "此 Skill 无可配置变量"
   }
 }
-

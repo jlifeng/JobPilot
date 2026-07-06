@@ -8,7 +8,8 @@
 //! PR1 scope: data model + storage + CRUD only.
 //! - `import_skill_package` / `export_skill_package` are intentionally not implemented
 //!   here (Phase 4 scope, needs the `zip` crate). They are left as TODO markers.
-//! - Built-in Skill registration on first launch is also deferred to Phase 2/3.
+//! - Built-in Skill registration on first launch is implemented in
+//!   `bootstrap_builtin_skills` (Phase 2; `builtin-interview-personas` arrives in Phase 3).
 
 use rusqlite::{params, OptionalExtension};
 use serde::{Deserialize, Serialize};
@@ -421,14 +422,88 @@ pub fn set_default_skill_selection(
 // intentionally out of PR1 scope.
 
 // =====================================================
-// TODO (Phase 2/3): Built-in Skill registration on first launch
+// Built-in Skill registration on first launch (Phase 2)
 // =====================================================
 //
-// On bootstrap, check if built-in Skills (builtin-resume-assistant,
-// builtin-interview-personas, etc.) are already present; if not, insert them
-// wrapping the existing hardcoded prompts. This keeps the upgrade path
-// backward-compatible — disabling a built-in Skill makes the corresponding
-// scenario fall back to the hardcoded default prompt.
+// On bootstrap, check if `builtin-resume-assistant` is already present at the
+// current version; if not, insert it. The capability prompt mirrors the
+// hardcoded `buildResumeEditSystemPrompt` from ai-chat-panel.tsx so that
+// selecting this built-in Skill produces a system prompt equivalent to the
+// default behavior — keeping the "wrap existing prompt, fall back on disable"
+// contract from the PRD ADR. The dynamic `sectionList` line is replaced with a
+// pointer to the resume context that SkillRuntime appends at prompt-build time.
+
+const BUILTIN_RESUME_ASSISTANT_VERSION: &str = "1.0.0";
+
+pub fn bootstrap_builtin_skills(app: &AppHandle) -> Result<(), String> {
+    let existing_version = read_skill_version(app, "builtin-resume-assistant")?;
+    if existing_version.as_deref() == Some(BUILTIN_RESUME_ASSISTANT_VERSION) {
+        return Ok(());
+    }
+
+    let capability = serde_json::json!([{
+        "id": "resume-edit",
+        "name": "Resume Edit",
+        "description": "Conversational resume editing with tool-assisted text patches.",
+        "matchOn": {
+            "scenarios": ["ai-chat"],
+            "categories": ["resume"]
+        },
+        "prompt": BUILTIN_RESUME_ASSISTANT_PROMPT,
+        "outputFormat": "stream",
+        "requiresTools": ["replaceResumeText", "updateResumeMetadata"]
+    }]);
+
+    let skill = Skill {
+        id: "builtin-resume-assistant".into(),
+        name: "Resume Assistant".into(),
+        description: "JobPilot built-in resume editing assistant.".into(),
+        version: BUILTIN_RESUME_ASSISTANT_VERSION.into(),
+        author: Some("JobPilot".into()),
+        source: "builtin".into(),
+        icon: Some("sparkles".into()),
+        tags: serde_json::json!(["resume", "builtin"]),
+        capabilities: capability,
+        references: serde_json::json!([]),
+        required_context: serde_json::json!([
+            {"type": "resume", "required": true, "description": "Current resume sections"}
+        ]),
+        variables: serde_json::json!([]),
+        enabled: true,
+        created_at_epoch_ms: now_epoch_ms()? as i64,
+        updated_at_epoch_ms: now_epoch_ms()? as i64,
+    };
+
+    save_skill(app.clone(), skill)?;
+    Ok(())
+}
+
+/// Read only the `version` column for a Skill, returning `None` when the row
+/// is absent. Used by `bootstrap_builtin_skills` to skip re-inserting when the
+/// installed built-in already matches the current version.
+fn read_skill_version(app: &AppHandle, skill_id: &str) -> Result<Option<String>, String> {
+    let connection = open_initialized_connection(app)?;
+    let version = connection
+        .query_row(
+            "SELECT version FROM skills WHERE id = ?1",
+            params![skill_id],
+            |row| row.get::<_, String>(0),
+        )
+        .optional()
+        .map_err(|error| format!("failed to read skill version for {skill_id}: {error}"))?;
+    Ok(version)
+}
+
+const BUILTIN_RESUME_ASSISTANT_PROMPT: &str = "\
+You are JobPilot's desktop resume assistant.
+Keep answers concise, actionable, and in the user's language.
+If fetched webpage content or search results are included in the prompt, use them directly, cite the URLs you relied on, and do not say you cannot access the link or browse the web.
+When the user asks to update, rewrite, optimize, add, or directly modify the resume, you MUST use the available resume-editing tools instead of outputting raw resume JSON.
+Never dump the full resume JSON unless the user explicitly asks for raw JSON.
+For section edits, use the exact sectionId values provided in the resume context appended below.
+When calling replaceResumeText, send patches with exact originalText values copied verbatim from the resume context and replacementText values. Do not send full section JSON.
+After a resume-edit tool succeeds, briefly confirm what changed.
+Available resume sections: see the resume context appended below.";
 
 // =====================================================
 // Internal helpers

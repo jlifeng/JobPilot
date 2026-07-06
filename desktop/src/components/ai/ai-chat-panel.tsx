@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/select";
 import { useEditorStore } from "../../stores/editor-store";
 import { useResumeStore } from "../../stores/resume-store";
+import { useSkillStore } from "../../stores/skill-store";
 import {
   getDocument,
   getSecretInventorySnapshot,
@@ -50,6 +51,9 @@ import {
   type DesktopAiStreamEvent,
 } from "../../lib/desktop-api";
 import { toResumeDocument } from "../../lib/desktop-document-mappers";
+import { SkillRuntime } from "../../lib/skill-runtime";
+import { SkillSelector } from "../skill/skill-selector";
+import { SkillVariableForm } from "../skill/skill-variable-form";
 import { ReasoningBlock } from "./reasoning-block";
 import { ToolExecutionCard } from "./tool-execution-card";
 
@@ -692,6 +696,65 @@ export function AIChatContent({
     }
   }, [aiChatInitialPrompt]);
 
+  // Load Skill catalog + default selections once on mount. Failures fall back
+  // to empty values inside the store, so the chat panel keeps working even
+  // when no Skill is installed.
+  useEffect(() => {
+    void useSkillStore.getState().loadSkills();
+    void useSkillStore.getState().loadSettings();
+  }, []);
+
+  const defaultSelections = useSkillStore((state) => state.defaultSelections);
+  // The persisted default is the source of truth until the user explicitly
+  // picks a capability in this session. Once they do, we hold the override in
+  // local state so a stale setDefaultSelection() response (e.g. from a rapid
+  // A → B selection) can't clobber the newer in-session choice. This avoids
+  // a setState-in-effect sync: the derived value is either the override (if
+  // set) or the store's persisted default, recomputed on each render.
+  const [userOverride, setUserOverride] = useState<string | null | undefined>(
+    undefined,
+  );
+  const selectedSkillCapability =
+    userOverride !== undefined
+      ? userOverride
+      : (defaultSelections["ai-chat"] ?? null);
+
+  // When the user changes the selector, update local override AND persist it
+  // as the default for ai-chat so the choice survives reloads. The persist
+  // call is fire-and-forget; the store optimistically mirrors the value.
+  const handleSkillCapabilityChange = useCallback(
+    (selection: string | null) => {
+      setUserOverride(selection);
+      void useSkillStore.getState().setDefaultSelection({
+        scenarioId: "ai-chat",
+        selection,
+      });
+    },
+    [],
+  );
+
+  // Subscribe to the skills list so this memo re-runs when loadSkills()
+  // resolves. Reading useSkillStore.getState() here would snapshot the empty
+  // initial list and never recompute, leaving the variable form stuck
+  // hidden until the user re-picks the capability.
+  const skills = useSkillStore((state) => state.skills);
+
+  // Resolve the active skill + capability objects for the variable form.
+  const activeSkillCapability = useMemo(() => {
+    if (!selectedSkillCapability) {
+      return { skill: null, capability: null };
+    }
+    const [skillId, capabilityId] = selectedSkillCapability.split(":");
+    if (!skillId || !capabilityId) {
+      return { skill: null, capability: null };
+    }
+    const lookup = new SkillRuntime(skills).getCapability(skillId, capabilityId);
+    if (!lookup) {
+      return { skill: null, capability: null };
+    }
+    return { skill: lookup.skill, capability: lookup.capability };
+  }, [selectedSkillCapability, skills]);
+
   const createNewSession = useCallback(() => {
     const session = createSession(newChatLabel);
     setSessions((previous) => [session, ...previous]);
@@ -827,13 +890,51 @@ export function AIChatContent({
         })),
       };
       const conversation = buildConversationHistory(activeSession?.messages ?? []);
-      const systemPrompt = buildResumeEditSystemPrompt(
-        sections.map((section) => ({
-          id: section.id,
-          type: section.type,
-          title: section.title,
-        })),
-      );
+
+      // Build the system prompt. When a Skill capability is selected, the
+      // SkillRuntime assembles the prompt from the capability template +
+      // variables. The full resumeContext is intentionally NOT injected into
+      // the system prompt here — it is appended to the user prompt below
+      // (same as the default path), so we avoid sending the resume payload
+      // twice and avoid doubling token usage. The builtin-resume-assistant
+      // prompt points the model at "the resume context appended below" to
+      // preserve this contract.
+      let systemPrompt: string;
+      if (selectedSkillCapability) {
+        const [skillId, capabilityId] = selectedSkillCapability.split(":");
+        const skills = useSkillStore.getState().skills;
+        const lookup = skillId && capabilityId
+          ? new SkillRuntime(skills).getCapability(skillId, capabilityId)
+          : null;
+        if (lookup) {
+          systemPrompt = new SkillRuntime(skills).buildSystemPrompt(
+            "ai-chat",
+            lookup.capability,
+            lookup.skill,
+            {
+              variables: useSkillStore.getState().variableValues[skillId] ?? {},
+            },
+          );
+        } else {
+          // Selection points at a Skill that's no longer installed — fall
+          // back to the default builder so the chat still works.
+          systemPrompt = buildResumeEditSystemPrompt(
+            sections.map((section) => ({
+              id: section.id,
+              type: section.type,
+              title: section.title,
+            })),
+          );
+        }
+      } else {
+        systemPrompt = buildResumeEditSystemPrompt(
+          sections.map((section) => ({
+            id: section.id,
+            type: section.type,
+            title: section.title,
+          })),
+        );
+      }
 
       try {
         await startAiPromptStream({
@@ -884,6 +985,7 @@ export function AIChatContent({
       isDirty,
       resumeId,
       thinkingEnabled,
+      selectedSkillCapability,
     ],
   );
 
@@ -1172,8 +1274,15 @@ export function AIChatContent({
             }}
           />
 
+          {activeSkillCapability.skill && activeSkillCapability.capability && (
+            <SkillVariableForm
+              skill={activeSkillCapability.skill}
+              capability={activeSkillCapability.capability}
+            />
+          )}
+
           <div className="flex items-center justify-between px-3 pb-2.5">
-            <div>
+            <div className="flex items-center gap-2">
               <Select
                 value={selectedModel}
                 onValueChange={setSelectedModel}
@@ -1191,6 +1300,12 @@ export function AIChatContent({
                   ))}
                 </SelectContent>
               </Select>
+              <SkillSelector
+                scenarioId="ai-chat"
+                value={selectedSkillCapability ?? undefined}
+                onChange={handleSkillCapabilityChange}
+                disabled={isThinking}
+              />
             </div>
 
             <button
