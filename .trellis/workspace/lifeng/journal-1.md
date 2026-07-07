@@ -78,3 +78,38 @@ Added shared ContactInfo component with grid/icon layout, new Modern Minimal tem
 ### Next Steps
 
 - None - task complete
+
+
+## Session 3: Skill 系统 MVP：Phase 1-3 全量交付
+
+**Date**: 2026-07-07
+**Task**: Skill 系统 MVP：Phase 1-3 全量交付
+**Branch**: `feature/skills-pack`
+
+### Summary
+
+为 JobPilot 引入通用 AI Skill 系统，MVP 锁定 Phase 1-3。PR1 核心基础设施：Skill/SkillCapability 类型、SQLite skills+skill_settings 表、Rust skills.rs CRUD、前端 skill-api/runtime/store/scenarios、SkillRuntime 匹配引擎 + 21 单测。PR2 AI Chat 接入：SkillSelector/SkillVariableForm 组件、改造 ai-chat-panel、注册 builtin-resume-assistant。PR3 面试接入：Rust StartInterviewTurnStreamInput.system_prompt 字段（向后兼容）、interview_sessions.skill_selection 列、interview-setup-form 挂 SkillSelector、interview-room runTurn 用 SkillRuntime 构建 prompt、注册 builtin-interview-personas（6 个 preset interviewer capability）。trellis-check 抓到两个跨层缺陷：PR1 的 Tauri ACL 漏注册 6 个 skill 命令（静默拒绝+浏览器 fallback 掩盖）、PR3 的 interview-room 深链进入时 Skill catalog 未加载导致静默回退默认 prompt——均自修。设计权衡写入 PRD ADR：自定义 Skill 不作为 MVP 目标，规则驱动 matchOn 与 Anthropic Skills 自然语言 description 的架构张力是根本性权衡。验收标准全达成：不装 Skill 行为不变、Skill 切换生效、[ROUND_COMPLETE] 标记保留、lint/typecheck/CI green。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `21f4877` | (see git log) |
+| `ac40728` | (see git log) |
+| `bb7e8c5` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
