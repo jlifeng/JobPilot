@@ -1199,6 +1199,7 @@ fn bootstrap_schema(connection: &Connection) -> Result<(), String> {
               job_description TEXT NOT NULL,
               job_title TEXT NOT NULL DEFAULT '',
               selected_interviewers_json TEXT NOT NULL DEFAULT '[]',
+              skill_selection TEXT,
               current_round INTEGER NOT NULL DEFAULT 0,
               status TEXT NOT NULL DEFAULT 'preparing',
               created_at_epoch_ms INTEGER NOT NULL,
@@ -1305,6 +1306,15 @@ fn bootstrap_schema(connection: &Connection) -> Result<(), String> {
         "interview_reports",
         "training_plan_json",
         "TEXT NOT NULL DEFAULT '[]'",
+    )?;
+    // PR3: session-level Skill persona selection ("skillId:capabilityId" or
+    // NULL). Old databases predating this column need the ALTER TABLE path;
+    // `ensure_column` is idempotent so re-running bootstrap is safe.
+    ensure_column(
+        connection,
+        "interview_sessions",
+        "skill_selection",
+        "TEXT",
     )?;
 
     Ok(())
@@ -1518,6 +1528,7 @@ pub struct InterviewSessionListItem {
     pub job_description: String,
     pub job_title: Option<String>,
     pub selected_interviewers: Vec<Value>,
+    pub skill_selection: Option<String>,
     pub current_round: i32,
     pub total_rounds: i32,
     pub status: String,
@@ -1535,6 +1546,7 @@ pub struct InterviewSessionDetail {
     pub job_description: String,
     pub job_title: Option<String>,
     pub selected_interviewers: Vec<Value>,
+    pub skill_selection: Option<String>,
     pub current_round: i32,
     pub total_rounds: i32,
     pub status: String,
@@ -1621,6 +1633,10 @@ pub struct CreateInterviewSessionInput {
     pub job_description: String,
     pub job_title: Option<String>,
     pub rounds: Vec<CreateInterviewRoundInput>,
+    /// Optional Skill persona selection in "skillId:capabilityId" form.
+    /// Persisted at session create time so interview-room can rebuild the
+    /// Skill system prompt on each turn without re-prompting the user.
+    pub skill_selection: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -1662,6 +1678,7 @@ pub fn list_interview_sessions(app: &AppHandle) -> Result<Vec<InterviewSessionLi
               sessions.job_description,
               sessions.job_title,
               sessions.selected_interviewers_json,
+              sessions.skill_selection,
               sessions.current_round,
               sessions.status,
               COALESCE(round_counts.total_rounds, 0),
@@ -1686,20 +1703,21 @@ pub fn list_interview_sessions(app: &AppHandle) -> Result<Vec<InterviewSessionLi
     let rows = statement
         .query_map([], |row| {
             let job_title = row.get::<_, String>(3)?;
-            let report_id = row.get::<_, Option<String>>(8)?;
+            let report_id = row.get::<_, Option<String>>(9)?;
             Ok(InterviewSessionListItem {
                 id: row.get::<_, String>(0)?,
                 resume_id: row.get::<_, Option<String>>(1)?,
                 job_description: row.get::<_, String>(2)?,
                 job_title: empty_string_to_none(job_title),
                 selected_interviewers: parse_json_array_or_default(&row.get::<_, String>(4)?, "[]"),
-                current_round: row.get::<_, i32>(5)?,
-                status: row.get::<_, String>(6)?,
-                total_rounds: row.get::<_, i32>(7)?,
+                skill_selection: row.get::<_, Option<String>>(5)?,
+                current_round: row.get::<_, i32>(6)?,
+                status: row.get::<_, String>(7)?,
+                total_rounds: row.get::<_, i32>(8)?,
                 has_report: report_id.is_some(),
-                overall_score: row.get::<_, Option<i32>>(9)?,
-                created_at_epoch_ms: row.get::<_, i64>(10)?,
-                updated_at_epoch_ms: row.get::<_, i64>(11)?,
+                overall_score: row.get::<_, Option<i32>>(10)?,
+                created_at_epoch_ms: row.get::<_, i64>(11)?,
+                updated_at_epoch_ms: row.get::<_, i64>(12)?,
             })
         })
         .map_err(|error| format!("failed to query interview sessions: {error}"))?;
@@ -1842,6 +1860,7 @@ pub fn create_interview_session(
         .map_err(|error| format!("failed to serialize interviewer config list: {error}"))?;
     let resume_id = normalize_optional_string(input.resume_id);
     let job_title = input.job_title.unwrap_or_default().trim().to_string();
+    let skill_selection = normalize_optional_string(input.skill_selection);
 
     transaction
         .execute(
@@ -1852,11 +1871,12 @@ pub fn create_interview_session(
               job_description,
               job_title,
               selected_interviewers_json,
+              skill_selection,
               current_round,
               status,
               created_at_epoch_ms,
               updated_at_epoch_ms
-            ) VALUES (?1, ?2, ?3, ?4, ?5, 0, 'preparing', ?6, ?6)
+            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, 0, 'preparing', ?7, ?7)
             "#,
             params![
                 &session_id,
@@ -1864,6 +1884,7 @@ pub fn create_interview_session(
                 &job_description,
                 &job_title,
                 &selected_interviewers_json,
+                &skill_selection,
                 now
             ],
         )
@@ -2373,6 +2394,7 @@ fn load_interview_session_detail(
               job_description,
               job_title,
               selected_interviewers_json,
+              skill_selection,
               current_round,
               status,
               created_at_epoch_ms,
@@ -2392,11 +2414,12 @@ fn load_interview_session_detail(
                         &row.get::<_, String>(4)?,
                         "[]",
                     ),
-                    current_round: row.get::<_, i32>(5)?,
+                    skill_selection: row.get::<_, Option<String>>(5)?,
+                    current_round: row.get::<_, i32>(6)?,
                     total_rounds: 0,
-                    status: row.get::<_, String>(6)?,
-                    created_at_epoch_ms: row.get::<_, i64>(7)?,
-                    updated_at_epoch_ms: row.get::<_, i64>(8)?,
+                    status: row.get::<_, String>(7)?,
+                    created_at_epoch_ms: row.get::<_, i64>(8)?,
+                    updated_at_epoch_ms: row.get::<_, i64>(9)?,
                     rounds: Vec::new(),
                     report: None,
                 })

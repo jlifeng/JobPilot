@@ -808,6 +808,7 @@ interface RawInterviewSessionListItem {
   jobDescription: string;
   jobTitle?: string | null;
   selectedInterviewers: unknown;
+  skillSelection?: string | null;
   currentRound: number;
   totalRounds: number;
   status: InterviewSession["status"];
@@ -861,6 +862,7 @@ interface RawInterviewSessionDetail {
   jobDescription: string;
   jobTitle?: string | null;
   selectedInterviewers: unknown;
+  skillSelection?: string | null;
   currentRound: number;
   totalRounds: number;
   status: InterviewSession["status"];
@@ -1758,6 +1760,7 @@ function normalizeInterviewSession(
     jobDescription: item.jobDescription,
     jobTitle: deriveInterviewTitle(item.jobTitle, item.jobDescription),
     selectedInterviewers: normalizeInterviewerConfigList(item.selectedInterviewers),
+    skillSelection: item.skillSelection ?? null,
     currentRound: item.currentRound,
     status: item.status,
     reportId: null,
@@ -1777,6 +1780,7 @@ function normalizeInterviewSessionDetail(
     jobDescription: item.jobDescription,
     jobTitle: deriveInterviewTitle(item.jobTitle, item.jobDescription),
     selectedInterviewers: normalizeInterviewerConfigList(item.selectedInterviewers),
+    skillSelection: item.skillSelection ?? null,
     currentRound: item.currentRound,
     status: item.status,
     reportId: item.report?.id ?? null,
@@ -2110,6 +2114,7 @@ export async function createInterviewSession(
         interviewerConfig: interviewer,
         maxQuestions: 8,
       })),
+      skillSelection: input.skillSelection ?? null,
     },
   };
   console.log("createInterviewSession payload:", JSON.stringify(payload, null, 2));
@@ -2246,6 +2251,7 @@ export async function startInterviewTurnStream(
       baseUrl: input.baseUrl,
       requestId: input.requestId,
       locale: input.locale,
+      systemPrompt: input.systemPrompt,
     },
   });
 }

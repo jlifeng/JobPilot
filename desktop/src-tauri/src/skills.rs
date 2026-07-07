@@ -434,48 +434,171 @@ pub fn set_default_skill_selection(
 // pointer to the resume context that SkillRuntime appends at prompt-build time.
 
 const BUILTIN_RESUME_ASSISTANT_VERSION: &str = "1.0.0";
+const BUILTIN_INTERVIEW_PERSONAS_VERSION: &str = "1.0.0";
 
 pub fn bootstrap_builtin_skills(app: &AppHandle) -> Result<(), String> {
-    let existing_version = read_skill_version(app, "builtin-resume-assistant")?;
-    if existing_version.as_deref() == Some(BUILTIN_RESUME_ASSISTANT_VERSION) {
-        return Ok(());
+    let resume_version = read_skill_version(app, "builtin-resume-assistant")?;
+    if resume_version.as_deref() != Some(BUILTIN_RESUME_ASSISTANT_VERSION) {
+        let capability = serde_json::json!([{
+            "id": "resume-edit",
+            "name": "Resume Edit",
+            "description": "Conversational resume editing with tool-assisted text patches.",
+            "matchOn": {
+                "scenarios": ["ai-chat"],
+                "categories": ["resume"]
+            },
+            "prompt": BUILTIN_RESUME_ASSISTANT_PROMPT,
+            "outputFormat": "stream",
+            "requiresTools": ["replaceResumeText", "updateResumeMetadata"]
+        }]);
+
+        let skill = Skill {
+            id: "builtin-resume-assistant".into(),
+            name: "Resume Assistant".into(),
+            description: "JobPilot built-in resume editing assistant.".into(),
+            version: BUILTIN_RESUME_ASSISTANT_VERSION.into(),
+            author: Some("JobPilot".into()),
+            source: "builtin".into(),
+            icon: Some("sparkles".into()),
+            tags: serde_json::json!(["resume", "builtin"]),
+            capabilities: capability,
+            references: serde_json::json!([]),
+            required_context: serde_json::json!([
+                {"type": "resume", "required": true, "description": "Current resume sections"}
+            ]),
+            variables: serde_json::json!([]),
+            enabled: true,
+            created_at_epoch_ms: now_epoch_ms()? as i64,
+            updated_at_epoch_ms: now_epoch_ms()? as i64,
+        };
+        save_skill(app.clone(), skill)?;
     }
 
-    let capability = serde_json::json!([{
-        "id": "resume-edit",
-        "name": "Resume Edit",
-        "description": "Conversational resume editing with tool-assisted text patches.",
-        "matchOn": {
-            "scenarios": ["ai-chat"],
-            "categories": ["resume"]
-        },
-        "prompt": BUILTIN_RESUME_ASSISTANT_PROMPT,
-        "outputFormat": "stream",
-        "requiresTools": ["replaceResumeText", "updateResumeMetadata"]
-    }]);
+    let interview_version = read_skill_version(app, "builtin-interview-personas")?;
+    if interview_version.as_deref() != Some(BUILTIN_INTERVIEW_PERSONAS_VERSION) {
+        save_skill(app.clone(), build_builtin_interview_personas_skill()?)?;
+    }
 
-    let skill = Skill {
-        id: "builtin-resume-assistant".into(),
-        name: "Resume Assistant".into(),
-        description: "JobPilot built-in resume editing assistant.".into(),
-        version: BUILTIN_RESUME_ASSISTANT_VERSION.into(),
+    Ok(())
+}
+
+/// Build the `builtin-interview-personas` Skill: six capabilities, one per
+/// preset interviewer (hr/technical/scenario/behavioral/project_deep_dive/leader).
+/// Each capability prompt inlines that interviewer's bio/personality/style and
+/// the shared interview conduct guidelines (including the `[ROUND_COMPLETE]`
+/// state-machine marker that `run_interview_turn_stream` depends on). The JD
+/// context is appended at prompt-build time by `SkillRuntime`, mirroring the
+/// structure of `build_interview_system_prompt` so selecting a built-in
+/// persona produces an equivalent system prompt.
+fn build_builtin_interview_personas_skill() -> Result<Skill, String> {
+    const CONDUCT_GUIDELINES: &str = "\
+# 面试执行规范
+
+- 每次只提出一个问题，等待候选人完整作答后再回应。
+- 先对候选人的回答做出简短反应，再继续追问或切换到下一个问题。
+- 说话像一个真实、资深的面试官，不要像 AI 助手。
+- 当问题差不多结束时，给出一段简短、真实的本轮评价，并在最后单独一行写 [ROUND_COMPLETE]。
+- 不使用 emoji，不使用模板化寒暄，不质疑候选人提到的新技术是否存在。
+
+用中文交流。";
+
+    const INTERVIEWERS: &[(&str, &str, &str, &str, &str, &str, &str)] = &[
+        (
+            "hr",
+            "HR总监·李雯",
+            "李雯",
+            "HR总监",
+            "10年人力资源管理经验，先后在互联网大厂和独角兽公司负责技术团队招聘。精通结构化面试和胜任力模型评估，对候选人的职业动机、文化适配度和长期发展潜力有敏锐的判断力。面过的候选人超过两千人，善于在轻松的氛围中捕捉关键信息。",
+            "以开放式问题切入，通过层层递进的追问了解候选人的真实动机和价值取向。善于从候选人描述的细节中发现不一致之处，会温和但精准地追问。不喜欢假大空的回答，更看重真诚和自我认知。",
+            "亲切专业，善于倾听和共情，但在关键问题上不会放水。会用看似随意的闲聊来考察候选人的真实状态。",
+        ),
+        (
+            "technical",
+            "技术专家·张明",
+            "张明",
+            "技术专家",
+            "15年软件开发经验，曾在一线互联网公司主导过千万级DAU系统的架构设计与性能优化。对技术原理有近乎偏执的追求，反感只会背概念不懂本质的候选人。自己就是从一线写代码成长起来的，所以特别能分辨谁是真正动手做过的。",
+            "由浅入深的递进式提问，先从基础概念入手确认底线，再逐步深入到实现原理和边界情况。如果候选人某个点回答得好，会直接跳到更有挑战性的问题。遇到含糊的回答会直接要求举具体例子或画出流程。",
+            "严谨直接，逻辑驱动。不满意的回答会继续追问直到满意或确认候选人确实不会。对真正有技术深度的候选人会表现出明显的欣赏。",
+        ),
+        (
+            "scenario",
+            "架构师·王强",
+            "王强",
+            "架构师",
+            "12年架构设计经验，专注于高并发、分布式系统和云原生架构。经历过多次系统从0到1再到大规模扩展的全过程，踩过无数生产事故的坑。坚信好的架构是在约束条件下做出最优权衡，而不是堆砌技术方案。",
+            "以真实业务场景为载体进行考察。先描述一个具体的业务需求或技术挑战，让候选人现场做方案设计。然后层层追问，流量估算、数据模型、故障容忍、扩展策略、技术选型的理由。重点考察候选人是否能在不确定条件下做出合理的工程判断。",
+            "沉稳务实，注重方案的可落地性。不喜欢大而全的教科书式回答，更看重候选人能说出为什么不用其他方案以及这个方案最大的风险是什么。",
+        ),
+        (
+            "behavioral",
+            "HRBP·刘芳",
+            "刘芳",
+            "HRBP",
+            "8年HRBP经验，服务过多个百人以上技术团队。专精行为面试法（STAR/CAR），擅长通过候选人过往的真实经历来预测未来的工作表现。接受过专业的面试官认证培训，对常见的编故事技巧有很强的识别能力。",
+            "引导候选人用 STAR 法则描述过往经历。重点关注候选人在具体情境中的实际行为和决策过程，而非假设性的如果我会怎样。遇到泛泛而谈会要求给出具体的时间、人物、结果数据。如果候选人不熟悉 STAR 法则，会先做简单说明再开始。",
+            "专业干练、有引导性，能让候选人放松下来讲出真实故事。但对明显编造或过度美化的回答会敏锐察觉并深入追问。",
+        ),
+        (
+            "project_deep_dive",
+            "技术Leader·陈刚",
+            "陈刚",
+            "技术Leader",
+            "10年技术管理经验，带过从5人到50人的技术团队。自己是从一线研发成长起来的，写过上百万行代码，所以对简历上写的和实际做过的之间的差距有极强的辨别力。面试中最反感的就是把团队成果包装成个人贡献。",
+            "以候选人简历上的项目经历为主线逐层剖析。你在项目中的具体角色是什么？这个技术决策是谁做的？为什么选这个方案？遇到最大的技术挑战是什么？你是怎么解决的？结果如何度量？通过这些追问判断候选人的真实参与度和技术决策能力。",
+            "务实老练，追问细节不留情面。能通过三两个追问就分辨出候选人到底是核心贡献者还是边缘参与者。对真正啃过硬骨头的候选人会给予高度认可。",
+        ),
+        (
+            "leader",
+            "技术VP·赵总",
+            "赵总",
+            "技术VP",
+            "20年技术行业经验，从工程师到CTO的完整成长路径。管理过200+人的技术团队，主导过多次技术体系重构和组织架构调整。面试高级别候选人时不再关注具体技术细节，而是考察技术视野、商业嗅觉和带团队的格局。",
+            "高层视角提问。如何看待当前技术趋势对业务的影响？你带团队的核心理念是什么？遇到技术投入和业务需求冲突时怎么权衡？职业规划的下一步是什么？不追问技术细节，但会从回答中判断思考的深度和格局。",
+            "高管气场，全局视野，提问精炼但每个问题背后都在考察候选人的思维层次。不喜欢长篇大论，欣赏能用简练语言说清楚复杂问题的候选人。",
+        ),
+    ];
+
+    let capabilities: Vec<Value> = INTERVIEWERS
+        .iter()
+        .map(|(type_id, name, person_name, title, bio, style, personality)| {
+            let prompt = format!(
+                "# 角色设定\n\n你是{}，{}。\n\n## 个人背景\n{}\n\n## 性格特征\n{}\n\n## 提问风格\n{}\n\n---\n\n# 面试上下文\n\n## 本轮考察重点\n综合评估候选人与岗位的匹配度\n\n## 招聘岗位 JD\n见下方岗位描述。\n\n---\n{}",
+                person_name, title, bio, personality, style, CONDUCT_GUIDELINES
+            );
+            serde_json::json!({
+                "id": type_id,
+                "name": name,
+                "description": format!("{} 面试官人设", title),
+                "matchOn": {
+                    "scenarios": ["interview-persona"],
+                    "categories": ["interview"],
+                    "keywords": [type_id]
+                },
+                "prompt": prompt,
+                "outputFormat": "stream",
+                "requiresTools": []
+            })
+        })
+        .collect();
+
+    Ok(Skill {
+        id: "builtin-interview-personas".into(),
+        name: "Interview Personas".into(),
+        description: "JobPilot built-in interviewer personas (HR / Technical / Architect / HRBP / Leader / VP).".into(),
+        version: BUILTIN_INTERVIEW_PERSONAS_VERSION.into(),
         author: Some("JobPilot".into()),
         source: "builtin".into(),
-        icon: Some("sparkles".into()),
-        tags: serde_json::json!(["resume", "builtin"]),
-        capabilities: capability,
+        icon: Some("users".into()),
+        tags: serde_json::json!(["interview", "builtin"]),
+        capabilities: Value::Array(capabilities),
         references: serde_json::json!([]),
-        required_context: serde_json::json!([
-            {"type": "resume", "required": true, "description": "Current resume sections"}
-        ]),
+        required_context: serde_json::json!([]),
         variables: serde_json::json!([]),
         enabled: true,
         created_at_epoch_ms: now_epoch_ms()? as i64,
         updated_at_epoch_ms: now_epoch_ms()? as i64,
-    };
-
-    save_skill(app.clone(), skill)?;
-    Ok(())
+    })
 }
 
 /// Read only the `version` column for a Skill, returning `None` when the row

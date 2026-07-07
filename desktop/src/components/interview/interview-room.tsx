@@ -36,6 +36,8 @@ import {
   getInterviewerInitials,
   resolveInterviewLocale,
 } from "../../lib/interviewers";
+import { SkillRuntime } from "../../lib/skill-runtime";
+import { useSkillStore } from "../../stores/skill-store";
 import type {
   InterviewAnswerEvaluation,
   InterviewMessage,
@@ -222,6 +224,17 @@ export function InterviewRoom({
     setSession(initialSession);
   }, [initialSession]);
 
+  // Preload the Skill catalog + settings so `buildInterviewSystemPromptForTurn`
+  // can resolve a persisted `session.skillSelection` even when the user enters
+  // the room directly (deep link / refresh) without first visiting the setup
+  // form. Failures fall back to empty values inside the store, which makes
+  // `getCapability` return null and `runTurn` transparently fall back to the
+  // Rust-side default prompt builder.
+  useEffect(() => {
+    void useSkillStore.getState().loadSkills();
+    void useSkillStore.getState().loadSettings();
+  }, []);
+
   useEffect(() => {
     if (!initialSession) {
       void refreshSession();
@@ -303,6 +316,32 @@ export function InterviewRoom({
     }
   }, [locale, navigate, sessionId, t]);
 
+  const buildInterviewSystemPromptForTurn = useCallback(
+    async (session: InterviewSessionDetail): Promise<string | undefined> => {
+      const selection = session.skillSelection;
+      if (!selection) {
+        return undefined;
+      }
+      const separatorIndex = selection.indexOf(":");
+      if (separatorIndex <= 0) {
+        return undefined;
+      }
+      const skillId = selection.slice(0, separatorIndex);
+      const capabilityId = selection.slice(separatorIndex + 1);
+      const skills = useSkillStore.getState().skills;
+      const runtime = new SkillRuntime(skills);
+      const lookup = runtime.getCapability(skillId, capabilityId);
+      if (!lookup) {
+        return undefined;
+      }
+      return runtime.buildSystemPrompt("interview-persona", lookup.capability, lookup.skill, {
+        jdContent: session.jobDescription,
+        variables: useSkillStore.getState().variableValues[skillId] ?? {},
+      });
+    },
+    [],
+  );
+
   const runTurn = useCallback(
     async (kind: InterviewTurnKind, prompt?: string) => {
       if (!currentRound || runtimeIsFallback) {
@@ -371,6 +410,9 @@ export function InterviewRoom({
                 locale,
                 prompt,
                 requestId,
+                systemPrompt: session
+                  ? await buildInterviewSystemPromptForTurn(session)
+                  : undefined,
               });
             } catch (caughtError) {
               settleReject(caughtError);
@@ -398,7 +440,17 @@ export function InterviewRoom({
         setIsStreaming(false);
       }
     },
-    [currentRound, ensureReportAndNavigate, locale, refreshSession, runtimeIsFallback, sessionId, t],
+    [
+      buildInterviewSystemPromptForTurn,
+      currentRound,
+      ensureReportAndNavigate,
+      locale,
+      refreshSession,
+      runtimeIsFallback,
+      session,
+      sessionId,
+      t,
+    ],
   );
 
   useEffect(() => {

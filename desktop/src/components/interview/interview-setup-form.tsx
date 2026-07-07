@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { ArrowDown, ArrowUp, BriefcaseBusiness, FileText, Loader2, Plus, X } from "lucide-react";
@@ -23,6 +23,8 @@ import {
   getInterviewerColorClass,
   getPresetInterviewers,
 } from "../../lib/interviewers";
+import { useSkillStore } from "../../stores/skill-store";
+import { SkillSelector } from "../skill/skill-selector";
 import type { InterviewerConfig } from "../../types/interview";
 
 interface InterviewSetupFormProps {
@@ -72,6 +74,31 @@ export function InterviewSetupForm({
   const [error, setError] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
 
+  // Load Skill catalog + default selections once on mount so the persona
+  // selector can offer installed interview-persona capabilities. Failures fall
+  // back to empty values inside the store, leaving the preset-interviewer flow
+  // untouched.
+  useEffect(() => {
+    void useSkillStore.getState().loadSkills();
+    void useSkillStore.getState().loadSettings();
+  }, []);
+
+  const defaultSelections = useSkillStore((state) => state.defaultSelections);
+  // Local override is set only by explicit user interaction; otherwise the
+  // persisted default drives the selection (derived value avoids a sync effect
+  // and the A→B race that would come with it).
+  const [skillOverride, setSkillOverride] = useState<string | null | undefined>(undefined);
+  const selectedSkillSelection =
+    skillOverride !== undefined ? skillOverride : (defaultSelections["interview-persona"] ?? null);
+
+  const handleSkillSelectionChange = (selection: string | null) => {
+    setSkillOverride(selection);
+    void useSkillStore.getState().setDefaultSelection({
+      scenarioId: "interview-persona",
+      selection,
+    });
+  };
+
   const selectedIds = new Set(selectedInterviewers.map((item) => item.type));
   const canCreate =
     !runtimeIsFallback &&
@@ -116,6 +143,7 @@ export function InterviewSetupForm({
         jobDescription: jobDescription.trim(),
         resumeId: selectedResumeId === "none" ? null : selectedResumeId,
         interviewers: selectedInterviewers,
+        skillSelection: selectedSkillSelection,
       });
 
       void navigate({
@@ -235,6 +263,24 @@ export function InterviewSetupForm({
                   </button>
                 );
               })}
+            </div>
+
+            <div className="rounded-2xl border border-dashed border-zinc-300 p-4 dark:border-zinc-700">
+              <div className="flex flex-col gap-1.5">
+                <div className="text-sm font-medium text-zinc-700 dark:text-zinc-200">
+                  {t("interview.setup.skillPersonaLabel")}
+                </div>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                  {t("interview.setup.skillPersonaHint")}
+                </p>
+                <div className="mt-1">
+                  <SkillSelector
+                    scenarioId="interview-persona"
+                    value={selectedSkillSelection ?? undefined}
+                    onChange={handleSkillSelectionChange}
+                  />
+                </div>
+              </div>
             </div>
           </div>
         </CardContent>

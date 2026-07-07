@@ -58,6 +58,11 @@ pub struct StartInterviewTurnStreamInput {
     pub base_url: Option<String>,
     pub request_id: Option<String>,
     pub locale: Option<String>,
+    /// Optional Skill-driven system prompt. When present and non-empty, it
+    /// replaces the default `build_interview_system_prompt` output for the
+    /// round. When absent, the original Rust-side builder is used (backward
+    /// compatibility for sessions without a Skill persona selection).
+    pub system_prompt: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -490,6 +495,7 @@ pub fn start_interview_turn_stream(
                     input.message,
                     input.metadata,
                     locale,
+                    input.system_prompt,
                 )
                 .await
             }
@@ -718,6 +724,7 @@ async fn run_interview_turn_stream(
     message: Option<String>,
     metadata: Option<Value>,
     locale: String,
+    system_prompt: Option<String>,
 ) -> Result<(), String> {
     let session = storage::get_interview_session(app, &session_id)?
         .ok_or_else(|| format!("interview session not found: {session_id}"))?;
@@ -780,6 +787,7 @@ async fn run_interview_turn_stream(
         &refreshed_round,
         resume_context,
         &locale,
+        system_prompt.as_deref(),
     );
 
     emit_stream_event(
@@ -3041,17 +3049,26 @@ fn build_interview_messages(
     round: &storage::InterviewRoundDetail,
     resume_context: Option<String>,
     locale: &str,
+    system_prompt: Option<&str>,
 ) -> Vec<Value> {
     let mut messages = Vec::new();
-    messages.push(json!({
-        "role": "system",
-        "content": build_interview_system_prompt(
+    // When the caller supplies a Skill-driven system_prompt (non-empty), use
+    // it verbatim as the system message content; otherwise fall back to the
+    // default Rust-side builder so behavior is unchanged for sessions without
+    // a Skill persona selection.
+    let resolved_system_prompt = match system_prompt.map(str::trim).filter(|s| !s.is_empty()) {
+        Some(custom) => custom.to_string(),
+        None => build_interview_system_prompt(
             &round.interviewer_config,
             &session.job_description,
             resume_context.as_deref(),
             round.max_questions,
             locale,
         ),
+    };
+    messages.push(json!({
+        "role": "system",
+        "content": resolved_system_prompt,
     }));
 
     for message in &round.messages {

@@ -120,6 +120,8 @@ export interface InterviewSession {
   jobDescription: string;
   jobTitle: string;
   selectedInterviewers: InterviewerConfig[];
+  /** Optional Skill persona selection ("skillId:capabilityId") for the session. */
+  skillSelection?: string | null;
   currentRound: number;
   status: InterviewSessionStatus;
   reportId?: string | null;
@@ -138,6 +140,8 @@ export interface CreateInterviewSessionInput {
   jobTitle: string;
   resumeId?: string | null;
   interviewers: InterviewerConfig[];
+  /** Optional Skill persona selection ("skillId:capabilityId") to persist. */
+  skillSelection?: string | null;
 }
 
 export type InterviewTurnKind = "start" | "answer" | "hint" | "skip" | "end_round";
@@ -152,6 +156,12 @@ export interface StartInterviewTurnStreamInput {
   model?: string;
   baseUrl?: string;
   requestId?: string;
+  /**
+   * Optional Skill-driven system prompt. When present, it replaces the
+   * Rust-side `build_interview_system_prompt` output for the round. When
+   * omitted, the original default builder is used (backward compatible).
+   */
+  systemPrompt?: string;
 }
 
 export interface GenerateInterviewReportInput {

@@ -180,6 +180,8 @@
       "resumeOptional": "No linked resume",
       "rolesLabel": "Choose interviewer roles",
       "rolesHint": "Click a role card to add or remove it. Use the right column to reorder the rounds.",
+      "skillPersonaLabel": "Skill persona (optional)",
+      "skillPersonaHint": "When selected, a Skill capability overrides the preset interviewer's questioning style; leave unset to use the preset interviewers above.",
       "selected": "Selected",
       "add": "Add",
       "selectionTitle": "Interview overview",

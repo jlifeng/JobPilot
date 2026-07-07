@@ -180,6 +180,8 @@
       "resumeOptional": "不关联简历",
       "rolesLabel": "选择面试官组合",
       "rolesHint": "点击角色卡片即可加入或移除。右侧支持调整提问顺序。",
+      "skillPersonaLabel": "Skill 人设（可选）",
+      "skillPersonaHint": "选中后用 Skill 能力包替代预设面试官的提问风格；不选则使用上方预设面试官。",
       "selected": "已选择",
       "add": "加入",
       "selectionTitle": "本次面试概览",
