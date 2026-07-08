@@ -2252,6 +2252,7 @@ export async function startInterviewTurnStream(
       requestId: input.requestId,
       locale: input.locale,
       systemPrompt: input.systemPrompt,
+      evaluationSystemPrompt: input.evaluationSystemPrompt,
     },
   });
 }

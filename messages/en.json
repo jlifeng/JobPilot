@@ -998,6 +998,37 @@
     "selectorDefault": "Default assistant",
     "selectorLabel": "Skill",
     "variableFormTitle": "Variables",
-    "noVariables": "No variables for this skill"
+    "noVariables": "No variables for this skill",
+    "management": {
+      "title": "Skill Management",
+      "subtitle": "Manage installed capability packages",
+      "importButton": "Import Skill",
+      "empty": {
+        "title": "No skills installed",
+        "hint": "Import a .skill package to extend AI capabilities"
+      },
+      "sourceBuiltin": "Built-in",
+      "sourceImported": "Imported",
+      "delete": "Delete",
+      "deleteConfirm": "Are you sure you want to delete \"{name}\"? This action cannot be undone.",
+      "enabled": "Enabled",
+      "capabilities": "Capabilities",
+      "references": "Reference files",
+      "variables": "Variables",
+      "requiredContext": "Required context",
+      "noSelection": "Select a skill on the left to view details"
+    },
+    "import": {
+      "previewTitle": "Import preview",
+      "referencesCount": "Reference file count",
+      "noConflict": "New skill, no conflict",
+      "conflictWarning": "A skill with the same id already exists (v{version})",
+      "overwrite": "Overwrite existing",
+      "skip": "Skip",
+      "asNew": "Import as new id",
+      "newIdLabel": "New id",
+      "confirm": "Confirm import",
+      "errorTitle": "Import failed"
+    }
   }
 }

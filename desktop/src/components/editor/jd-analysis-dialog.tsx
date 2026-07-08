@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,6 +15,9 @@ import {
   XCircle,
 } from "lucide-react";
 import { useResumeStore } from "../../stores/resume-store";
+import { useSkillStore } from "../../stores/skill-store";
+import { SkillRuntime } from "../../lib/skill-runtime";
+import { SkillSelector } from "../skill/skill-selector";
 import {
   listenToAiStreamEvents,
   saveAiAnalysisRecord,
@@ -361,6 +364,48 @@ export function JdAnalysisDialog({
   const streamTextRef = useRef("");
   const savedAnalysisSignatureRef = useRef<string | null>(null);
 
+  // 挂载时加载 Skill 目录 + 默认选择，深链进入时也能渲染 SkillSelector
+  useEffect(() => {
+    void useSkillStore.getState().loadSkills();
+    void useSkillStore.getState().loadSettings();
+  }, []);
+
+  const defaultSelections = useSkillStore((state) => state.defaultSelections);
+  const skills = useSkillStore((state) => state.skills);
+  const [skillOverride, setSkillOverride] = useState<string | null | undefined>(undefined);
+  const selectedSkillSelection =
+    skillOverride !== undefined ? skillOverride : (defaultSelections["jd-analysis"] ?? null);
+
+  const handleSkillSelectionChange = (selection: string | null) => {
+    setSkillOverride(selection);
+    void useSkillStore.getState().setDefaultSelection({
+      scenarioId: "jd-analysis",
+      selection,
+    });
+  };
+
+  // 选中 Skill → 用 SkillRuntime.buildSystemPrompt 返回 systemPrompt；
+  // 未选 → 返回 undefined，调用方走原逻辑（systemPrompt 内联在 prompt 里）
+  const buildSkillSystemPrompt = useCallback((): string | undefined => {
+    if (!selectedSkillSelection) {
+      return undefined;
+    }
+    const separatorIndex = selectedSkillSelection.indexOf(":");
+    if (separatorIndex <= 0) {
+      return undefined;
+    }
+    const skillId = selectedSkillSelection.slice(0, separatorIndex);
+    const capabilityId = selectedSkillSelection.slice(separatorIndex + 1);
+    const runtime = new SkillRuntime(skills);
+    const lookup = runtime.getCapability(skillId, capabilityId);
+    if (!lookup) {
+      return undefined;
+    }
+    return runtime.buildSystemPrompt("jd-analysis", lookup.capability, lookup.skill, {
+      variables: useSkillStore.getState().variableValues[skillId] ?? {},
+    });
+  }, [selectedSkillSelection, skills]);
+
   useEffect(() => {
     if (open) {
       return;
@@ -492,16 +537,23 @@ export function JdAnalysisDialog({
 
       const aiConfig = await getDesktopAiRuntimeConfig();
 
+      // 选中 Skill → systemPrompt 走 Skill，prompt 简化为仅含简历 + JD（角色 + JSON
+      // 约束已在 Skill 的 systemPrompt 里）；未选 → 完全走原 buildAnalysisPrompt 逻辑
+      const skillSystemPrompt = buildSkillSystemPrompt();
+      const defaultPrompt = buildAnalysisPrompt({
+        outputLanguage,
+        resumeContextJson,
+        jobDescription: jdText,
+      });
+      const skillPrompt = `Resume:\n${resumeContextJson}\n\nJob description:\n${jdText}`;
+
       await startAiPromptStream({
         provider: aiConfig.provider,
         model: aiConfig.model || undefined,
         baseUrl: aiConfig.baseUrl,
         requestId,
-        prompt: buildAnalysisPrompt({
-          outputLanguage,
-          resumeContextJson,
-          jobDescription: jdText,
-        }),
+        systemPrompt: skillSystemPrompt,
+        prompt: skillSystemPrompt ? skillPrompt : defaultPrompt,
       });
     } catch (error: unknown) {
       setState("error");
@@ -661,6 +713,24 @@ export function JdAnalysisDialog({
               <p className="text-sm text-zinc-500">
                 {t("jdAnalysisDescription")}
               </p>
+              <div className="rounded-xl border border-dashed border-zinc-300 p-3 dark:border-zinc-700">
+                <div className="flex flex-col gap-1.5">
+                  <div className="text-sm font-medium text-zinc-700 dark:text-zinc-200">
+                    {t("jdAnalysisSkillLabel")}
+                  </div>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                    {t("jdAnalysisSkillHint")}
+                  </p>
+                  <div className="mt-1">
+                    <SkillSelector
+                      scenarioId="jd-analysis"
+                      value={selectedSkillSelection ?? undefined}
+                      onChange={handleSkillSelectionChange}
+                      disabled={isLoading}
+                    />
+                  </div>
+                </div>
+              </div>
               <div className="form-field">
                 <label className="form-label">
                   {t("jdAnalysisJobDescription")}

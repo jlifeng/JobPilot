@@ -12,6 +12,7 @@ import {
   MoreHorizontal,
   Pencil,
   Plus,
+  Puzzle,
   Settings,
   Sparkles,
   Target,
@@ -896,6 +897,14 @@ function DashboardRoute() {
               tone="violet"
               wide
               onClick={() => navigate({ to: "/templates" })}
+            />
+            <QuickAction
+              icon={<Puzzle className="h-5 w-5" />}
+              title={t("dashboardSkillsEntry")}
+              description={t("skill.management.subtitle")}
+              tone="blue"
+              wide
+              onClick={() => navigate({ to: "/skills" })}
             />
           </div>
         </DashboardCard>

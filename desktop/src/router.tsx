@@ -9,6 +9,7 @@ import { interviewReportRoute } from "./routes/interview-report";
 import { interviewSessionRoute } from "./routes/interview-session";
 import { interviewRoute } from "./routes/interview";
 import { templatesRoute } from "./routes/templates";
+import { skillsRoute } from "./routes/skills";
 
 const routeTree = rootRoute.addChildren([
   homeRoute,
@@ -21,6 +22,7 @@ const routeTree = rootRoute.addChildren([
   interviewReportRoute,
   editorRoute,
   templatesRoute,
+  skillsRoute,
 ]);
 
 export const router = createRouter({

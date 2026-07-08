@@ -998,6 +998,37 @@
     "selectorDefault": "默认助手",
     "selectorLabel": "Skill",
     "variableFormTitle": "变量配置",
-    "noVariables": "此 Skill 无可配置变量"
+    "noVariables": "此 Skill 无可配置变量",
+    "management": {
+      "title": "Skill 管理",
+      "subtitle": "管理已安装的能力包",
+      "importButton": "导入 Skill",
+      "empty": {
+        "title": "暂无 Skill",
+        "hint": "导入 .skill 包以扩展 AI 能力"
+      },
+      "sourceBuiltin": "内置",
+      "sourceImported": "导入",
+      "delete": "删除",
+      "deleteConfirm": "确定要删除「{name}」吗？此操作不可恢复。",
+      "enabled": "启用",
+      "capabilities": "能力",
+      "references": "引用文件",
+      "variables": "变量",
+      "requiredContext": "所需上下文",
+      "noSelection": "选择左侧 Skill 查看详情"
+    },
+    "import": {
+      "previewTitle": "导入预览",
+      "referencesCount": "引用文件数",
+      "noConflict": "新 Skill，无冲突",
+      "conflictWarning": "已存在同 id Skill（v{version}）",
+      "overwrite": "覆盖现有",
+      "skip": "跳过",
+      "asNew": "作为新 id 导入",
+      "newIdLabel": "新 id",
+      "confirm": "确认导入",
+      "errorTitle": "导入失败"
+    }
   }
 }

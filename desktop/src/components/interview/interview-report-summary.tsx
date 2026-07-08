@@ -23,6 +23,8 @@ import {
   saveInterviewRestartDraft,
 } from "../../lib/desktop-api";
 import { resolveInterviewLocale } from "../../lib/interviewers";
+import { SkillRuntime } from "../../lib/skill-runtime";
+import { useSkillStore } from "../../stores/skill-store";
 import type {
   InterviewReport,
   InterviewSessionDetail,
@@ -132,6 +134,42 @@ export function InterviewReportSummary({
     high: t("interview.practice.priorityHigh"),
   };
 
+  // 预加载 Skill 目录 + 设置，确保深链进入报告页时 defaultSelections 已就绪。
+  // 失败回落到空值，buildReportSystemPrompt 返回 undefined，Rust 侧走默认 prompt。
+  useEffect(() => {
+    void useSkillStore.getState().loadSkills();
+    void useSkillStore.getState().loadSettings();
+  }, []);
+
+  // 报告场景的 Skill 选择走 defaultSelections["interview-report"]，与评估/人设独立。
+  // 用户在管理页或后续可加专门 UI 配置。MVP 接受 defaultSelections 驱动。
+  const buildReportSystemPrompt = (): string | undefined => {
+    const selection = useSkillStore.getState().defaultSelections["interview-report"];
+    if (!selection) {
+      return undefined;
+    }
+    const separatorIndex = selection.indexOf(":");
+    if (separatorIndex <= 0) {
+      return undefined;
+    }
+    const skillId = selection.slice(0, separatorIndex);
+    const capabilityId = selection.slice(separatorIndex + 1);
+    const skills = useSkillStore.getState().skills;
+    const runtime = new SkillRuntime(skills);
+    const lookup = runtime.getCapability(skillId, capabilityId);
+    if (!lookup) {
+      return undefined;
+    }
+    return runtime.buildSystemPrompt(
+      "interview-report",
+      lookup.capability,
+      lookup.skill,
+      {
+        variables: useSkillStore.getState().variableValues[skillId] ?? {},
+      },
+    );
+  };
+
   useEffect(() => {
     if (runtimeIsFallback || report || !session || session.status !== "completed") {
       return;
@@ -145,6 +183,7 @@ export function InterviewReportSummary({
         const generated = await generateInterviewReport({
           sessionId,
           locale,
+          systemPrompt: buildReportSystemPrompt(),
         });
         if (!isCancelled) {
           setReport(generated);
@@ -184,6 +223,7 @@ export function InterviewReportSummary({
       const generated = await generateInterviewReport({
         sessionId,
         locale,
+        systemPrompt: buildReportSystemPrompt(),
       });
       setReport(generated);
       setError(null);

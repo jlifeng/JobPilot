@@ -162,6 +162,14 @@ export interface StartInterviewTurnStreamInput {
    * omitted, the original default builder is used (backward compatible).
    */
   systemPrompt?: string;
+  /**
+   * Optional Skill-driven evaluation system prompt. When present, it replaces
+   * the Rust-side `build_interview_answer_evaluation_system_prompt` output
+   * used when scoring a candidate's answer. When omitted, the original
+   * default builder is used (backward compatible). Custom prompts must
+   * preserve the JSON output format constraint expected by the parser.
+   */
+  evaluationSystemPrompt?: string;
 }
 
 export interface GenerateInterviewReportInput {
@@ -170,6 +178,14 @@ export interface GenerateInterviewReportInput {
   provider?: string;
   model?: string;
   baseUrl?: string;
+  /**
+   * Optional Skill-driven system prompt for report generation. When present
+   * and non-empty, it replaces the Rust-side
+   * `build_interview_report_system_prompt` output. When omitted, the original
+   * default builder is used (backward compatible). Custom prompts must
+   * preserve the JSON output format constraint expected by the parser.
+   */
+  systemPrompt?: string;
 }
 
 export interface UpdateInterviewMessageMetadataInput {

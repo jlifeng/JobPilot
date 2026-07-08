@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   AlertCircle,
@@ -14,6 +14,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useResumeStore } from "../../stores/resume-store";
+import { useSkillStore } from "../../stores/skill-store";
+import { SkillRuntime } from "../../lib/skill-runtime";
+import { SkillSelector } from "../skill/skill-selector";
 import { saveAiAnalysisRecord } from "../../lib/desktop-api";
 import {
   downloadBlob,
@@ -48,6 +51,48 @@ export function CoverLetterDialog({ open, onClose, resumeId }: CoverLetterDialog
   const isZh = i18n.language.startsWith("zh");
   const isLoading = state === "generating";
   const previewText = state === "generating" ? streamingDraft : coverLetter;
+
+  // 挂载时加载 Skill 目录 + 默认选择，深链进入时也能渲染 SkillSelector
+  useEffect(() => {
+    void useSkillStore.getState().loadSkills();
+    void useSkillStore.getState().loadSettings();
+  }, []);
+
+  const defaultSelections = useSkillStore((state) => state.defaultSelections);
+  const skills = useSkillStore((state) => state.skills);
+  // 本地覆盖优先；否则用持久化的默认选择
+  const [skillOverride, setSkillOverride] = useState<string | null | undefined>(undefined);
+  const selectedSkillSelection =
+    skillOverride !== undefined ? skillOverride : (defaultSelections["cover-letter"] ?? null);
+
+  const handleSkillSelectionChange = (selection: string | null) => {
+    setSkillOverride(selection);
+    void useSkillStore.getState().setDefaultSelection({
+      scenarioId: "cover-letter",
+      selection,
+    });
+  };
+
+  // 选中 Skill → 用 SkillRuntime.buildSystemPrompt；否则返回 undefined 走原默认
+  const buildSkillSystemPrompt = useCallback((): string | undefined => {
+    if (!selectedSkillSelection) {
+      return undefined;
+    }
+    const separatorIndex = selectedSkillSelection.indexOf(":");
+    if (separatorIndex <= 0) {
+      return undefined;
+    }
+    const skillId = selectedSkillSelection.slice(0, separatorIndex);
+    const capabilityId = selectedSkillSelection.slice(separatorIndex + 1);
+    const runtime = new SkillRuntime(skills);
+    const lookup = runtime.getCapability(skillId, capabilityId);
+    if (!lookup) {
+      return undefined;
+    }
+    return runtime.buildSystemPrompt("cover-letter", lookup.capability, lookup.skill, {
+      variables: useSkillStore.getState().variableValues[skillId] ?? {},
+    });
+  }, [selectedSkillSelection, skills]);
 
   useEffect(() => {
     if (!open) {
@@ -102,7 +147,7 @@ export function CoverLetterDialog({ open, onClose, resumeId }: CoverLetterDialog
           model: runtime.model,
           baseUrl: runtime.baseUrl,
           requestId: generateRequestId("cover-letter"),
-          systemPrompt: `You are an expert cover letter writer. Write a tailored cover letter in ${
+          systemPrompt: buildSkillSystemPrompt() ?? `You are an expert cover letter writer. Write a tailored cover letter in ${
             currentResume.language === "zh" ? "Simplified Chinese" : "English"
           }.
 
@@ -228,6 +273,25 @@ Write a polished cover letter that:
           {!coverLetter && state !== "completed" && (
             <>
               <p className="text-sm text-zinc-500">{t("coverLetterDescription")}</p>
+
+              <div className="rounded-xl border border-dashed border-zinc-300 p-3 dark:border-zinc-700">
+                <div className="flex flex-col gap-1.5">
+                  <div className="text-sm font-medium text-zinc-700 dark:text-zinc-200">
+                    {t("coverLetterSkillLabel")}
+                  </div>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                    {t("coverLetterSkillHint")}
+                  </p>
+                  <div className="mt-1">
+                    <SkillSelector
+                      scenarioId="cover-letter"
+                      value={selectedSkillSelection ?? undefined}
+                      onChange={handleSkillSelectionChange}
+                      disabled={isLoading}
+                    />
+                  </div>
+                </div>
+              </div>
 
               <div className="form-field">
                 <label className="form-label">{t("coverLetterCompany")}</label>

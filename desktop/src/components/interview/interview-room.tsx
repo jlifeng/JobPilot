@@ -342,6 +342,38 @@ export function InterviewRoom({
     [],
   );
 
+  // 评估场景的 Skill 选择独立于人设选择，走 defaultSelections["interview-evaluation"]。
+  // 用户在管理页或后续可加专门 UI 配置。MVP 接受 defaultSelections 驱动。
+  const buildEvaluationSystemPromptForTurn = useCallback(
+    (): string | undefined => {
+      const selection = useSkillStore.getState().defaultSelections["interview-evaluation"];
+      if (!selection) {
+        return undefined;
+      }
+      const separatorIndex = selection.indexOf(":");
+      if (separatorIndex <= 0) {
+        return undefined;
+      }
+      const skillId = selection.slice(0, separatorIndex);
+      const capabilityId = selection.slice(separatorIndex + 1);
+      const skills = useSkillStore.getState().skills;
+      const runtime = new SkillRuntime(skills);
+      const lookup = runtime.getCapability(skillId, capabilityId);
+      if (!lookup) {
+        return undefined;
+      }
+      return runtime.buildSystemPrompt(
+        "interview-evaluation",
+        lookup.capability,
+        lookup.skill,
+        {
+          variables: useSkillStore.getState().variableValues[skillId] ?? {},
+        },
+      );
+    },
+    [],
+  );
+
   const runTurn = useCallback(
     async (kind: InterviewTurnKind, prompt?: string) => {
       if (!currentRound || runtimeIsFallback) {
@@ -413,6 +445,7 @@ export function InterviewRoom({
                 systemPrompt: session
                   ? await buildInterviewSystemPromptForTurn(session)
                   : undefined,
+                evaluationSystemPrompt: buildEvaluationSystemPromptForTurn(),
               });
             } catch (caughtError) {
               settleReject(caughtError);
@@ -441,6 +474,7 @@ export function InterviewRoom({
       }
     },
     [
+      buildEvaluationSystemPromptForTurn,
       buildInterviewSystemPromptForTurn,
       currentRound,
       ensureReportAndNavigate,

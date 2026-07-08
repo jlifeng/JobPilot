@@ -10,7 +10,7 @@
 // and the "Direct `invoke()` calls in components" forbidden pattern).
 
 import { invoke, isTauri } from "@tauri-apps/api/core";
-import type { Skill, SkillSettings } from "../types/skill";
+import type { Skill, SkillPackagePreview, SkillSettings } from "../types/skill";
 
 const FALLBACK_SKILLS: Skill[] = [];
 const FALLBACK_SKILL_SETTINGS: SkillSettings = {
@@ -74,4 +74,42 @@ export async function setDefaultSkillSelection(
     throw new Error("setDefaultSkillSelection requires the desktop runtime");
   }
   return invoke<SkillSettings>("set_default_skill_selection", { input });
+}
+
+// =====================================================
+// Phase 4: Skill package import (zip 解包预览 + 确认入库)
+// =====================================================
+
+/**
+ * 解析 `.skill` zip 包，返回预览结构（不落库）。
+ *
+ * 调用方拿到预览后展示弹窗，用户确认后再调 confirmImportSkillPackage 入库。
+ * invoke 参数名 filePath 与 Rust 的 file_path（camelCase via Tauri）对应。
+ */
+export async function importSkillPackage(
+  filePath: string,
+): Promise<SkillPackagePreview> {
+  if (!isTauri()) {
+    throw new Error("importSkillPackage requires the desktop runtime");
+  }
+  return invoke<SkillPackagePreview>("import_skill_package", { filePath });
+}
+
+/**
+ * 预览确认后真正入库（upsert）。
+ *
+ * 若 useNewId 非空，覆盖 skill.id（用户选"作为新 id 导入"时前端传新 id）。
+ * invoke 参数名 skill / useNewId 与 Rust 的 skill / use_new_id（camelCase via Tauri）对应。
+ */
+export async function confirmImportSkillPackage(
+  skill: Skill,
+  useNewId?: string,
+): Promise<Skill> {
+  if (!isTauri()) {
+    throw new Error("confirmImportSkillPackage requires the desktop runtime");
+  }
+  return invoke<Skill>("confirm_import_skill_package", {
+    skill,
+    useNewId: useNewId ?? null,
+  });
 }

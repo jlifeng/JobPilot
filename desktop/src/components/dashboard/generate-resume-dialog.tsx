@@ -1,9 +1,12 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useResumeStore } from "../../stores/resume-store";
+import { useSkillStore } from "../../stores/skill-store";
+import { SkillRuntime } from "../../lib/skill-runtime";
+import { SkillSelector } from "../skill/skill-selector";
 import {
   getSecretInventorySnapshot,
   getWorkspaceSettingsSnapshot,
@@ -706,6 +709,47 @@ export function GenerateResumeDialog({ open, onClose, onCreated }: GenerateResum
   const [isGenerating, setIsGenerating] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
+  // 挂载时加载 Skill 目录 + 默认选择，深链进入时也能渲染 SkillSelector
+  useEffect(() => {
+    void useSkillStore.getState().loadSkills();
+    void useSkillStore.getState().loadSettings();
+  }, []);
+
+  const defaultSelections = useSkillStore((state) => state.defaultSelections);
+  const skillList = useSkillStore((state) => state.skills);
+  const [skillOverride, setSkillOverride] = useState<string | null | undefined>(undefined);
+  const selectedSkillSelection =
+    skillOverride !== undefined ? skillOverride : (defaultSelections["generate-resume"] ?? null);
+
+  const handleSkillSelectionChange = (selection: string | null) => {
+    setSkillOverride(selection);
+    void useSkillStore.getState().setDefaultSelection({
+      scenarioId: "generate-resume",
+      selection,
+    });
+  };
+
+  // 选中 Skill → 用 SkillRuntime.buildSystemPrompt；否则返回 undefined 走原默认
+  const buildSkillSystemPrompt = useCallback((): string | undefined => {
+    if (!selectedSkillSelection) {
+      return undefined;
+    }
+    const separatorIndex = selectedSkillSelection.indexOf(":");
+    if (separatorIndex <= 0) {
+      return undefined;
+    }
+    const skillId = selectedSkillSelection.slice(0, separatorIndex);
+    const capabilityId = selectedSkillSelection.slice(separatorIndex + 1);
+    const runtime = new SkillRuntime(skillList);
+    const lookup = runtime.getCapability(skillId, capabilityId);
+    if (!lookup) {
+      return undefined;
+    }
+    return runtime.buildSystemPrompt("generate-resume", lookup.capability, lookup.skill, {
+      variables: useSkillStore.getState().variableValues[skillId] ?? {},
+    });
+  }, [selectedSkillSelection, skillList]);
+
   const resetAndClose = () => {
     setJobTitle("");
     setYearsOfExperience("");
@@ -737,7 +781,7 @@ export function GenerateResumeDialog({ open, onClose, onCreated }: GenerateResum
         model: runtime.model,
         baseUrl: runtime.baseUrl,
         requestId: generateRequestId("generate-resume"),
-        systemPrompt: buildAiGenerateSystemPrompt(language),
+        systemPrompt: buildSkillSystemPrompt() ?? buildAiGenerateSystemPrompt(language),
         prompt: buildAiGeneratePrompt({
           jobTitle: jobTitle.trim(),
           yearsOfExperience: yearsOfExperience.trim(),
@@ -793,6 +837,25 @@ export function GenerateResumeDialog({ open, onClose, onCreated }: GenerateResum
         {/* Body */}
         <div className="dialog-body">
           <p className="text-sm text-zinc-500 mb-4">{t("generateResumeDescription")}</p>
+
+          <div className="rounded-xl border border-dashed border-zinc-300 p-3 mb-4 dark:border-zinc-700">
+            <div className="flex flex-col gap-1.5">
+              <div className="text-sm font-medium text-zinc-700 dark:text-zinc-200">
+                {t("generateResumeSkillLabel")}
+              </div>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                {t("generateResumeSkillHint")}
+              </p>
+              <div className="mt-1">
+                <SkillSelector
+                  scenarioId="generate-resume"
+                  value={selectedSkillSelection ?? undefined}
+                  onChange={handleSkillSelectionChange}
+                  disabled={isGenerating}
+                />
+              </div>
+            </div>
+          </div>
 
           <div className="space-y-4">
             <div className="form-field">

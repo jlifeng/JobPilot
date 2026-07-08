@@ -6,8 +6,9 @@
 //! stay in the dozens.
 //!
 //! PR1 scope: data model + storage + CRUD only.
-//! - `import_skill_package` / `export_skill_package` are intentionally not implemented
-//!   here (Phase 4 scope, needs the `zip` crate). They are left as TODO markers.
+//! PR4 scope: `.skill` zip 包导入（`import_skill_package` 预览 + `confirm_import_skill_package`
+//! 入库），含路径遍历防护、frontmatter 解析、冲突检测。
+//! - `export_skill_package` 仍为 TODO（PRD 明确列为 Out of Scope，Phase 6 再评估）。
 //! - Built-in Skill registration on first launch is implemented in
 //!   `bootstrap_builtin_skills` (Phase 2; `builtin-interview-personas` arrives in Phase 3).
 
@@ -408,18 +409,428 @@ pub fn set_default_skill_selection(
 }
 
 // =====================================================
-// TODO (Phase 4): Skill package import / export
+// Phase 4: Skill package import (.skill zip 解包 + 预览)
 // =====================================================
-//
-// #[tauri::command]
-// pub fn import_skill_package(app: AppHandle, file_path: String) -> Result<Skill, String>;
+
+/// 导入预览返回结构：解析出的 Skill（不入库的预览副本）+ references 数量 + 冲突检测结果。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SkillPackagePreview {
+    /// 解析出的完整 Skill 结构（不入库的预览副本）。
+    pub skill: Skill,
+    /// 包内 references/*.md 文件数。
+    pub references_count: usize,
+    /// 冲突检测结果（skill.id 是否已存在于库）。
+    pub conflict: SkillConflict,
+}
+
+/// 冲突检测结果：skill.id 是否已存在于库，已存在时附带现有版本。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SkillConflict {
+    /// skill.id 是否已存在于库。
+    pub has_conflict: bool,
+    /// 已存在时的版本（不存在时为 None）。
+    pub existing_version: Option<String>,
+}
+
+/// 解析 `.skill` zip 包，返回预览结构（不落库）。
+///
+/// 流程：打开 zip → 路径遍历防护 → 读 SKILL.md → 解析 frontmatter + body →
+/// 扫描 references/*.md 计数 → 构造 Skill（source="imported"）→ 冲突检测 → 返回预览。
+pub fn import_skill_package(app: AppHandle, file_path: String) -> Result<SkillPackagePreview, String> {
+    let file_path = file_path.trim().to_string();
+    if file_path.is_empty() {
+        return Err("filePath is required".into());
+    }
+
+    // 扩展名校验：接受 .skill 或 .zip（不区分大小写）。
+    let path = std::path::Path::new(&file_path);
+    let accepted = match path.extension().and_then(|ext| ext.to_str()) {
+        Some(ext) => ext.eq_ignore_ascii_case("skill") || ext.eq_ignore_ascii_case("zip"),
+        None => false,
+    };
+    if !accepted {
+        return Err(format!(
+            "invalid skill package extension: {file_path} (expected .skill or .zip)"
+        ));
+    }
+
+    // 打开 zip 文件。
+    let file = std::fs::File::open(&file_path)
+        .map_err(|error| format!("failed to open skill package {file_path}: {error}"))?;
+    let reader = std::io::BufReader::new(file);
+    let mut archive = zip::ZipArchive::new(reader)
+        .map_err(|error| format!("failed to read skill package as zip: {error}"))?;
+
+    // 路径遍历防护：遍历每个 entry，校验 name 不含 `..` 且不是绝对路径。
+    // 任何违反 → 拒绝整个导入。
+    for index in 0..archive.len() {
+        let entry = archive
+            .by_index(index)
+            .map_err(|error| format!("failed to read zip entry {index}: {error}"))?;
+        let name = entry.name().to_string();
+        if !is_safe_entry_path(&name) {
+            return Err(format!("skill package contains unsafe path: {name}"));
+        }
+    }
+
+    // 找到 SKILL.md entry（精确匹配，只认 `SKILL.md`）。
+    let skill_md_index = archive
+        .file_names()
+        .position(|name| name == "SKILL.md")
+        .ok_or_else(|| "SKILL.md not found in package".to_string())?;
+
+    // 读 SKILL.md 全文。
+    let mut skill_md_content = String::new();
+    {
+        let mut entry = archive
+            .by_index(skill_md_index)
+            .map_err(|error| format!("failed to open SKILL.md entry: {error}"))?;
+        use std::io::Read;
+        entry
+            .read_to_string(&mut skill_md_content)
+            .map_err(|error| format!("failed to read SKILL.md content: {error}"))?;
+    }
+
+    // 解析 frontmatter + body。
+    let (frontmatter, body) = parse_frontmatter(&skill_md_content)?;
+
+    // frontmatter 字段：name（必填）、description（可选，默认空串）、
+    // version（可选，默认 "1.0.0"）、author（可选）、id（可选，缺省则 slugify name 或用文件名 stem）。
+    let skill_name = frontmatter
+        .get("name")
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty())
+        .ok_or_else(|| "SKILL.md frontmatter missing required field: name".to_string())?;
+    let skill_description = frontmatter
+        .get("description")
+        .map(|value| value.to_string())
+        .unwrap_or_default();
+    let skill_version = frontmatter
+        .get("version")
+        .map(|value| value.to_string())
+        .filter(|value| !value.is_empty())
+        .unwrap_or_else(|| "1.0.0".to_string());
+    let skill_author = frontmatter
+        .get("author")
+        .map(|value| value.to_string())
+        .filter(|value| !value.is_empty());
+    let skill_id = frontmatter
+        .get("id")
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty())
+        .unwrap_or_else(|| {
+            // 缺省 id：slugify name；若 slugify 后为空，则用文件名 stem。
+            let slug = slugify(&skill_name);
+            if !slug.is_empty() {
+                slug
+            } else {
+                path.file_stem()
+                    .and_then(|stem| stem.to_str())
+                    .map(|stem| slugify(stem))
+                    .unwrap_or_else(|| "imported-skill".to_string())
+            }
+        });
+
+    // 构造单个 capability：body 作为 prompt，matchOn 留空（本期不解析 frontmatter 的
+    // scenarios 扩展字段，Out of Scope）。
+    let capability = serde_json::json!([{
+        "id": "default",
+        "name": skill_name,
+        "description": skill_description,
+        "matchOn": {
+            "scenarios": [],
+            "categories": [],
+            "keywords": []
+        },
+        "prompt": body,
+        "outputFormat": "stream",
+        "requiresTools": []
+    }]);
+
+    // references：扫描包内 references/*.md，只记录数量。skill.references 存 []。
+    // references 内容在 SkillRuntime 用到时才按需加载——本期导入预览不加载内容。
+    let references_count = archive
+        .file_names()
+        .filter(|name| {
+            // 只匹配顶层 references/*.md（不允许嵌套或 ../ 遍历——已在前述防护中校验）。
+            let normalized = name.replace('\\', "/");
+            normalized.starts_with("references/")
+                && normalized.ends_with(".md")
+                && normalized.matches('/').count() == 1
+        })
+        .count();
+
+    // 构造 Skill 结构（source="imported"，enabled=true）。
+    let now = now_epoch_ms()? as i64;
+    let skill = Skill {
+        id: skill_id,
+        name: skill_name,
+        description: skill_description,
+        version: skill_version,
+        author: skill_author,
+        source: "imported".into(),
+        icon: None,
+        tags: serde_json::json!([]),
+        capabilities: capability,
+        references: serde_json::json!([]),
+        required_context: serde_json::json!([]),
+        variables: serde_json::json!([]),
+        enabled: true,
+        created_at_epoch_ms: now,
+        updated_at_epoch_ms: now,
+    };
+
+    // 冲突检测：list_skills 查是否已有同 id，填 conflict 字段。
+    let conflict = detect_skill_conflict(&app, &skill.id)?;
+
+    Ok(SkillPackagePreview {
+        skill,
+        references_count,
+        conflict,
+    })
+}
+
+/// 预览确认后真正入库（upsert）。
+///
+/// 若 `use_new_id` 非空，覆盖 skill.id（用户选"作为新 id 导入"时前端传新 id）。
+/// 调 save_skill 入库，返回入库后的 Skill。
+pub fn confirm_import_skill_package(
+    app: AppHandle,
+    mut skill: Skill,
+    use_new_id: Option<String>,
+) -> Result<Skill, String> {
+    if let Some(new_id) = use_new_id {
+        let new_id = new_id.trim().to_string();
+        if !new_id.is_empty() {
+            skill.id = new_id;
+        }
+    }
+    // 确保 source 保持 imported（防止前端误传 custom）。
+    skill.source = "imported".into();
+    save_skill(app, skill)
+}
+
+/// 校验 zip entry 路径安全：不含 `..` 且不是绝对路径，规范化后仍在根内。
+///
+/// 单测可读：`is_safe_entry_path("references/a.md")` 为 true，
+/// `is_safe_entry_path("../escape.md")` 为 false。
+fn is_safe_entry_path(name: &str) -> bool {
+    // 绝对路径（Unix 以 / 开头，Windows 以盘符或 \ 开头）一律拒绝。
+    let path = std::path::Path::new(name);
+    if path.is_absolute() {
+        return false;
+    }
+    // 任一组件为 `..` 或 `.` 之外的特殊形式一律拒绝。
+    // 逐组件校验：不含 `..`。
+    for component in path.components() {
+        use std::path::Component;
+        match component {
+            Component::CurDir | Component::Normal(_) => {}
+            Component::ParentDir => return false,
+            Component::RootDir | Component::Prefix(_) => return false,
+        }
+    }
+    // 额外防御：字符串层面也不允许连续的 `..` 片段（防止 Windows 风格的反斜杠绕过）。
+    let normalized = name.replace('\\', "/");
+    !normalized.contains("..")
+}
+
+/// 检测 skill.id 是否已存在于库，返回冲突结构。
+fn detect_skill_conflict(app: &AppHandle, skill_id: &str) -> Result<SkillConflict, String> {
+    let existing = get_skill(app.clone(), skill_id.to_string())?;
+    Ok(match existing {
+        Some(skill) => SkillConflict {
+            has_conflict: true,
+            existing_version: Some(skill.version),
+        },
+        None => SkillConflict {
+            has_conflict: false,
+            existing_version: None,
+        },
+    })
+}
+
+/// 解析 SKILL.md 的 frontmatter + body。
+///
+/// frontmatter 格式：`---` 包裹的头部，内部按行 `key: value`。
+/// 返回 (frontmatter map, body)。
+fn parse_frontmatter(content: &str) -> Result<(std::collections::HashMap<String, String>, String), String> {
+    let mut map: std::collections::HashMap<String, String> = Default::default();
+
+    // 找到首行 `---`。允许 content 以 `---\n` 或 `---`（无换行，仅 frontmatter）开头。
+    let lines: Vec<&str> = content.lines().collect();
+    if lines.is_empty() {
+        return Ok((map, String::new()));
+    }
+
+    // 首行非 `---` → 无 frontmatter，body 为全文。
+    if lines[0].trim() != "---" {
+        return Ok((map, content.to_string()));
+    }
+
+    // 收集 `---` 之间的内容，定位闭合的 `---`。
+    let mut closed = false;
+    let mut body_start_line: usize = 0;
+    for (index, line) in lines.iter().enumerate().skip(1) {
+        if line.trim() == "---" {
+            closed = true;
+            body_start_line = index + 1;
+            break;
+        }
+        if let Some((key, value)) = parse_frontmatter_line(line) {
+            map.insert(key, value);
+        }
+    }
+    if !closed {
+        return Err("SKILL.md frontmatter not closed: missing closing `---`".into());
+    }
+
+    // body 为闭合 `---` 行之后的所有行（用换行符重新拼接）。
+    let body = lines[body_start_line..].join("\n");
+    // 去掉开头可能残留的空行（保留正文内部换行结构）。
+    let body = body.trim_start_matches('\n').to_string();
+
+    Ok((map, body))
+}
+
+/// 解析 frontmatter 单行 `key: value`，返回 (key, value)。
+/// value 含引号则去引号。忽略空行与注释行（# 开头）。
+fn parse_frontmatter_line(line: &str) -> Option<(String, String)> {
+    let trimmed = line.trim();
+    if trimmed.is_empty() || trimmed.starts_with('#') {
+        return None;
+    }
+    let colon = trimmed.find(':')?;
+    let key = trimmed[..colon].trim().to_string();
+    let mut value = trimmed[colon + 1..].trim().to_string();
+    // 去引号（单引号或双引号）。
+    if (value.starts_with('"') && value.ends_with('"') && value.len() >= 2)
+        || (value.starts_with('\'') && value.ends_with('\'') && value.len() >= 2)
+    {
+        value = value[1..value.len() - 1].to_string();
+    }
+    if key.is_empty() {
+        return None;
+    }
+    Some((key, value))
+}
+
+/// 简易 slugify：小写、非字母数字转为 `-`、合并连续 `-`、去首尾 `-`。
+fn slugify(input: &str) -> String {
+    let slug: String = input
+        .to_lowercase()
+        .chars()
+        .map(|c| {
+            if c.is_alphanumeric() {
+                c
+            } else {
+                '-'
+            }
+        })
+        .collect();
+    let mut result = String::new();
+    let mut prev_dash = false;
+    for c in slug.chars() {
+        if c == '-' {
+            if !prev_dash {
+                result.push(c);
+            }
+            prev_dash = true;
+        } else {
+            result.push(c);
+            prev_dash = false;
+        }
+    }
+    result.trim_matches('-').to_string()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn is_safe_entry_path_accepts_normal_paths() {
+        assert!(is_safe_entry_path("SKILL.md"));
+        assert!(is_safe_entry_path("references/a.md"));
+        assert!(is_safe_entry_path("references/sub/a.md"));
+    }
+
+    #[test]
+    fn is_safe_entry_path_rejects_parent_dir() {
+        assert!(!is_safe_entry_path("../escape.md"));
+        assert!(!is_safe_entry_path("references/../../escape.md"));
+        assert!(!is_safe_entry_path("foo/../bar.md"));
+    }
+
+    #[test]
+    fn is_safe_entry_path_rejects_absolute() {
+        assert!(!is_safe_entry_path("/etc/passwd"));
+        assert!(!is_safe_entry_path("C:\\Windows\\system32"));
+    }
+
+    #[test]
+    fn is_safe_entry_path_rejects_backslash_traversal() {
+        assert!(!is_safe_entry_path("..\\escape.md"));
+    }
+
+    #[test]
+    fn parse_frontmatter_extracts_fields_and_body() {
+        let content = "---\nname: my-skill\ndescription: \"A skill\"\nversion: 2.0.0\n---\n# Body\n\nHello.";
+        let (fm, body) = parse_frontmatter(content).unwrap();
+        assert_eq!(fm.get("name").map(|s| s.as_str()), Some("my-skill"));
+        assert_eq!(fm.get("description").map(|s| s.as_str()), Some("A skill"));
+        assert_eq!(fm.get("version").map(|s| s.as_str()), Some("2.0.0"));
+        assert_eq!(body, "# Body\n\nHello.");
+    }
+
+    #[test]
+    fn parse_frontmatter_handles_missing_frontmatter() {
+        let content = "# No frontmatter\n\nBody.";
+        let (fm, body) = parse_frontmatter(content).unwrap();
+        assert!(fm.is_empty());
+        assert_eq!(body, content);
+    }
+
+    #[test]
+    fn parse_frontmatter_rejects_unclosed() {
+        let content = "---\nname: my-skill\n# no closing dashes";
+        assert!(parse_frontmatter(content).is_err());
+    }
+
+    #[test]
+    fn parse_frontmatter_line_strips_quotes() {
+        let (k, v) = parse_frontmatter_line(r#"name: "quoted value""#).unwrap();
+        assert_eq!(k, "name");
+        assert_eq!(v, "quoted value");
+    }
+
+    #[test]
+    fn parse_frontmatter_line_ignores_comments() {
+        assert!(parse_frontmatter_line("# comment").is_none());
+        assert!(parse_frontmatter_line("").is_none());
+    }
+
+    #[test]
+    fn slugify_normalizes_input() {
+        assert_eq!(slugify("My Skill"), "my-skill");
+        // CJK 字符在 Rust `char::is_alphanumeric()` 中视为字母数字，予以保留。
+        assert_eq!(slugify("中文 Skill!!!"), "中文-skill");
+        assert_eq!(slugify("---leading and trailing---"), "leading-and-trailing");
+    }
+}
+
+// =====================================================
+// TODO (Phase 6): Skill package export
+// =====================================================
 //
 // #[tauri::command]
 // pub fn export_skill_package(app: AppHandle, skill_id: String, output_path: String) -> Result<(), String>;
 //
-// These require the `zip` crate and the frontmatter / capability-splitting
-// parser described in docs/skill-system-implementation-plan.md §6.2. They are
-// intentionally out of PR1 scope.
+// 导出需要将 Skill 的 capability prompt 写回 SKILL.md + frontmatter，
+// 并把 references 数组还原为 references/*.md 文件。Phase 4 PRD 明确将导出
+// 列为 Out of Scope（无自建产物可导出），Phase 6 再评估。
 
 // =====================================================
 // Built-in Skill registration on first launch (Phase 2)
@@ -435,6 +846,13 @@ pub fn set_default_skill_selection(
 
 const BUILTIN_RESUME_ASSISTANT_VERSION: &str = "1.0.0";
 const BUILTIN_INTERVIEW_PERSONAS_VERSION: &str = "1.0.0";
+const BUILTIN_COVER_LETTER_VERSION: &str = "1.0.0";
+const BUILTIN_TRANSLATE_VERSION: &str = "1.0.0";
+const BUILTIN_GRAMMAR_CHECK_VERSION: &str = "1.0.0";
+const BUILTIN_JD_ANALYSIS_VERSION: &str = "1.0.0";
+const BUILTIN_GENERATE_RESUME_VERSION: &str = "1.0.0";
+const BUILTIN_INTERVIEW_EVALUATION_VERSION: &str = "1.0.0";
+const BUILTIN_INTERVIEW_REPORT_VERSION: &str = "1.0.0";
 
 pub fn bootstrap_builtin_skills(app: &AppHandle) -> Result<(), String> {
     let resume_version = read_skill_version(app, "builtin-resume-assistant")?;
@@ -477,6 +895,34 @@ pub fn bootstrap_builtin_skills(app: &AppHandle) -> Result<(), String> {
     let interview_version = read_skill_version(app, "builtin-interview-personas")?;
     if interview_version.as_deref() != Some(BUILTIN_INTERVIEW_PERSONAS_VERSION) {
         save_skill(app.clone(), build_builtin_interview_personas_skill()?)?;
+    }
+
+    // PR5：注册剩余 7 个 builtin Skill，每个对应一个 AI 场景，prompt 包装现有硬编码值。
+    // 与现有两个 builtin 一致：source="builtin"，含 1 个 capability，matchOn.scenarios 设为对应场景 id。
+    if read_skill_version(app, "builtin-cover-letter")?.as_deref() != Some(BUILTIN_COVER_LETTER_VERSION) {
+        save_skill(app.clone(), build_builtin_cover_letter_skill()?)?;
+    }
+    if read_skill_version(app, "builtin-translate")?.as_deref() != Some(BUILTIN_TRANSLATE_VERSION) {
+        save_skill(app.clone(), build_builtin_translate_skill()?)?;
+    }
+    if read_skill_version(app, "builtin-grammar-check")?.as_deref() != Some(BUILTIN_GRAMMAR_CHECK_VERSION) {
+        save_skill(app.clone(), build_builtin_grammar_check_skill()?)?;
+    }
+    if read_skill_version(app, "builtin-jd-analysis")?.as_deref() != Some(BUILTIN_JD_ANALYSIS_VERSION) {
+        save_skill(app.clone(), build_builtin_jd_analysis_skill()?)?;
+    }
+    if read_skill_version(app, "builtin-generate-resume")?.as_deref() != Some(BUILTIN_GENERATE_RESUME_VERSION) {
+        save_skill(app.clone(), build_builtin_generate_resume_skill()?)?;
+    }
+    if read_skill_version(app, "builtin-interview-evaluation")?.as_deref()
+        != Some(BUILTIN_INTERVIEW_EVALUATION_VERSION)
+    {
+        save_skill(app.clone(), build_builtin_interview_evaluation_skill()?)?;
+    }
+    if read_skill_version(app, "builtin-interview-report")?.as_deref()
+        != Some(BUILTIN_INTERVIEW_REPORT_VERSION)
+    {
+        save_skill(app.clone(), build_builtin_interview_report_skill()?)?;
     }
 
     Ok(())
@@ -601,6 +1047,267 @@ fn build_builtin_interview_personas_skill() -> Result<Skill, String> {
     })
 }
 
+// =====================================================
+// PR5 builtin Skills（剩余 7 场景）
+// =====================================================
+//
+// 每个函数构造一个 builtin Skill，prompt 原样搬入对应场景的现有硬编码值。
+// cover-letter / translate / generate-resume 的 prompt 来自前端 .tsx 内联字符串；
+// grammar-check / jd-analysis 原组件只传 prompt（无独立 systemPrompt），这里构造一份
+// 合理的 system prompt 描述角色；interview-evaluation / interview-report 的 prompt 来自
+// ai.rs 的 build_*_system_prompt 函数体返回字符串，含 JSON 输出格式约束块。
+
+/// `builtin-cover-letter`：scenarioId="cover-letter"。
+/// prompt 来自 `cover-letter-dialog.tsx:105` 的内联 systemPrompt，原样搬入（英文）。
+fn build_builtin_cover_letter_skill() -> Result<Skill, String> {
+    let capability = serde_json::json!([{
+        "id": "default",
+        "name": "Cover Letter Writer",
+        "description": "Generate a tailored cover letter from resume + JD.",
+        "matchOn": {
+            "scenarios": ["cover-letter"],
+            "categories": ["resume", "writing"]
+        },
+        "prompt": BUILTIN_COVER_LETTER_PROMPT,
+        "outputFormat": "stream",
+        "requiresTools": []
+    }]);
+
+    Ok(Skill {
+        id: "builtin-cover-letter".into(),
+        name: "Cover Letter Writer".into(),
+        description: "JobPilot built-in cover letter writer.".into(),
+        version: BUILTIN_COVER_LETTER_VERSION.into(),
+        author: Some("JobPilot".into()),
+        source: "builtin".into(),
+        icon: Some("mail".into()),
+        tags: serde_json::json!(["cover-letter", "writing", "builtin"]),
+        capabilities: capability,
+        references: serde_json::json!([]),
+        required_context: serde_json::json!([]),
+        variables: serde_json::json!([]),
+        enabled: true,
+        created_at_epoch_ms: now_epoch_ms()? as i64,
+        updated_at_epoch_ms: now_epoch_ms()? as i64,
+    })
+}
+
+/// `builtin-translate`：scenarioId="translate"。
+/// prompt 来自 `translate-dialog.tsx:254` 的内联 systemPrompt，原样搬入（英文）。
+fn build_builtin_translate_skill() -> Result<Skill, String> {
+    let capability = serde_json::json!([{
+        "id": "default",
+        "name": "Resume Translator",
+        "description": "Translate resume sections between languages, preserving JSON structure.",
+        "matchOn": {
+            "scenarios": ["translate"],
+            "categories": ["resume", "translate"]
+        },
+        "prompt": BUILTIN_TRANSLATE_PROMPT,
+        "outputFormat": "stream",
+        "requiresTools": []
+    }]);
+
+    Ok(Skill {
+        id: "builtin-translate".into(),
+        name: "Resume Translator".into(),
+        description: "JobPilot built-in resume translator.".into(),
+        version: BUILTIN_TRANSLATE_VERSION.into(),
+        author: Some("JobPilot".into()),
+        source: "builtin".into(),
+        icon: Some("languages".into()),
+        tags: serde_json::json!(["translate", "resume", "builtin"]),
+        capabilities: capability,
+        references: serde_json::json!([]),
+        required_context: serde_json::json!([]),
+        variables: serde_json::json!([]),
+        enabled: true,
+        created_at_epoch_ms: now_epoch_ms()? as i64,
+        updated_at_epoch_ms: now_epoch_ms()? as i64,
+    })
+}
+
+/// `builtin-grammar-check`：scenarioId="grammar-check"。
+/// 原组件只传单一 prompt（内联 systemPrompt 与输出约束混合），这里构造一份合理的
+/// system prompt 描述语法检查助手角色，并保留 JSON 输出格式约束块。
+fn build_builtin_grammar_check_skill() -> Result<Skill, String> {
+    let capability = serde_json::json!([{
+        "id": "default",
+        "name": "Grammar Check",
+        "description": "Review resume content for grammar and style issues, output structured JSON.",
+        "matchOn": {
+            "scenarios": ["grammar-check"],
+            "categories": ["resume", "review"]
+        },
+        "prompt": BUILTIN_GRAMMAR_CHECK_PROMPT,
+        "outputFormat": "stream",
+        "requiresTools": []
+    }]);
+
+    Ok(Skill {
+        id: "builtin-grammar-check".into(),
+        name: "Grammar Check".into(),
+        description: "JobPilot built-in resume grammar & style checker.".into(),
+        version: BUILTIN_GRAMMAR_CHECK_VERSION.into(),
+        author: Some("JobPilot".into()),
+        source: "builtin".into(),
+        icon: Some("spell-check".into()),
+        tags: serde_json::json!(["grammar-check", "review", "builtin"]),
+        capabilities: capability,
+        references: serde_json::json!([]),
+        required_context: serde_json::json!([]),
+        variables: serde_json::json!([]),
+        enabled: true,
+        created_at_epoch_ms: now_epoch_ms()? as i64,
+        updated_at_epoch_ms: now_epoch_ms()? as i64,
+    })
+}
+
+/// `builtin-jd-analysis`：scenarioId="jd-analysis"。
+/// 原组件 `buildAnalysisPrompt` 把角色设定 + 输出约束 + 简历/JD 拼在一条 prompt 里。
+/// 这里抽取角色设定与输出约束部分作为 system prompt，简历/JD 由 SkillRuntime 在
+/// prompt-build 时作为 user content 拼接。
+fn build_builtin_jd_analysis_skill() -> Result<Skill, String> {
+    let capability = serde_json::json!([{
+        "id": "default",
+        "name": "JD Analysis",
+        "description": "Analyze resume-JD match and output structured suggestions with JSON.",
+        "matchOn": {
+            "scenarios": ["jd-analysis"],
+            "categories": ["resume", "analysis"]
+        },
+        "prompt": BUILTIN_JD_ANALYSIS_PROMPT,
+        "outputFormat": "stream",
+        "requiresTools": []
+    }]);
+
+    Ok(Skill {
+        id: "builtin-jd-analysis".into(),
+        name: "JD Analysis".into(),
+        description: "JobPilot built-in resume-JD match analyst.".into(),
+        version: BUILTIN_JD_ANALYSIS_VERSION.into(),
+        author: Some("JobPilot".into()),
+        source: "builtin".into(),
+        icon: Some("target".into()),
+        tags: serde_json::json!(["jd-analysis", "analysis", "builtin"]),
+        capabilities: capability,
+        references: serde_json::json!([]),
+        required_context: serde_json::json!([]),
+        variables: serde_json::json!([]),
+        enabled: true,
+        created_at_epoch_ms: now_epoch_ms()? as i64,
+        updated_at_epoch_ms: now_epoch_ms()? as i64,
+    })
+}
+
+/// `builtin-generate-resume`：scenarioId="generate-resume"。
+/// prompt 来自 `generate-resume-dialog.tsx:132` 的 `buildAiGenerateSystemPrompt`，
+/// 采用英文版默认（language="en"）作为静态字符串（MVP 接受单语言）。
+fn build_builtin_generate_resume_skill() -> Result<Skill, String> {
+    let capability = serde_json::json!([{
+        "id": "default",
+        "name": "Resume Generator",
+        "description": "Generate a professional starter resume JSON from minimal input.",
+        "matchOn": {
+            "scenarios": ["generate-resume"],
+            "categories": ["resume", "generation"]
+        },
+        "prompt": BUILTIN_GENERATE_RESUME_PROMPT,
+        "outputFormat": "stream",
+        "requiresTools": []
+    }]);
+
+    Ok(Skill {
+        id: "builtin-generate-resume".into(),
+        name: "Resume Generator".into(),
+        description: "JobPilot built-in starter resume generator.".into(),
+        version: BUILTIN_GENERATE_RESUME_VERSION.into(),
+        author: Some("JobPilot".into()),
+        source: "builtin".into(),
+        icon: Some("file-plus".into()),
+        tags: serde_json::json!(["generate-resume", "generation", "builtin"]),
+        capabilities: capability,
+        references: serde_json::json!([]),
+        required_context: serde_json::json!([]),
+        variables: serde_json::json!([]),
+        enabled: true,
+        created_at_epoch_ms: now_epoch_ms()? as i64,
+        updated_at_epoch_ms: now_epoch_ms()? as i64,
+    })
+}
+
+/// `builtin-interview-evaluation`：scenarioId="interview-evaluation"。
+/// prompt 来自 `ai.rs:build_interview_answer_evaluation_system_prompt` 的中文版返回字符串，
+/// 并附上原 user prompt 中的 JSON 输出格式约束块（自定义 prompt 必须保留，否则解析失败）。
+fn build_builtin_interview_evaluation_skill() -> Result<Skill, String> {
+    let capability = serde_json::json!([{
+        "id": "default",
+        "name": "Interview Answer Evaluation",
+        "description": "Evaluate a single candidate interview answer and output structured JSON.",
+        "matchOn": {
+            "scenarios": ["interview-evaluation"],
+            "categories": ["interview", "evaluation"]
+        },
+        "prompt": BUILTIN_INTERVIEW_EVALUATION_PROMPT,
+        "outputFormat": "stream",
+        "requiresTools": []
+    }]);
+
+    Ok(Skill {
+        id: "builtin-interview-evaluation".into(),
+        name: "Interview Answer Evaluation".into(),
+        description: "JobPilot built-in interview answer evaluator.".into(),
+        version: BUILTIN_INTERVIEW_EVALUATION_VERSION.into(),
+        author: Some("JobPilot".into()),
+        source: "builtin".into(),
+        icon: Some("clipboard-check".into()),
+        tags: serde_json::json!(["interview", "evaluation", "builtin"]),
+        capabilities: capability,
+        references: serde_json::json!([]),
+        required_context: serde_json::json!([]),
+        variables: serde_json::json!([]),
+        enabled: true,
+        created_at_epoch_ms: now_epoch_ms()? as i64,
+        updated_at_epoch_ms: now_epoch_ms()? as i64,
+    })
+}
+
+/// `builtin-interview-report`：scenarioId="interview-report"。
+/// prompt 来自 `ai.rs:build_interview_report_system_prompt` 的中文版返回字符串，
+/// 并附上原 user prompt 中的 JSON 输出格式约束块（自定义 prompt 必须保留，否则解析失败）。
+fn build_builtin_interview_report_skill() -> Result<Skill, String> {
+    let capability = serde_json::json!([{
+        "id": "default",
+        "name": "Interview Report",
+        "description": "Generate a structured interview practice report JSON from transcript.",
+        "matchOn": {
+            "scenarios": ["interview-report"],
+            "categories": ["interview", "report"]
+        },
+        "prompt": BUILTIN_INTERVIEW_REPORT_PROMPT,
+        "outputFormat": "stream",
+        "requiresTools": []
+    }]);
+
+    Ok(Skill {
+        id: "builtin-interview-report".into(),
+        name: "Interview Report".into(),
+        description: "JobPilot built-in interview report generator.".into(),
+        version: BUILTIN_INTERVIEW_REPORT_VERSION.into(),
+        author: Some("JobPilot".into()),
+        source: "builtin".into(),
+        icon: Some("file-text".into()),
+        tags: serde_json::json!(["interview", "report", "builtin"]),
+        capabilities: capability,
+        references: serde_json::json!([]),
+        required_context: serde_json::json!([]),
+        variables: serde_json::json!([]),
+        enabled: true,
+        created_at_epoch_ms: now_epoch_ms()? as i64,
+        updated_at_epoch_ms: now_epoch_ms()? as i64,
+    })
+}
+
 /// Read only the `version` column for a Skill, returning `None` when the row
 /// is absent. Used by `bootstrap_builtin_skills` to skip re-inserting when the
 /// installed built-in already matches the current version.
@@ -627,6 +1334,171 @@ For section edits, use the exact sectionId values provided in the resume context
 When calling replaceResumeText, send patches with exact originalText values copied verbatim from the resume context and replacementText values. Do not send full section JSON.
 After a resume-edit tool succeeds, briefly confirm what changed.
 Available resume sections: see the resume context appended below.";
+
+// PR5 builtin Skill prompts（原样搬入对应场景的现有硬编码值）。
+// cover-letter / translate / generate-resume 为英文原 prompt；grammar-check / jd-analysis
+// 为构造的合理 system prompt；interview-evaluation / interview-report 含 JSON 输出格式约束块。
+
+const BUILTIN_COVER_LETTER_PROMPT: &str = "\
+You are an expert cover letter writer. Write a tailored cover letter in English.
+
+Requirements:
+- Keep the letter professional, persuasive, and specific
+- Open with a strong hook instead of generic filler
+- Tie concrete resume evidence to the job requirements
+- Mention the company and role naturally
+- Keep the result concise and ready to send
+
+Output format:
+TITLE: <your title here>
+---CONTENT---
+<the full cover letter body>";
+
+const BUILTIN_TRANSLATE_PROMPT: &str = "\
+You are a professional resume translator. Translate the given resume section from the source language to the target language.
+
+Rules:
+- Use professional, resume-appropriate language
+- Preserve the exact JSON structure and all field names
+- Keep IDs, URLs, emails, phone numbers, and dates unchanged
+- Keep technical terms in their standard form when appropriate
+- Return a single valid JSON object with keys: sectionId, title, content
+- Do not add markdown or code fences";
+
+const BUILTIN_GRAMMAR_CHECK_PROMPT: &str = "\
+You are a professional resume grammar and style reviewer.
+
+Review resume content for grammar and style issues.
+
+Return two parts:
+1. A concise human-readable summary.
+2. A JSON array wrapped exactly between these markers:
+<<<GRAMMAR_JSON_START>>>
+...json...
+<<<GRAMMAR_JSON_END>>>
+
+Each JSON item must follow:
+{
+  \"sectionId\": string,
+  \"sectionTitle\": string,
+  \"type\": \"grammar\" | \"spelling\" | \"weak-verb\" | \"vague\",
+  \"original\": string,
+  \"suggestion\": string
+}
+
+Rules:
+- only include issues when the original text exists verbatim in the provided section content
+- keep suggestions concise
+- sectionId must match one of the provided section ids";
+
+const BUILTIN_JD_ANALYSIS_PROMPT: &str = "\
+You are an expert resume analyst and career coach.
+
+Analyze how well the resume matches the job description.
+
+Output language: English.
+All human-readable analysis text and every JSON string value must be written in English.
+Keep proper nouns and technology names in their original spelling when appropriate.
+
+Return two things in one response:
+1. A concise human-readable analysis with sections for overall fit, matching keywords, missing keywords, and improvement suggestions.
+2. A final JSON object wrapped exactly between these markers:
+<<<JD_ANALYSIS_JSON_START>>>
+...json...
+<<<JD_ANALYSIS_JSON_END>>>
+
+The JSON shape must be:
+{
+  \"overallScore\": number,
+  \"atsScore\": number,
+  \"summary\": string,
+  \"keywordMatches\": string[],
+  \"missingKeywords\": string[],
+  \"suggestions\": [
+    {
+      \"sectionId\": string,
+      \"section\": string,
+      \"current\": string,
+      \"suggested\": string
+    }
+  ]
+}
+
+Requirements:
+- scores are 0-100 integers
+- suggestions should be specific and actionable
+- suggestions[].sectionId must match one of the provided section ids when the suggestion targets a specific section
+- only include suggestions when you have a clear before/after recommendation
+- when filling suggestions[].section, prefer the exact section title from the provided resume data";
+
+const BUILTIN_GENERATE_RESUME_PROMPT: &str = "\
+You are JobPilot's resume generation assistant.
+Generate a professional starter resume in English.
+Return one valid JSON object only. Do not use markdown or code fences.
+All user-facing text, section content, summaries, bullets, placeholders, and skill category names must use the requested language.
+Do not invent real company names, school names, emails, phone numbers, or personal identities. Use clear placeholders when information is missing.
+You must fill the provided JobPilot ImportDocumentInput JSON template.
+Keep sectionType values exactly as provided. Keep arrays as arrays. Keep themeJson as a JSON string.
+Return the filled template object itself, starting with { and ending with }.";
+
+// interview-evaluation 的 builtin prompt：角色设定（中文版）+ JSON 输出格式约束块。
+// 角色设定来自 ai.rs:build_interview_answer_evaluation_system_prompt 的 zh 分支返回字符串；
+// JSON 约束块来自 build_interview_answer_evaluation_user_prompt 的 zh 分支中的 JSON schema 部分。
+// 自定义 evaluation system_prompt 必须保留 JSON 约束，否则 Rust 侧 serde 解析会失败。
+const BUILTIN_INTERVIEW_EVALUATION_PROMPT: &str = "\
+你是一位严谨的面试回答教练。你只评估候选人刚刚这一次回答，并输出合法 JSON。不要安慰式泛泛评价，不要虚构候选人没说过的细节。
+
+输出 JSON，字段且仅字段如下：
+{
+  \"overallScore\": <0-100 整数>,
+  \"summary\": <1-2 句简短评价>,
+  \"dimensions\": [
+    { \"id\": \"structure\", \"label\": \"结构完整度\", \"score\": <0-100>, \"feedback\": <一句话> },
+    { \"id\": \"contribution\", \"label\": \"个人贡献\", \"score\": <0-100>, \"feedback\": <一句话> },
+    { \"id\": \"quantification\", \"label\": \"结果量化\", \"score\": <0-100>, \"feedback\": <一句话> },
+    { \"id\": \"jdRelevance\", \"label\": \"岗位相关性\", \"score\": <0-100>, \"feedback\": <一句话> },
+    { \"id\": \"clarity\", \"label\": \"表达清晰度\", \"score\": <0-100>, \"feedback\": <一句话> }
+  ],
+  \"strengths\": [<字符串>, ...],
+  \"riskPoints\": [<字符串>, ...],
+  \"followUpQuestion\": <建议面试官继续追问的一个具体问题，若无则 null>,
+  \"trainingSuggestions\": [<候选人下一次可练习的具体动作>, ...]
+}
+
+要求：
+- 如果是行为/项目回答，按 STAR 关注背景、任务、行动、结果是否完整。
+- 如果是技术回答，关注原理、权衡、边界、排障和落地指标。
+- `riskPoints` 指出面试官可能质疑的点。
+- `followUpQuestion` 必须基于这次回答的缺口，不要泛泛而谈。
+- 只基于给定内容判断。";
+
+// interview-report 的 builtin prompt：角色设定（中文版）+ JSON 输出格式约束块。
+// 角色设定来自 ai.rs:build_interview_report_system_prompt 的 zh 分支返回字符串；
+// JSON 约束块来自 build_interview_report_user_prompt 的 zh 分支中的 JSON schema 部分。
+// 自定义 report system_prompt 必须保留 JSON 约束，否则 Rust 侧 serde 解析会失败。
+const BUILTIN_INTERVIEW_REPORT_PROMPT: &str = "\
+你是一位专业的人才评估与面试训练教练。你会根据面试记录产出可信、结构化、可执行的 JSON 复盘报告，只输出合法 JSON，不要附加解释。
+
+输出 JSON，字段且仅字段如下：
+{
+  \"overallScore\": <0-100 整数>,
+  \"summary\": <2-4 句总结>,
+  \"overallFeedback\": <2-5 句整体反馈>,
+  \"improvementSuggestions\": [<字符串>, ...],
+  \"weakPoints\": [
+    { \"title\": <薄弱点标题>, \"evidence\": <来自面试记录的证据>, \"severity\": \"low\" | \"medium\" | \"high\", \"trainingFocus\": <训练重点> }
+  ],
+  \"trainingPlan\": [
+    { \"title\": <训练项标题>, \"description\": <训练目标>, \"priority\": \"low\" | \"medium\" | \"high\", \"drills\": [<具体练习动作>, ...] }
+  ]
+}
+
+要求：
+- 只基于给定记录做判断，不要虚构没有发生的细节。
+- `improvementSuggestions` 返回 3-6 条可执行建议。
+- `weakPoints` 返回 2-5 条，必须包含证据和训练重点。
+- `trainingPlan` 返回 2-4 个训练项，每个训练项包含 2-4 个 drills。
+- 如果轮次不完整，也要如实反映在反馈里。";
 
 // =====================================================
 // Internal helpers

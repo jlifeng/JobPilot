@@ -63,6 +63,13 @@ pub struct StartInterviewTurnStreamInput {
     /// round. When absent, the original Rust-side builder is used (backward
     /// compatibility for sessions without a Skill persona selection).
     pub system_prompt: Option<String>,
+    /// Optional Skill-driven evaluation system prompt for
+    /// `evaluate_interview_answer`. When present and non-empty, it replaces
+    /// the default `build_interview_answer_evaluation_system_prompt` output
+    /// used when scoring a candidate's answer. When absent, the original
+    /// Rust-side builder is used (backward compatibility). Custom prompts
+    /// must preserve the JSON output format constraint expected by the parser.
+    pub evaluation_system_prompt: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -75,6 +82,12 @@ pub struct GenerateInterviewReportInput {
     pub locale: Option<String>,
     #[serde(default)]
     pub force_regenerate: bool,
+    /// Optional Skill-driven system prompt for report generation. When present
+    /// and non-empty, it replaces the default `build_interview_report_system_prompt`
+    /// output. When absent, the original Rust-side builder is used (backward
+    /// compatibility). Custom prompts must preserve the JSON output format
+    /// constraint expected by the parser.
+    pub system_prompt: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -496,6 +509,7 @@ pub fn start_interview_turn_stream(
                     input.metadata,
                     locale,
                     input.system_prompt,
+                    input.evaluation_system_prompt,
                 )
                 .await
             }
@@ -566,6 +580,14 @@ pub async fn generate_interview_report(
         input.base_url.as_deref(),
     )?;
     let locale = normalize_interview_locale(input.locale.as_deref());
+    // 与 PR3 的三元模式一致：传入非空 system_prompt → 用传入；否则 → 回退到默认
+    // build_interview_report_system_prompt。自定义 prompt 必须自行保留 JSON 输出格式约束
+    //（builtin Skill 已在 prompt 中包含）。
+    let resolved_system_prompt =
+        match input.system_prompt.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
+            Some(custom) => custom.to_string(),
+            None => build_interview_report_system_prompt(&locale),
+        };
     let client = reqwest::Client::new();
     let response_json = match resolved.provider.as_str() {
         "openai" => {
@@ -577,7 +599,7 @@ pub async fn generate_interview_report(
                 &client,
                 &endpoint,
                 &resolved,
-                &build_interview_report_system_prompt(&locale),
+                &resolved_system_prompt,
                 &build_interview_report_user_prompt(&session, &locale),
             )
             .await?
@@ -588,7 +610,7 @@ pub async fn generate_interview_report(
                 &client,
                 &endpoint,
                 &resolved,
-                &build_interview_report_system_prompt(&locale),
+                &resolved_system_prompt,
                 &build_interview_report_user_prompt(&session, &locale),
             )
             .await?
@@ -654,8 +676,15 @@ async fn evaluate_interview_answer(
     candidate_message: &storage::InterviewMessageItem,
     interviewer_response: &str,
     locale: &str,
+    system_prompt: Option<&str>,
 ) -> Result<InterviewAnswerEvaluationModelOutput, String> {
-    let system_prompt = build_interview_answer_evaluation_system_prompt(locale);
+    // 与 PR3 build_interview_messages 的三元模式一致：传入非空 system_prompt
+    // → 用传入；否则 → 回退到默认 build_interview_answer_evaluation_system_prompt。
+    // 自定义 prompt 必须自行保留 JSON 输出格式约束（builtin Skill 已在 prompt 中包含）。
+    let resolved_system_prompt = match system_prompt.map(str::trim).filter(|s| !s.is_empty()) {
+        Some(custom) => custom.to_string(),
+        None => build_interview_answer_evaluation_system_prompt(locale),
+    };
     let user_prompt = build_interview_answer_evaluation_user_prompt(
         session,
         round,
@@ -666,7 +695,7 @@ async fn evaluate_interview_answer(
     let response_json = match config.provider.as_str() {
         "openai" => {
             let endpoint = format!("{}/chat/completions", config.base_url.trim_end_matches('/'));
-            request_openai_json_completion(client, &endpoint, config, &system_prompt, &user_prompt)
+            request_openai_json_completion(client, &endpoint, config, &resolved_system_prompt, &user_prompt)
                 .await?
         }
         "anthropic" => {
@@ -675,7 +704,7 @@ async fn evaluate_interview_answer(
                 client,
                 &endpoint,
                 config,
-                &system_prompt,
+                &resolved_system_prompt,
                 &user_prompt,
             )
             .await?
@@ -725,6 +754,7 @@ async fn run_interview_turn_stream(
     metadata: Option<Value>,
     locale: String,
     system_prompt: Option<String>,
+    evaluation_system_prompt: Option<String>,
 ) -> Result<(), String> {
     let session = storage::get_interview_session(app, &session_id)?
         .ok_or_else(|| format!("interview session not found: {session_id}"))?;
@@ -894,6 +924,7 @@ async fn run_interview_turn_stream(
             &candidate_message,
             persisted_text.as_str(),
             &locale,
+            evaluation_system_prompt.as_deref(),
         )
         .await
         {

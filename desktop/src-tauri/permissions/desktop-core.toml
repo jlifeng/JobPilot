@@ -58,4 +58,6 @@ commands.allow = [
   "delete_skill",
   "get_skill_settings",
   "set_default_skill_selection",
+  "import_skill_package",
+  "confirm_import_skill_package",
 ]

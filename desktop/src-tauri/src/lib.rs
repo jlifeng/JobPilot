@@ -25,7 +25,7 @@ use settings::{
     ProviderConfigUpdateInput, SecretInventorySnapshot, SecretValueWriteInput, SecretVaultStatus,
     WorkspaceAppearanceSettingsUpdateInput, WorkspaceSettingsDocument,
 };
-use skills::{SetDefaultSkillSelectionInput, Skill, SkillSettings};
+use skills::{SetDefaultSkillSelectionInput, Skill, SkillPackagePreview, SkillSettings};
 use storage::{
     AiAnalysisRecordItem, CreateDocumentInput, CreateInterviewSessionInput, DocumentDetail,
     DocumentListItem, ImportDocumentInput, InterviewMessageItem, InterviewReportRecord,
@@ -489,6 +489,23 @@ fn set_default_skill_selection(
     skills::set_default_skill_selection(app, input)
 }
 
+#[tauri::command]
+fn import_skill_package(
+    app: tauri::AppHandle,
+    file_path: String,
+) -> Result<SkillPackagePreview, String> {
+    skills::import_skill_package(app, file_path)
+}
+
+#[tauri::command]
+fn confirm_import_skill_package(
+    app: tauri::AppHandle,
+    skill: Skill,
+    use_new_id: Option<String>,
+) -> Result<Skill, String> {
+    skills::confirm_import_skill_package(app, skill, use_new_id)
+}
+
 fn build_importer_snapshot(
     app: &tauri::AppHandle,
     mode: ImporterExecutionMode,
@@ -620,7 +637,9 @@ pub fn run() {
             save_skill,
             delete_skill,
             get_skill_settings,
-            set_default_skill_selection
+            set_default_skill_selection,
+            import_skill_package,
+            confirm_import_skill_package
         ])
         .run(tauri::generate_context!())
         .expect("failed to run JobPilot desktop shell");

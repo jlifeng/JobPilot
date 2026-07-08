@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,6 +12,9 @@ import {
 } from "lucide-react";
 import { useResumeStore } from "../../stores/resume-store";
 import { useEditorStore } from "../../stores/editor-store";
+import { useSkillStore } from "../../stores/skill-store";
+import { SkillRuntime } from "../../lib/skill-runtime";
+import { SkillSelector } from "../skill/skill-selector";
 import {
   listenToAiStreamEvents,
   saveAiAnalysisRecord,
@@ -201,6 +204,48 @@ export function GrammarCheckDialog({
   const rawAnalysisRef = useRef("");
   const savedAnalysisSignatureRef = useRef<string | null>(null);
 
+  // 挂载时加载 Skill 目录 + 默认选择，深链进入时也能渲染 SkillSelector
+  useEffect(() => {
+    void useSkillStore.getState().loadSkills();
+    void useSkillStore.getState().loadSettings();
+  }, []);
+
+  const defaultSelections = useSkillStore((state) => state.defaultSelections);
+  const skills = useSkillStore((state) => state.skills);
+  const [skillOverride, setSkillOverride] = useState<string | null | undefined>(undefined);
+  const selectedSkillSelection =
+    skillOverride !== undefined ? skillOverride : (defaultSelections["grammar-check"] ?? null);
+
+  const handleSkillSelectionChange = (selection: string | null) => {
+    setSkillOverride(selection);
+    void useSkillStore.getState().setDefaultSelection({
+      scenarioId: "grammar-check",
+      selection,
+    });
+  };
+
+  // 选中 Skill → 用 SkillRuntime.buildSystemPrompt 返回 systemPrompt，同时返回简化 prompt
+  // （仅含用户内容）；未选 → 返回 undefined，调用方走原逻辑（systemPrompt 内联在 prompt 里）
+  const buildSkillSystemPrompt = useCallback((): string | undefined => {
+    if (!selectedSkillSelection) {
+      return undefined;
+    }
+    const separatorIndex = selectedSkillSelection.indexOf(":");
+    if (separatorIndex <= 0) {
+      return undefined;
+    }
+    const skillId = selectedSkillSelection.slice(0, separatorIndex);
+    const capabilityId = selectedSkillSelection.slice(separatorIndex + 1);
+    const runtime = new SkillRuntime(skills);
+    const lookup = runtime.getCapability(skillId, capabilityId);
+    if (!lookup) {
+      return undefined;
+    }
+    return runtime.buildSystemPrompt("grammar-check", lookup.capability, lookup.skill, {
+      variables: useSkillStore.getState().variableValues[skillId] ?? {},
+    });
+  }, [selectedSkillSelection, skills]);
+
   useEffect(() => {
     if (open) {
       return;
@@ -315,12 +360,21 @@ export function GrammarCheckDialog({
     try {
       const aiConfig = await getDesktopAiRuntimeConfig();
 
-      await startAiPromptStream({
-        provider: aiConfig.provider,
-        model: aiConfig.model || undefined,
-        baseUrl: aiConfig.baseUrl,
-        requestId,
-        prompt: `Review this resume content for grammar and style issues.
+      // 选中 Skill → systemPrompt 走 Skill，prompt 简化为仅含简历内容；
+      // 未选 → 完全走原逻辑（systemPrompt 内联在 prompt 里，不传 systemPrompt 字段）
+      const skillSystemPrompt = buildSkillSystemPrompt();
+      const resumePayload = JSON.stringify(
+        scopedSections.map((section) => ({
+          sectionId: section.id,
+          sectionTitle: section.title,
+          sectionType: section.type,
+          content: section.content,
+        })),
+        null,
+        2,
+      );
+
+      const defaultPrompt = `Review this resume content for grammar and style issues.
 
 Return two parts:
 1. A concise human-readable summary.
@@ -344,16 +398,18 @@ Rules:
 - sectionId must match one of the provided section ids
 
 Resume sections to review:
-${JSON.stringify(
-  scopedSections.map((section) => ({
-    sectionId: section.id,
-    sectionTitle: section.title,
-    sectionType: section.type,
-    content: section.content,
-  })),
-  null,
-  2,
-)}`,
+${resumePayload}`;
+
+      await startAiPromptStream({
+        provider: aiConfig.provider,
+        model: aiConfig.model || undefined,
+        baseUrl: aiConfig.baseUrl,
+        requestId,
+        systemPrompt: skillSystemPrompt,
+        // 选了 Skill 后 prompt 简化为仅含简历内容（角色 + JSON 约束已在 Skill 的 systemPrompt 里）
+        prompt: skillSystemPrompt
+          ? `Resume sections to review:\n${resumePayload}`
+          : defaultPrompt,
       });
     } catch (error: unknown) {
       setState("error");
@@ -469,6 +525,25 @@ ${JSON.stringify(
               <p className="text-sm text-zinc-500">
                 {t("grammarCheckDescription")}
               </p>
+
+              <div className="rounded-xl border border-dashed border-zinc-300 p-3 dark:border-zinc-700">
+                <div className="flex flex-col gap-1.5">
+                  <div className="text-sm font-medium text-zinc-700 dark:text-zinc-200">
+                    {t("grammarCheckSkillLabel")}
+                  </div>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                    {t("grammarCheckSkillHint")}
+                  </p>
+                  <div className="mt-1">
+                    <SkillSelector
+                      scenarioId="grammar-check"
+                      value={selectedSkillSelection ?? undefined}
+                      onChange={handleSkillSelectionChange}
+                      disabled={isLoading}
+                    />
+                  </div>
+                </div>
+              </div>
 
               <div className="form-field">
                 <label className="form-label">{t("grammarCheckScope")}</label>

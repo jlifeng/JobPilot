@@ -8,7 +8,7 @@
 // tags) are serialized by Rust as serde_json::Value and parsed here into
 // concrete interfaces so the renderer can work with strongly-typed data.
 
-export type SkillSource = "builtin" | "community" | "custom";
+export type SkillSource = "builtin" | "imported" | "community" | "custom";
 
 export interface SkillVariableOption {
   value: string;
@@ -97,6 +97,36 @@ export interface SkillSettings {
   /** skillId -> { variableKey: value } */
   variableValues: Record<string, Record<string, string>>;
   updatedAtEpochMs: number;
+}
+
+// =====================================================
+// Phase 4: Skill package import (zip 解包预览 + 冲突检测)
+// =====================================================
+
+/**
+ * 冲突检测结果：skill.id 是否已存在于库，已存在时附带现有版本。
+ *
+ * 镜像 desktop/src-tauri/src/skills.rs 的 SkillConflict（camelCase via serde）。
+ */
+export interface SkillConflict {
+  /** skill.id 是否已存在于库。 */
+  hasConflict: boolean;
+  /** 已存在时的版本（不存在时为 null）。 */
+  existingVersion: string | null;
+}
+
+/**
+ * 导入预览返回结构：解析出的 Skill（不入库的预览副本）+ references 数量 + 冲突检测结果。
+ *
+ * 镜像 desktop/src-tauri/src/skills.rs 的 SkillPackagePreview（camelCase via serde）。
+ */
+export interface SkillPackagePreview {
+  /** 解析出的完整 Skill 结构（不入库的预览副本）。 */
+  skill: Skill;
+  /** 包内 references/*.md 文件数。 */
+  referencesCount: number;
+  /** 冲突检测结果（skill.id 是否已存在于库）。 */
+  conflict: SkillConflict;
 }
 
 // =====================================================

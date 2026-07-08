@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import {
@@ -15,6 +15,9 @@ import { cn } from "../../lib/utils";
 import { toResumeDocument } from "../../lib/desktop-document-mappers";
 import { duplicateDocument, saveDocument } from "../../lib/desktop-api";
 import { useResumeStore } from "../../stores/resume-store";
+import { useSkillStore } from "../../stores/skill-store";
+import { SkillRuntime } from "../../lib/skill-runtime";
+import { SkillSelector } from "../skill/skill-selector";
 import type { ResumeSection } from "../../types/resume";
 import {
   extractJsonObject,
@@ -197,6 +200,47 @@ export function TranslateDialog({ open, onClose, resumeId }: TranslateDialogProp
   const isLoading = state === "translating";
   const applyButtonLabel = mode === "copy" ? t("commonCreate") : t("translateApply");
 
+  // 挂载时加载 Skill 目录 + 默认选择，深链进入时也能渲染 SkillSelector
+  useEffect(() => {
+    void useSkillStore.getState().loadSkills();
+    void useSkillStore.getState().loadSettings();
+  }, []);
+
+  const defaultSelections = useSkillStore((state) => state.defaultSelections);
+  const skills = useSkillStore((state) => state.skills);
+  const [skillOverride, setSkillOverride] = useState<string | null | undefined>(undefined);
+  const selectedSkillSelection =
+    skillOverride !== undefined ? skillOverride : (defaultSelections["translate"] ?? null);
+
+  const handleSkillSelectionChange = (selection: string | null) => {
+    setSkillOverride(selection);
+    void useSkillStore.getState().setDefaultSelection({
+      scenarioId: "translate",
+      selection,
+    });
+  };
+
+  // 选中 Skill → 用 SkillRuntime.buildSystemPrompt；否则返回 undefined 走原默认
+  const buildSkillSystemPrompt = useCallback((): string | undefined => {
+    if (!selectedSkillSelection) {
+      return undefined;
+    }
+    const separatorIndex = selectedSkillSelection.indexOf(":");
+    if (separatorIndex <= 0) {
+      return undefined;
+    }
+    const skillId = selectedSkillSelection.slice(0, separatorIndex);
+    const capabilityId = selectedSkillSelection.slice(separatorIndex + 1);
+    const runtime = new SkillRuntime(skills);
+    const lookup = runtime.getCapability(skillId, capabilityId);
+    if (!lookup) {
+      return undefined;
+    }
+    return runtime.buildSystemPrompt("translate", lookup.capability, lookup.skill, {
+      variables: useSkillStore.getState().variableValues[skillId] ?? {},
+    });
+  }, [selectedSkillSelection, skills]);
+
   useEffect(() => {
     if (!open) {
       return;
@@ -251,7 +295,7 @@ export function TranslateDialog({ open, onClose, resumeId }: TranslateDialogProp
             model: runtime.model,
             baseUrl: runtime.baseUrl,
             requestId: generateRequestId("translate"),
-            systemPrompt: `You are a professional resume translator. Translate the given resume section from ${getLanguageLabel(sourceLang)} to ${getLanguageLabel(targetLang)}.
+            systemPrompt: buildSkillSystemPrompt() ?? `You are a professional resume translator. Translate the given resume section from ${getLanguageLabel(sourceLang)} to ${getLanguageLabel(targetLang)}.
 
 Rules:
 - Use professional, resume-appropriate language
@@ -400,6 +444,25 @@ Rules:
           {state === "idle" && (
             <>
               <p className="text-sm text-zinc-500">{t("translateDescription")}</p>
+
+              <div className="rounded-xl border border-dashed border-zinc-300 p-3 dark:border-zinc-700">
+                <div className="flex flex-col gap-1.5">
+                  <div className="text-sm font-medium text-zinc-700 dark:text-zinc-200">
+                    {t("translateSkillLabel")}
+                  </div>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                    {t("translateSkillHint")}
+                  </p>
+                  <div className="mt-1">
+                    <SkillSelector
+                      scenarioId="translate"
+                      value={selectedSkillSelection ?? undefined}
+                      onChange={handleSkillSelectionChange}
+                      disabled={isLoading}
+                    />
+                  </div>
+                </div>
+              </div>
 
               <div className="flex items-center gap-4">
                 <div className="form-field flex-1">
