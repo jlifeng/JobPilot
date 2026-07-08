@@ -1,0 +1,9 @@
+{"file": ".trellis/tasks/07-07-skill-phase-4-5/prd.md", "reason": "验收标准与 Definition of Done 的判定依据，check 期逐条核对"}
+{"file": ".trellis/tasks/archive/2026-07/06-15-skills-plugin-system/prd.md", "reason": "Phase 1-3 ADR 的根本性权衡（matchOn 推断不准、自定义 Skill 非 MVP），check 期需确认 Phase 4/5 未违反这些约束"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "跨层陷阱清单：PR2 漏 ACL、PR3 深链未 loadSkills，本期高风险点（ACL 白名单、5 dialog loadSkills、evaluation/report 前后端 system_prompt 传参、路径遍历防护跨 Rust/前端）"}
+{"file": ".trellis/spec/guides/desktop-runtime-boundary.md", "reason": "Tauri 运行时边界，check 期核对 zip 解析在 Rust、文件选择在前端、ACL 与 invoke_handler 注册一致"}
+{"file": ".trellis/spec/guides/windows-release-smoke-checklist.md", "reason": "Windows 发布冒烟清单，导入功能涉及文件系统操作需核对"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "前端质量门槛，lint/typecheck/可访问性"}
+{"file": ".trellis/spec/backend/ai-guidelines.md", "reason": "Rust AI 层规范，核对 evaluation/report 的 system_prompt 三元分支与 JSON 输出约束保留"}
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "SQLite 规范，核对导入 upsert 与冲突处理的事务一致性"}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "复用核对：确认 5 dialog 走 PR2 模式、2 后端走 PR3 模式，无重复造轮子"}

@@ -1,0 +1,14 @@
+{"file": ".trellis/tasks/07-07-skill-phase-4-5/prd.md", "reason": "本任务 PRD，定义 Phase 4/5 范围、技术方案、ADR、文件清单与 PR 拆分，实现的唯一需求源"}
+{"file": ".trellis/tasks/archive/2026-07/06-15-skills-plugin-system/prd.md", "reason": "Phase 1-3 母 PRD，含 Skill 数据模型、三种处理策略、阶段标题检测正则、匹配评分、systemPrompt 构建流程等设计决策，Phase 4/5 必须延续"}
+{"file": ".trellis/tasks/archive/2026-07/06-15-skills-plugin-system/research/anthropic-skills-spec.md", "reason": "Anthropic Skills 格式（SKILL.md + YAML frontmatter），Phase 4 zip 导入解析的直接依据"}
+{"file": ".trellis/tasks/archive/2026-07/06-15-skills-plugin-system/research/skills-ecosystem.md", "reason": "生态分发与安装机制，理解 .skill 包结构来源"}
+{"file": ".trellis/spec/backend/ai-guidelines.md", "reason": "Rust AI 层规范，evaluate_interview_answer/generate_interview_report 加 system_prompt 参数需遵循"}
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "SQLite 操作规范，save_skill upsert 与导入冲突处理需遵循"}
+{"file": ".trellis/spec/backend/api-guidelines.md", "reason": "Tauri 命令定义规范，import_skill_package 新命令需遵循"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "前端组件规范，/skills 管理页 + 导入预览弹窗组件需遵循"}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "Zustand store 规范，skill-store 已按此建，扩展需一致"}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Tauri invoke 返回值类型化规范，importSkillPackage 封装需遵循"}
+{"file": ".trellis/spec/frontend/hook-guidelines.md", "reason": "React hook 规范，5 个 dialog 接入 SkillSelector 的 loadSkills/useEffect 模式需遵循"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "跨层思维指南，PR2/PR3 都出过跨层缺陷（ACL 漏注册、深链未 loadSkills），本期 evaluation/report 后端接入 + 前端传参是高风险跨层点"}
+{"file": ".trellis/spec/guides/desktop-runtime-boundary.md", "reason": "Tauri 运行时边界，zip 解析在 Rust 端、文件选择对话框在前端，边界划分依据"}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "复用思维，Phase 5 全量复用 PR2/PR3 模式，避免重写"}
