@@ -146,3 +146,36 @@ Added shared ContactInfo component with grid/icon layout, new Modern Minimal tem
 ### Next Steps
 
 - None - task complete
+
+
+## Session 5: Skill 管理入口侧栏化 + 内置中文化 + 导入可用性修复
+
+**Date**: 2026-07-09
+**Task**: Skill 管理入口侧栏化 + 内置中文化 + 导入可用性修复
+**Branch**: `feature/skills-pack`
+
+### Summary
+
+Skill 管理 UX 收尾：工作台左侧 sidebar「设置」下方加 Skill 管理入口（Puzzle 图标，navSkills i18n）；/skills 页面去掉重复的紫色小标题与页内大标题，标题统一由顶栏 navbar 承担；9 个内置 Skill name/description 全中文化（version 1.1.0 触发 bootstrap 覆盖）。修复导入 Skill 不可用：import_skill_package 真正加载 references/*.md 内容到 skill.references（新增 collect_reference_entries 纯函数 + 3 单元测试）；imported Skill 详情面板新增「适用场景」多选控件，手动指派 matchOn.scenarios 后该 Skill 出现在对应场景的 SkillSelector 中。trellis-check 7 维度全绿。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `468c21a` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
