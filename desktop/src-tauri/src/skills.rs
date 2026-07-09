@@ -437,7 +437,8 @@ pub struct SkillConflict {
 /// 解析 `.skill` zip 包，返回预览结构（不落库）。
 ///
 /// 流程：打开 zip → 路径遍历防护 → 读 SKILL.md → 解析 frontmatter + body →
-/// 扫描 references/*.md 计数 → 构造 Skill（source="imported"）→ 冲突检测 → 返回预览。
+/// 扫描 references/*.md 读取全文构造 SkillReference → 构造 Skill（source="imported"）→
+/// 冲突检测 → 返回预览。
 pub fn import_skill_package(app: AppHandle, file_path: String) -> Result<SkillPackagePreview, String> {
     let file_path = file_path.trim().to_string();
     if file_path.is_empty() {
@@ -549,18 +550,9 @@ pub fn import_skill_package(app: AppHandle, file_path: String) -> Result<SkillPa
         "requiresTools": []
     }]);
 
-    // references：扫描包内 references/*.md，只记录数量。skill.references 存 []。
-    // references 内容在 SkillRuntime 用到时才按需加载——本期导入预览不加载内容。
-    let references_count = archive
-        .file_names()
-        .filter(|name| {
-            // 只匹配顶层 references/*.md（不允许嵌套或 ../ 遍历——已在前述防护中校验）。
-            let normalized = name.replace('\\', "/");
-            normalized.starts_with("references/")
-                && normalized.ends_with(".md")
-                && normalized.matches('/').count() == 1
-        })
-        .count();
+    // references：扫描包内 references/*.md，读取每个文件全文构造 SkillReference。
+    let references_vec = collect_reference_entries(&mut archive)?;
+    let references_count = references_vec.len();
 
     // 构造 Skill 结构（source="imported"，enabled=true）。
     let now = now_epoch_ms()? as i64;
@@ -574,7 +566,7 @@ pub fn import_skill_package(app: AppHandle, file_path: String) -> Result<SkillPa
         icon: None,
         tags: serde_json::json!([]),
         capabilities: capability,
-        references: serde_json::json!([]),
+        references: Value::Array(references_vec),
         required_context: serde_json::json!([]),
         variables: serde_json::json!([]),
         enabled: true,
@@ -590,6 +582,58 @@ pub fn import_skill_package(app: AppHandle, file_path: String) -> Result<SkillPa
         references_count,
         conflict,
     })
+}
+
+/// 扫描 zip archive 中顶层 `references/*.md` 条目，读取每个文件全文构造
+/// `SkillReference` 等价的 JSON 对象（key/label/filename/content）。
+///
+/// 先收集匹配条目的 (index, normalized_name) 列表，避免在 archive 迭代中
+/// 产生借用冲突（zip archive 的 `by_index` 借用是排他的）。只匹配顶层
+/// `references/<name>.md`（单层，无嵌套），路径遍历防护已在前序代码中校验。
+fn collect_reference_entries<R: std::io::Read + std::io::Seek>(
+    archive: &mut zip::ZipArchive<R>,
+) -> Result<Vec<Value>, String> {
+    let mut references_entries: Vec<(usize, String)> = Vec::new();
+    for index in 0..archive.len() {
+        let entry = archive
+            .by_index(index)
+            .map_err(|error| format!("failed to read zip entry {index}: {error}"))?;
+        let name = entry.name().to_string();
+        let normalized = name.replace('\\', "/");
+        if normalized.starts_with("references/")
+            && normalized.ends_with(".md")
+            && normalized.matches('/').count() == 1
+        {
+            references_entries.push((index, normalized));
+        }
+    }
+
+    let mut references_vec: Vec<Value> = Vec::new();
+    for (index, normalized_name) in &references_entries {
+        let mut content = String::new();
+        {
+            let mut entry = archive
+                .by_index(*index)
+                .map_err(|error| format!("failed to open reference entry: {error}"))?;
+            use std::io::Read;
+            entry
+                .read_to_string(&mut content)
+                .map_err(|error| format!("failed to read reference content: {error}"))?;
+        }
+        // 文件名 stem：去掉目录前缀和 .md 后缀（如 "references/topic-a.md" → "topic-a"）。
+        let stem = normalized_name
+            .strip_prefix("references/")
+            .and_then(|rest| rest.strip_suffix(".md"))
+            .unwrap_or(normalized_name);
+        let key = slugify(stem);
+        references_vec.push(serde_json::json!({
+            "key": key,
+            "label": stem,
+            "filename": normalized_name,
+            "content": content
+        }));
+    }
+    Ok(references_vec)
 }
 
 /// 预览确认后真正入库（upsert）。
@@ -819,6 +863,87 @@ mod tests {
         assert_eq!(slugify("中文 Skill!!!"), "中文-skill");
         assert_eq!(slugify("---leading and trailing---"), "leading-and-trailing");
     }
+
+    /// 在内存中构建一个 zip 包，返回完整字节。`entries` 为 (filename, content) 列表。
+    fn build_test_zip(entries: &[(&str, &str)]) -> Vec<u8> {
+        use std::io::{Seek, Write};
+        let mut buffer: Vec<u8> = Vec::new();
+        {
+            let mut writer = zip::ZipWriter::new(std::io::Cursor::new(&mut buffer));
+            let options = zip::write::SimpleFileOptions::default()
+                .compression_method(zip::CompressionMethod::Stored);
+            for (name, content) in entries {
+                writer.start_file(*name, options).expect("start_file failed");
+                writer.write_all(content.as_bytes()).expect("write_all failed");
+            }
+            writer.finish().expect("finish failed");
+        }
+        // Cursor seek 位置不影响读取，返回 buffer 即可。这里显式 seek 回 0 以防万一。
+        let _ = std::io::Seek::seek(
+            &mut std::io::Cursor::new(&mut buffer),
+            std::io::SeekFrom::Start(0),
+        );
+        buffer
+    }
+
+    #[test]
+    fn collect_reference_entries_loads_top_level_md() {
+        let bytes = build_test_zip(&[
+            ("SKILL.md", "---\nname: Test Skill\n---\nbody"),
+            ("references/topic-a.md", "# Topic A\n\ncontent A"),
+            ("references/topic-b.md", "content B"),
+        ]);
+        let reader = std::io::Cursor::new(bytes);
+        let mut archive = zip::ZipArchive::new(reader).expect("zip open failed");
+
+        let references = collect_reference_entries(&mut archive).expect("collect failed");
+        assert_eq!(references.len(), 2);
+
+        let first = references[0].as_object().expect("first is object");
+        assert_eq!(first.get("key").and_then(|v| v.as_str()), Some("topic-a"));
+        assert_eq!(first.get("label").and_then(|v| v.as_str()), Some("topic-a"));
+        assert_eq!(
+            first.get("filename").and_then(|v| v.as_str()),
+            Some("references/topic-a.md"),
+        );
+        assert_eq!(
+            first.get("content").and_then(|v| v.as_str()),
+            Some("# Topic A\n\ncontent A"),
+        );
+
+        let second = references[1].as_object().expect("second is object");
+        assert_eq!(second.get("key").and_then(|v| v.as_str()), Some("topic-b"));
+        assert_eq!(second.get("content").and_then(|v| v.as_str()), Some("content B"));
+    }
+
+    #[test]
+    fn collect_reference_entries_skips_nested_and_non_md() {
+        // 只匹配顶层 references/*.md；嵌套子目录与非 .md 文件应被跳过。
+        let bytes = build_test_zip(&[
+            ("references/a.md", "top"),
+            ("references/sub/b.md", "nested"),
+            ("references/notes.txt", "not markdown"),
+            ("other.md", "outside references"),
+        ]);
+        let reader = std::io::Cursor::new(bytes);
+        let mut archive = zip::ZipArchive::new(reader).expect("zip open failed");
+
+        let references = collect_reference_entries(&mut archive).expect("collect failed");
+        assert_eq!(references.len(), 1);
+        let only = references[0].as_object().expect("only is object");
+        assert_eq!(only.get("key").and_then(|v| v.as_str()), Some("a"));
+        assert_eq!(only.get("content").and_then(|v| v.as_str()), Some("top"));
+    }
+
+    #[test]
+    fn collect_reference_entries_empty_when_none() {
+        let bytes = build_test_zip(&[("SKILL.md", "---\nname: x\n---\nbody")]);
+        let reader = std::io::Cursor::new(bytes);
+        let mut archive = zip::ZipArchive::new(reader).expect("zip open failed");
+
+        let references = collect_reference_entries(&mut archive).expect("collect failed");
+        assert!(references.is_empty());
+    }
 }
 
 // =====================================================
@@ -844,23 +969,23 @@ mod tests {
 // contract from the PRD ADR. The dynamic `sectionList` line is replaced with a
 // pointer to the resume context that SkillRuntime appends at prompt-build time.
 
-const BUILTIN_RESUME_ASSISTANT_VERSION: &str = "1.0.0";
-const BUILTIN_INTERVIEW_PERSONAS_VERSION: &str = "1.0.0";
-const BUILTIN_COVER_LETTER_VERSION: &str = "1.0.0";
-const BUILTIN_TRANSLATE_VERSION: &str = "1.0.0";
-const BUILTIN_GRAMMAR_CHECK_VERSION: &str = "1.0.0";
-const BUILTIN_JD_ANALYSIS_VERSION: &str = "1.0.0";
-const BUILTIN_GENERATE_RESUME_VERSION: &str = "1.0.0";
-const BUILTIN_INTERVIEW_EVALUATION_VERSION: &str = "1.0.0";
-const BUILTIN_INTERVIEW_REPORT_VERSION: &str = "1.0.0";
+const BUILTIN_RESUME_ASSISTANT_VERSION: &str = "1.1.0";
+const BUILTIN_INTERVIEW_PERSONAS_VERSION: &str = "1.1.0";
+const BUILTIN_COVER_LETTER_VERSION: &str = "1.1.0";
+const BUILTIN_TRANSLATE_VERSION: &str = "1.1.0";
+const BUILTIN_GRAMMAR_CHECK_VERSION: &str = "1.1.0";
+const BUILTIN_JD_ANALYSIS_VERSION: &str = "1.1.0";
+const BUILTIN_GENERATE_RESUME_VERSION: &str = "1.1.0";
+const BUILTIN_INTERVIEW_EVALUATION_VERSION: &str = "1.1.0";
+const BUILTIN_INTERVIEW_REPORT_VERSION: &str = "1.1.0";
 
 pub fn bootstrap_builtin_skills(app: &AppHandle) -> Result<(), String> {
     let resume_version = read_skill_version(app, "builtin-resume-assistant")?;
     if resume_version.as_deref() != Some(BUILTIN_RESUME_ASSISTANT_VERSION) {
         let capability = serde_json::json!([{
             "id": "resume-edit",
-            "name": "Resume Edit",
-            "description": "Conversational resume editing with tool-assisted text patches.",
+            "name": "简历编辑",
+            "description": "对话式简历编辑，支持工具辅助的文本片段修改。",
             "matchOn": {
                 "scenarios": ["ai-chat"],
                 "categories": ["resume"]
@@ -872,8 +997,8 @@ pub fn bootstrap_builtin_skills(app: &AppHandle) -> Result<(), String> {
 
         let skill = Skill {
             id: "builtin-resume-assistant".into(),
-            name: "Resume Assistant".into(),
-            description: "JobPilot built-in resume editing assistant.".into(),
+            name: "简历助手".into(),
+            description: "JobPilot 内置的简历编辑助手。".into(),
             version: BUILTIN_RESUME_ASSISTANT_VERSION.into(),
             author: Some("JobPilot".into()),
             source: "builtin".into(),
@@ -1030,8 +1155,8 @@ fn build_builtin_interview_personas_skill() -> Result<Skill, String> {
 
     Ok(Skill {
         id: "builtin-interview-personas".into(),
-        name: "Interview Personas".into(),
-        description: "JobPilot built-in interviewer personas (HR / Technical / Architect / HRBP / Leader / VP).".into(),
+        name: "面试官人设".into(),
+        description: "JobPilot 内置面试官人设（HR / 技术 / 架构师 / HRBP / 负责人 / VP）。".into(),
         version: BUILTIN_INTERVIEW_PERSONAS_VERSION.into(),
         author: Some("JobPilot".into()),
         source: "builtin".into(),
@@ -1062,8 +1187,8 @@ fn build_builtin_interview_personas_skill() -> Result<Skill, String> {
 fn build_builtin_cover_letter_skill() -> Result<Skill, String> {
     let capability = serde_json::json!([{
         "id": "default",
-        "name": "Cover Letter Writer",
-        "description": "Generate a tailored cover letter from resume + JD.",
+        "name": "求职信撰写",
+        "description": "基于简历与岗位 JD 生成定制求职信。",
         "matchOn": {
             "scenarios": ["cover-letter"],
             "categories": ["resume", "writing"]
@@ -1075,8 +1200,8 @@ fn build_builtin_cover_letter_skill() -> Result<Skill, String> {
 
     Ok(Skill {
         id: "builtin-cover-letter".into(),
-        name: "Cover Letter Writer".into(),
-        description: "JobPilot built-in cover letter writer.".into(),
+        name: "求职信撰写".into(),
+        description: "JobPilot 内置求职信撰写助手。".into(),
         version: BUILTIN_COVER_LETTER_VERSION.into(),
         author: Some("JobPilot".into()),
         source: "builtin".into(),
@@ -1097,8 +1222,8 @@ fn build_builtin_cover_letter_skill() -> Result<Skill, String> {
 fn build_builtin_translate_skill() -> Result<Skill, String> {
     let capability = serde_json::json!([{
         "id": "default",
-        "name": "Resume Translator",
-        "description": "Translate resume sections between languages, preserving JSON structure.",
+        "name": "简历翻译",
+        "description": "在语言间翻译简历各部分，保持 JSON 结构不变。",
         "matchOn": {
             "scenarios": ["translate"],
             "categories": ["resume", "translate"]
@@ -1110,8 +1235,8 @@ fn build_builtin_translate_skill() -> Result<Skill, String> {
 
     Ok(Skill {
         id: "builtin-translate".into(),
-        name: "Resume Translator".into(),
-        description: "JobPilot built-in resume translator.".into(),
+        name: "简历翻译".into(),
+        description: "JobPilot 内置简历翻译助手。".into(),
         version: BUILTIN_TRANSLATE_VERSION.into(),
         author: Some("JobPilot".into()),
         source: "builtin".into(),
@@ -1133,8 +1258,8 @@ fn build_builtin_translate_skill() -> Result<Skill, String> {
 fn build_builtin_grammar_check_skill() -> Result<Skill, String> {
     let capability = serde_json::json!([{
         "id": "default",
-        "name": "Grammar Check",
-        "description": "Review resume content for grammar and style issues, output structured JSON.",
+        "name": "语法检查",
+        "description": "审查简历内容的语法与文风问题，输出结构化 JSON。",
         "matchOn": {
             "scenarios": ["grammar-check"],
             "categories": ["resume", "review"]
@@ -1146,8 +1271,8 @@ fn build_builtin_grammar_check_skill() -> Result<Skill, String> {
 
     Ok(Skill {
         id: "builtin-grammar-check".into(),
-        name: "Grammar Check".into(),
-        description: "JobPilot built-in resume grammar & style checker.".into(),
+        name: "语法检查".into(),
+        description: "JobPilot 内置简历语法与文风检查器。".into(),
         version: BUILTIN_GRAMMAR_CHECK_VERSION.into(),
         author: Some("JobPilot".into()),
         source: "builtin".into(),
@@ -1170,8 +1295,8 @@ fn build_builtin_grammar_check_skill() -> Result<Skill, String> {
 fn build_builtin_jd_analysis_skill() -> Result<Skill, String> {
     let capability = serde_json::json!([{
         "id": "default",
-        "name": "JD Analysis",
-        "description": "Analyze resume-JD match and output structured suggestions with JSON.",
+        "name": "JD 分析",
+        "description": "分析简历与岗位 JD 的匹配度，输出结构化建议 JSON。",
         "matchOn": {
             "scenarios": ["jd-analysis"],
             "categories": ["resume", "analysis"]
@@ -1183,8 +1308,8 @@ fn build_builtin_jd_analysis_skill() -> Result<Skill, String> {
 
     Ok(Skill {
         id: "builtin-jd-analysis".into(),
-        name: "JD Analysis".into(),
-        description: "JobPilot built-in resume-JD match analyst.".into(),
+        name: "JD 分析".into(),
+        description: "JobPilot 内置简历-JD 匹配分析助手。".into(),
         version: BUILTIN_JD_ANALYSIS_VERSION.into(),
         author: Some("JobPilot".into()),
         source: "builtin".into(),
@@ -1206,8 +1331,8 @@ fn build_builtin_jd_analysis_skill() -> Result<Skill, String> {
 fn build_builtin_generate_resume_skill() -> Result<Skill, String> {
     let capability = serde_json::json!([{
         "id": "default",
-        "name": "Resume Generator",
-        "description": "Generate a professional starter resume JSON from minimal input.",
+        "name": "简历生成",
+        "description": "基于最小输入生成专业起步简历 JSON。",
         "matchOn": {
             "scenarios": ["generate-resume"],
             "categories": ["resume", "generation"]
@@ -1219,8 +1344,8 @@ fn build_builtin_generate_resume_skill() -> Result<Skill, String> {
 
     Ok(Skill {
         id: "builtin-generate-resume".into(),
-        name: "Resume Generator".into(),
-        description: "JobPilot built-in starter resume generator.".into(),
+        name: "简历生成".into(),
+        description: "JobPilot 内置起步简历生成器。".into(),
         version: BUILTIN_GENERATE_RESUME_VERSION.into(),
         author: Some("JobPilot".into()),
         source: "builtin".into(),
@@ -1242,8 +1367,8 @@ fn build_builtin_generate_resume_skill() -> Result<Skill, String> {
 fn build_builtin_interview_evaluation_skill() -> Result<Skill, String> {
     let capability = serde_json::json!([{
         "id": "default",
-        "name": "Interview Answer Evaluation",
-        "description": "Evaluate a single candidate interview answer and output structured JSON.",
+        "name": "面试回答评估",
+        "description": "评估单个面试回答并输出结构化 JSON。",
         "matchOn": {
             "scenarios": ["interview-evaluation"],
             "categories": ["interview", "evaluation"]
@@ -1255,8 +1380,8 @@ fn build_builtin_interview_evaluation_skill() -> Result<Skill, String> {
 
     Ok(Skill {
         id: "builtin-interview-evaluation".into(),
-        name: "Interview Answer Evaluation".into(),
-        description: "JobPilot built-in interview answer evaluator.".into(),
+        name: "面试回答评估".into(),
+        description: "JobPilot 内置面试回答评估器。".into(),
         version: BUILTIN_INTERVIEW_EVALUATION_VERSION.into(),
         author: Some("JobPilot".into()),
         source: "builtin".into(),
@@ -1278,8 +1403,8 @@ fn build_builtin_interview_evaluation_skill() -> Result<Skill, String> {
 fn build_builtin_interview_report_skill() -> Result<Skill, String> {
     let capability = serde_json::json!([{
         "id": "default",
-        "name": "Interview Report",
-        "description": "Generate a structured interview practice report JSON from transcript.",
+        "name": "面试报告",
+        "description": "基于面试记录生成结构化面试练习报告 JSON。",
         "matchOn": {
             "scenarios": ["interview-report"],
             "categories": ["interview", "report"]
@@ -1291,8 +1416,8 @@ fn build_builtin_interview_report_skill() -> Result<Skill, String> {
 
     Ok(Skill {
         id: "builtin-interview-report".into(),
-        name: "Interview Report".into(),
-        description: "JobPilot built-in interview report generator.".into(),
+        name: "面试报告".into(),
+        description: "JobPilot 内置面试报告生成器。".into(),
         version: BUILTIN_INTERVIEW_REPORT_VERSION.into(),
         author: Some("JobPilot".into()),
         source: "builtin".into(),

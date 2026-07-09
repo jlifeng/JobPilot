@@ -1,21 +1,11 @@
 import { createRoute } from "@tanstack/react-router";
-import { useTranslation } from "react-i18next";
 import { SkillManagementPage } from "../components/skill/skill-management-page";
 import { rootRoute } from "./root";
 
 function SkillsRoute() {
-  const { t } = useTranslation();
-
-  return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-5">
-      <div className="flex flex-col gap-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-violet-600 dark:text-violet-300">
-          {t("skill.management.title")}
-        </p>
-      </div>
-      <SkillManagementPage />
-    </div>
-  );
+  // 页面标题统一由 SkillManagementPage 内部的大标题承担，
+  // 此处不再渲染额外的紫色小标题，避免标题文字重复出现。
+  return <SkillManagementPage />;
 }
 
 export const skillsRoute = createRoute({

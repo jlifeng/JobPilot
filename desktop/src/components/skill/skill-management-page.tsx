@@ -60,25 +60,12 @@ export function SkillManagementPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-5">
-      {/* 页头 */}
-      <div className="flex flex-col gap-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-violet-600 dark:text-violet-300">
-          {translate("skill.management.title", "Skill 管理")}
-        </p>
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex flex-col gap-2">
-            <h1 className="text-2xl font-semibold text-slate-950 dark:text-zinc-100">
-              {translate("skill.management.title", "Skill 管理")}
-            </h1>
-            <p className="max-w-3xl text-sm leading-6 text-slate-500 dark:text-zinc-400">
-              {translate("skill.management.subtitle", "管理已安装的能力包")}
-            </p>
-          </div>
-          <Button onClick={() => setImportOpen(true)} className="shrink-0">
-            <Plus className="h-4 w-4" />
-            {translate("skill.management.importButton", "导入 Skill")}
-          </Button>
-        </div>
+      {/* 页面标题由顶栏 navbar 承担，此处仅保留导入入口。 */}
+      <div className="flex justify-end">
+        <Button onClick={() => setImportOpen(true)} className="shrink-0">
+          <Plus className="h-4 w-4" />
+          {translate("skill.management.importButton", "导入 Skill")}
+        </Button>
       </div>
 
       {/* 主体：双栏布局 */}

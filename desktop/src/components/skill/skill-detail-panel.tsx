@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { SkillVariableForm } from "./skill-variable-form";
 import { useSkillStore } from "../../stores/skill-store";
+import { listScenarios } from "../../lib/skill-scenarios";
 import { cn } from "@/lib/utils";
 import type { Skill, SkillCapability } from "../../types/skill";
 
@@ -70,6 +71,30 @@ export function SkillDetailPanel({ skill }: SkillDetailPanelProps) {
       return;
     }
     await removeSkill(skill.id);
+  };
+
+  // 切换 imported Skill 第一个 capability 的 matchOn.scenarios。
+  // saveSkill 是 upsert，传完整 skill，仅修改第一个 capability 的 scenarios 字段。
+  const handleToggleScenario = (scenarioId: string, next: boolean) => {
+    if (capabilities.length === 0) {
+      return;
+    }
+    const updated = capabilities.map((capability, index) => {
+      if (index !== 0) {
+        return capability;
+      }
+      const current = capability.matchOn.scenarios ?? [];
+      const scenarios = next
+        ? current.includes(scenarioId)
+          ? current
+          : [...current, scenarioId]
+        : current.filter((id) => id !== scenarioId);
+      return {
+        ...capability,
+        matchOn: { ...capability.matchOn, scenarios },
+      };
+    });
+    void saveSkill({ ...skill, capabilities: updated });
   };
 
   const capabilities: SkillCapability[] = skill.capabilities ?? [];
@@ -130,6 +155,15 @@ export function SkillDetailPanel({ skill }: SkillDetailPanelProps) {
           </div>
         )}
       </div>
+
+      {/* 适用场景：仅 imported Skill 显示。builtin 的 scenarios 固定，不该改。 */}
+      {isImported ? (
+        <ScenarioPicker
+          scenarios={primaryCapability?.matchOn.scenarios ?? []}
+          onToggle={handleToggleScenario}
+          translate={translate}
+        />
+      ) : null}
 
       {/* references 数量 */}
       <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-zinc-300">
@@ -234,6 +268,61 @@ function CapabilityRow({ capability }: CapabilityRowProps) {
           tools: {capability.requiresTools.join(", ")}
         </p>
       ) : null}
+    </div>
+  );
+}
+
+interface ScenarioPickerProps {
+  /** 当前已选场景 id 列表（取自第一个 capability 的 matchOn.scenarios）。 */
+  scenarios: string[];
+  /** 切换某个场景的选中态。 */
+  onToggle: (scenarioId: string, next: boolean) => void;
+  /** i18n 翻译函数（fallback 模式）。 */
+  translate: (key: string, fallback: string) => string;
+}
+
+/**
+ * 适用场景多选控件：仅对 imported Skill 渲染。
+ *
+ * 用可点击 badge 标签实现多选（仓库无 checkbox 组件），符合现有 source-badge
+ * 设计语言：选中=填充色 bg，未选中=描边 border。勾选/取消时通过 onToggle 更新
+ * Skill 第一个 capability 的 matchOn.scenarios。
+ */
+function ScenarioPicker({ scenarios, onToggle, translate }: ScenarioPickerProps) {
+  const availableScenarios = listScenarios();
+
+  return (
+    <div className="flex flex-col gap-2">
+      <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-zinc-500">
+        {translate("skill.management.applicableScenarios", "适用场景")}
+      </h3>
+      <div className="flex flex-wrap gap-1.5">
+        {availableScenarios.map((scenario) => {
+          const selected = scenarios.includes(scenario.id);
+          return (
+            <button
+              key={scenario.id}
+              type="button"
+              onClick={() => onToggle(scenario.id, !selected)}
+              aria-pressed={selected}
+              className={cn(
+                "rounded-full px-2.5 py-0.5 text-[11px] font-semibold transition-colors",
+                selected
+                  ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-200"
+                  : "border border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800",
+              )}
+            >
+              {scenario.name}
+            </button>
+          );
+        })}
+      </div>
+      <p className="text-[11px] text-slate-400 dark:text-zinc-500">
+        {translate(
+          "skill.management.scenariosHint",
+          "勾选后该 Skill 会出现在对应场景的选择器中",
+        )}
+      </p>
     </div>
   );
 }

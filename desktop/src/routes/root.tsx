@@ -10,6 +10,7 @@ import {
   Info,
   Loader2,
   Moon,
+  Puzzle,
   Settings,
   Sun,
   Upload,
@@ -210,6 +211,19 @@ function WorkspaceSidebar({
         >
           <Settings className="h-5 w-5" />
         </Link>
+
+        <Link
+          to="/skills"
+          className="flex h-12 w-12 items-center justify-center rounded-2xl text-slate-500 transition-colors hover:bg-[#F0F5FF] hover:text-blue-600 dark:text-zinc-400 dark:hover:bg-blue-950/40 dark:hover:text-blue-200"
+          activeProps={{
+            className:
+              "flex h-12 w-12 items-center justify-center rounded-2xl bg-[#F0F5FF] text-blue-600 dark:bg-blue-950/40 dark:text-blue-200",
+          }}
+          aria-label={t("navSkills")}
+          title={t("navSkills")}
+        >
+          <Puzzle className="h-5 w-5" />
+        </Link>
       </nav>
 
       <div className="flex shrink-0 flex-col items-center gap-3 px-3 pb-5">
@@ -391,11 +405,13 @@ function RootLayout() {
     ? t("interview.navLabel")
     : location.pathname.startsWith("/templates")
       ? t("templatesTitle")
-      : location.pathname.startsWith("/settings")
-        ? t("navSettings")
-        : location.pathname.startsWith("/sync")
-          ? t("workspaceNavSync")
-          : t("libraryLabel");
+      : location.pathname.startsWith("/skills")
+        ? t("navSkills")
+        : location.pathname.startsWith("/settings")
+          ? t("navSettings")
+          : location.pathname.startsWith("/sync")
+            ? t("workspaceNavSync")
+            : t("libraryLabel");
   const runtimeIsFallback = isBrowserFallbackRuntime(context);
   const performInitialCheck = useAppUpdateStore((state) => state.performInitialCheck);
 
