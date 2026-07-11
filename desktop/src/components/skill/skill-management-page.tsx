@@ -32,6 +32,7 @@ export function SkillManagementPage() {
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [importOpen, setImportOpen] = useState(false);
+  const [sourceFilter, setSourceFilter] = useState<"imported" | "builtin">("imported");
 
   const translate = (key: string, fallback: string) => {
     const result = t(key);
@@ -44,9 +45,16 @@ export function SkillManagementPage() {
     void loadSettings();
   }, [loadSkills, loadSettings]);
 
-  // 选中态：优先用 selectedId，否则默认选第一项。
+  // 按 source tab 过滤：imported 或 builtin。
+  const filteredSkills = skills.filter((item) =>
+    sourceFilter === "imported"
+      ? String(item.source) === "imported"
+      : String(item.source) === "builtin",
+  );
+
+  // 选中态：优先用 selectedId，否则默认选过滤后第一项。
   const selectedSkill: Skill | null =
-    skills.find((item) => item.id === selectedId) ?? skills[0] ?? null;
+    filteredSkills.find((item) => item.id === selectedId) ?? filteredSkills[0] ?? null;
 
   const handleToggleEnabled = (skill: Skill, next: boolean) => {
     // saveSkill 是 upsert，传完整 skill，仅切换 enabled。
@@ -94,15 +102,59 @@ export function SkillManagementPage() {
         <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
           {/* 左栏：Skill 列表 */}
           <div className="flex flex-col gap-2">
-            {skills.map((skill) => (
-              <SkillListCard
-                key={skill.id}
-                skill={skill}
-                selected={selectedSkill?.id === skill.id}
-                onSelect={() => setSelectedId(skill.id)}
-                onToggleEnabled={(next) => handleToggleEnabled(skill, next)}
-              />
-            ))}
+            {/* Tab 筛选：导入 / 内置 */}
+            <div className="flex gap-1 rounded-lg bg-slate-100 p-1 dark:bg-zinc-800">
+              <button
+                type="button"
+                onClick={() => { setSourceFilter("imported"); setSelectedId(null); }}
+                className={cn(
+                  "flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+                  sourceFilter === "imported"
+                    ? "bg-white text-slate-950 shadow-sm dark:bg-zinc-700 dark:text-zinc-50"
+                    : "text-slate-500 hover:text-slate-700 dark:text-zinc-400 dark:hover:text-zinc-200",
+                )}
+              >
+                {translate("skill.management.tabImported", "导入")}
+                <span className="ml-1.5 text-[11px] text-slate-400 dark:text-zinc-500">
+                  {skills.filter((s) => String(s.source) === "imported").length}
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => { setSourceFilter("builtin"); setSelectedId(null); }}
+                className={cn(
+                  "flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+                  sourceFilter === "builtin"
+                    ? "bg-white text-slate-950 shadow-sm dark:bg-zinc-700 dark:text-zinc-50"
+                    : "text-slate-500 hover:text-slate-700 dark:text-zinc-400 dark:hover:text-zinc-200",
+                )}
+              >
+                {translate("skill.management.tabBuiltin", "内置")}
+                <span className="ml-1.5 text-[11px] text-slate-400 dark:text-zinc-500">
+                  {skills.filter((s) => String(s.source) === "builtin").length}
+                </span>
+              </button>
+            </div>
+
+            {filteredSkills.length === 0 ? (
+              <div className="flex min-h-[120px] items-center justify-center rounded-xl border border-dashed border-slate-200 bg-white/60 p-4 text-center dark:border-zinc-700 dark:bg-zinc-950/40">
+                <p className="text-xs text-slate-400 dark:text-zinc-500">
+                  {sourceFilter === "imported"
+                    ? translate("skill.management.emptyImported", "暂无导入 Skill")
+                    : translate("skill.management.emptyBuiltin", "暂无内置 Skill")}
+                </p>
+              </div>
+            ) : (
+              filteredSkills.map((skill) => (
+                <SkillListCard
+                  key={skill.id}
+                  skill={skill}
+                  selected={selectedSkill?.id === skill.id}
+                  onSelect={() => setSelectedId(skill.id)}
+                  onToggleEnabled={(next) => handleToggleEnabled(skill, next)}
+                />
+              ))
+            )}
           </div>
 
           {/* 右栏：详情面板 */}
