@@ -7,15 +7,16 @@
 //
 // 状态：纯展示组件，所有变更走 useSkillStore（saveSkill / removeSkill）。
 
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Trash2 } from "lucide-react";
+import { Trash2, ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { SkillVariableForm } from "./skill-variable-form";
 import { useSkillStore } from "../../stores/skill-store";
 import { listScenarios } from "../../lib/skill-scenarios";
 import { cn } from "@/lib/utils";
-import type { Skill, SkillCapability } from "../../types/skill";
+import type { Skill, SkillCapability, SkillReference } from "../../types/skill";
 
 interface SkillDetailPanelProps {
   skill: Skill | null;
@@ -165,15 +166,8 @@ export function SkillDetailPanel({ skill }: SkillDetailPanelProps) {
         />
       ) : null}
 
-      {/* references 数量 */}
-      <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-zinc-300">
-        <span className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-zinc-500">
-          {translate("skill.management.references", "引用文件")}
-        </span>
-        <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700 dark:bg-zinc-800 dark:text-zinc-200">
-          {references.length}
-        </span>
-      </div>
+      {/* references */}
+      <ReferenceSection references={references} translate={translate} />
 
       {/* requiredContext */}
       {requiredContext.length > 0 ? (
@@ -323,6 +317,109 @@ function ScenarioPicker({ scenarios, onToggle, translate }: ScenarioPickerProps)
           "勾选后该 Skill 会出现在对应场景的选择器中",
         )}
       </p>
+    </div>
+  );
+}
+
+interface ReferenceSectionProps {
+  references: SkillReference[];
+  translate: (key: string, fallback: string) => string;
+}
+
+/**
+ * 引用文件区域：无引用时显示数量 0；有引用时显示可折叠列表，
+ * 每个条目可点击展开查看 content 全文。
+ */
+function ReferenceSection({ references, translate }: ReferenceSectionProps) {
+  const [listExpanded, setListExpanded] = useState(false);
+  const [expandedKey, setExpandedKey] = useState<string | null>(null);
+
+  if (references.length === 0) {
+    return (
+      <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-zinc-300">
+        <span className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-zinc-500">
+          {translate("skill.management.references", "引用文件")}
+        </span>
+        <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700 dark:bg-zinc-800 dark:text-zinc-200">
+          0
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      {/* header row: label + count + chevron toggle */}
+      <button
+        type="button"
+        onClick={() => setListExpanded((prev) => !prev)}
+        className="flex items-center gap-2 text-sm text-slate-600 dark:text-zinc-300"
+      >
+        <span className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-zinc-500">
+          {translate("skill.management.references", "引用文件")}（{references.length}）
+        </span>
+        {listExpanded ? (
+          <ChevronDown className="h-3.5 w-3.5 text-slate-400 dark:text-zinc-500" />
+        ) : (
+          <ChevronRight className="h-3.5 w-3.5 text-slate-400 dark:text-zinc-500" />
+        )}
+      </button>
+
+      {/* expanded list */}
+      {listExpanded ? (
+        <div className="flex flex-col gap-2">
+          {references.map((ref) => {
+            const isOpen = expandedKey === ref.key;
+            return (
+              <div
+                key={ref.key}
+                className="rounded-lg border border-slate-200 bg-slate-50/60 dark:border-zinc-800 dark:bg-zinc-900/50"
+              >
+                {/* row header: clickable to expand/collapse content */}
+                <button
+                  type="button"
+                  onClick={() => setExpandedKey(isOpen ? null : ref.key)}
+                  className="flex w-full items-center gap-2 p-3 text-left transition-colors hover:bg-slate-100 dark:hover:bg-zinc-800/60"
+                >
+                  {isOpen ? (
+                    <ChevronDown className="h-3.5 w-3.5 shrink-0 text-slate-400 dark:text-zinc-500" />
+                  ) : (
+                    <ChevronRight className="h-3.5 w-3.5 shrink-0 text-slate-400 dark:text-zinc-500" />
+                  )}
+                  <span className="text-sm font-semibold text-slate-950 dark:text-zinc-50">
+                    {ref.label}
+                  </span>
+                  <span className="font-mono text-[11px] text-slate-400 dark:text-zinc-500">
+                    {ref.filename}
+                  </span>
+                  {ref.whenScenario ? (
+                    <span className="rounded-md bg-amber-50 px-1.5 py-0.5 text-[11px] font-medium text-amber-600 dark:bg-amber-950/50 dark:text-amber-200">
+                      {ref.whenScenario}
+                    </span>
+                  ) : null}
+                  {ref.whenVariable ? (
+                    <span className="rounded-md bg-violet-50 px-1.5 py-0.5 text-[11px] font-medium text-violet-600 dark:bg-violet-950/50 dark:text-violet-200">
+                      {ref.whenVariable}
+                    </span>
+                  ) : null}
+                </button>
+
+                {/* content block */}
+                {isOpen ? (
+                  <div className="border-t border-slate-200 px-3 pb-3 pt-2 dark:border-zinc-800">
+                    <p className="mb-1 text-[11px] font-medium text-slate-400 dark:text-zinc-500">
+                      {translate("skill.management.refContent", "引用内容")}
+                    </p>
+                    <pre className="max-h-64 overflow-auto whitespace-pre-wrap break-words font-mono text-xs leading-5 text-slate-700 dark:text-zinc-300">
+                      {ref.content}
+                    </pre>
+                  </div>
+                ) : null}
+              </div>
+            );
+          })}
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -1019,6 +1019,8 @@
       "enabled": "启用",
       "capabilities": "能力",
       "references": "引用文件",
+      "refContent": "引用内容",
+      "noReferences": "无引用文件",
       "variables": "变量",
       "requiredContext": "所需上下文",
       "noSelection": "选择左侧 Skill 查看详情"

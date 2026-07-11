@@ -1019,6 +1019,8 @@
       "enabled": "Enabled",
       "capabilities": "Capabilities",
       "references": "Reference files",
+      "refContent": "Reference Content",
+      "noReferences": "No reference files",
       "variables": "Variables",
       "requiredContext": "Required context",
       "noSelection": "Select a skill on the left to view details"
