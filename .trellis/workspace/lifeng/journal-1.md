@@ -212,3 +212,36 @@ Skill 管理 UX 收尾：工作台左侧 sidebar「设置」下方加 Skill 管�
 ### Next Steps
 
 - None - task complete
+
+
+## Session 7: Skill 引用文件内容查看
+
+**Date**: 2026-07-11
+**Task**: Skill 引用文件内容查看
+**Branch**: `feature/skills-pack`
+
+### Summary
+
+详情面板引用文件区域从只显示数量改为可折叠列表，每个条目可点击展开查看 content 全文。新增 ReferenceSection 组件（useState 管理折叠/展开状态），i18n 2 key。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `8375e73` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

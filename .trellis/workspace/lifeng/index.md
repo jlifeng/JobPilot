@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 6
+- **Total Sessions**: 7
 - **Last Active**: 2026-07-11
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~214 | Active |
+| `journal-1.md` | ~247 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 7 | 2026-07-11 | Skill 引用文件内容查看 | `8375e73` | `feature/skills-pack` |
 | 6 | 2026-07-11 | 面试 Skill 人设与内置流程解耦 | `4104f35` | `feature/skills-pack` |
 | 5 | 2026-07-09 | Skill 管理入口侧栏化 + 内置中文化 + 导入可用性修复 | `468c21a` | `feature/skills-pack` |
 | 4 | 2026-07-09 | Skill 系统 Phase 4-5：管理页 + 导入 + 7 场景接入 | `193b99b` | `feature/skills-pack` |
