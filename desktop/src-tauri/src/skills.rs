@@ -715,16 +715,38 @@ fn parse_frontmatter(content: &str) -> Result<(std::collections::HashMap<String,
     }
 
     // 收集 `---` 之间的内容，定位闭合的 `---`。
+    // 支持多行值：缩进行追加到上一个 key 的 value（YAML 续行风格）。
     let mut closed = false;
     let mut body_start_line: usize = 0;
+    let mut last_key: Option<String> = None;
     for (index, line) in lines.iter().enumerate().skip(1) {
         if line.trim() == "---" {
             closed = true;
             body_start_line = index + 1;
             break;
         }
+        // 缩进行（比顶层多缩进）→ 追加到上一个 key 的 value。
+        if line.starts_with(' ') || line.starts_with('\t') {
+            if let Some(ref key) = last_key {
+                let continued = line.trim();
+                if !continued.is_empty() {
+                    if let Some(existing) = map.get_mut(key) {
+                        existing.push('\n');
+                        existing.push_str(continued);
+                    }
+                }
+            }
+            // 无 last_key 的孤立缩进行忽略。
+            continue;
+        }
         if let Some((key, value)) = parse_frontmatter_line(line) {
+            last_key = Some(key.clone());
             map.insert(key, value);
+        } else {
+            // 非空非注释的非 key 行 → 重置 last_key（不再续行）。
+            if !line.trim().is_empty() {
+                last_key = None;
+            }
         }
     }
     if !closed {
@@ -841,6 +863,20 @@ mod tests {
     fn parse_frontmatter_rejects_unclosed() {
         let content = "---\nname: my-skill\n# no closing dashes";
         assert!(parse_frontmatter(content).is_err());
+    }
+
+    #[test]
+    fn parse_frontmatter_multiline_value() {
+        // Indented continuation lines append to the previous key's value.
+        let content = "---\nname: my-skill\ndescription: 这是一个\n  多行描述\n  第三行\nversion: 1.0.0\n---\nBody";
+        let (fm, body) = parse_frontmatter(content).unwrap();
+        assert_eq!(fm.get("name").map(|s| s.as_str()), Some("my-skill"));
+        assert_eq!(
+            fm.get("description").map(|s| s.as_str()),
+            Some("这是一个\n多行描述\n第三行")
+        );
+        assert_eq!(fm.get("version").map(|s| s.as_str()), Some("1.0.0"));
+        assert_eq!(body, "Body");
     }
 
     #[test]
