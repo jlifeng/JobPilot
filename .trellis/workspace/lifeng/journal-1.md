@@ -316,3 +316,36 @@ Skill 人设模式下将下拉 SkillSelector 替换为卡片列表（grid 2列�
 ### Next Steps
 
 - None - task complete
+
+
+## Session 10: 预览版发布文档与 Skills 截图
+
+**Date**: 2026-07-11
+**Task**: 预览版发布文档与 Skills 截图
+**Branch**: `feature/skills-pack`
+
+### Summary
+
+更新 CHANGELOG/README/README_CN 准备 1.6.0-preview：写入 Skill 系统与面试人设解耦发布说明，补录 1.5.3，截图区加入 skills管理 与 AI对话框skills效果，并清理截图文件名空格。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `0127854` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
