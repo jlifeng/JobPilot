@@ -51,17 +51,10 @@ export function SkillVariableForm({
   const variables: SkillVariable[] = skill.variables ?? [];
 
   if (variables.length === 0) {
-    // Skill is selected but defines no variables. Surface a small hint so the
-    // user knows the Skill is active and there's nothing to configure, rather
-    // than silently rendering nothing (which could look like the Skill didn't
-    // take effect).
-    return (
-      <div className="flex flex-col gap-2 rounded-lg border border-zinc-200 bg-zinc-50/60 p-2.5 dark:border-zinc-800 dark:bg-zinc-900/50">
-        <div className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">
-          {translate("skill.noVariables", "此 Skill 无可配置变量")}
-        </div>
-      </div>
-    );
+    // Skill defines no variables — nothing to render. The SkillSelector already
+    // provides visual feedback that a Skill is active, so a "no variables" hint
+    // is unnecessary noise.
+    return null;
   }
 
   const stored = variableValues[skill.id] ?? {};
