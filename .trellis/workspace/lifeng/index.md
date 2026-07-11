@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 8
+- **Total Sessions**: 9
 - **Last Active**: 2026-07-11
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~280 | Active |
+| `journal-1.md` | ~318 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 9 | 2026-07-11 | Skill 人设卡片选择 + 管理页 tab 筛选 + 多项修复 | `b22d56a`, `33da347`, `64f24ea`, `e263207`, `fcf86d5`, `55cb5fd` | `feature/skills-pack` |
 | 8 | 2026-07-11 | Skill 人设卡片选择器 | `33da347` | `feature/skills-pack` |
 | 7 | 2026-07-11 | Skill 引用文件内容查看 | `8375e73` | `feature/skills-pack` |
 | 6 | 2026-07-11 | 面试 Skill 人设与内置流程解耦 | `4104f35` | `feature/skills-pack` |

@@ -278,3 +278,41 @@ Skill 人设模式下将下拉 SkillSelector 替换为卡片列表（grid 2列�
 ### Next Steps
 
 - None - task complete
+
+
+## Session 9: Skill 人设卡片选择 + 管理页 tab 筛选 + 多项修复
+
+**Date**: 2026-07-11
+**Task**: Skill 人设卡片选择 + 管理页 tab 筛选 + 多项修复
+**Branch**: `feature/skills-pack`
+
+### Summary
+
+本 session 完成多项 Skill/面试改进：1) Skill 人设模式下拉改卡片列表（grid 2列 violet 高亮）; 2) Skill 管理页新增导入/内置 tab 筛选; 3) Skill 人设必选（隐藏默认助手）; 4) 移除无变量提示噪音; 5) 修复 SKILL.md 多行 description 解析; 6) 适用场景名 i18n 中文。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `b22d56a` | (see git log) |
+| `33da347` | (see git log) |
+| `64f24ea` | (see git log) |
+| `e263207` | (see git log) |
+| `fcf86d5` | (see git log) |
+| `55cb5fd` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
