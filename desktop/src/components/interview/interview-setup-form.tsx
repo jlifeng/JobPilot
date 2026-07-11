@@ -391,6 +391,7 @@ export function InterviewSetupForm({
                 scenarioId="interview-persona"
                 value={selectedSkillSelection ?? undefined}
                 onChange={handleSkillSelectionChange}
+                required
               />
               {!isSkillValid ? (
                 <p className="text-xs text-amber-600 dark:text-amber-400">

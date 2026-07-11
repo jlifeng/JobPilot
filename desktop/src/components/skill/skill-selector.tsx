@@ -27,6 +27,10 @@ interface SkillSelectorProps {
   value?: string;
   onChange: (selection: string | null) => void;
   disabled?: boolean;
+  /** When true, the "Default assistant" option is hidden — the user must pick
+   *  a concrete Skill. Used by interview setup in Skill-persona mode where
+   *  selecting no Skill would block the session. */
+  required?: boolean;
 }
 
 export function SkillSelector({
@@ -34,6 +38,7 @@ export function SkillSelector({
   value,
   onChange,
   disabled,
+  required,
 }: SkillSelectorProps) {
   const { t } = useTranslation();
 
@@ -54,8 +59,13 @@ export function SkillSelector({
   // Radix Select treats empty-string values as "no value" (the placeholder
   // state), so the default-assistant option uses a sentinel and we translate
   // between the sentinel and the external null contract here.
+  // When `required`, there is no default-assistant option, so the sentinel
+  // is never a valid selection — we leave the value empty to show the
+  // placeholder instead.
   const DEFAULT_SENTINEL = "__default__";
-  const selectValue = value && value.length > 0 ? value : DEFAULT_SENTINEL;
+  const selectValue = required
+    ? (value && value.length > 0 ? value : undefined)
+    : (value && value.length > 0 ? value : DEFAULT_SENTINEL);
 
   const handleChange = (next: string) => {
     if (next === DEFAULT_SENTINEL) {
@@ -78,9 +88,11 @@ export function SkillSelector({
         <SelectValue placeholder={defaultLabel} />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value="__default__" className="text-xs">
-          {defaultLabel}
-        </SelectItem>
+        {required ? null : (
+          <SelectItem value="__default__" className="text-xs">
+            {defaultLabel}
+          </SelectItem>
+        )}
         {capabilities.map((capability) => (
           <SelectItem
             key={`${capability.skillId}:${capability.capabilityId}`}
