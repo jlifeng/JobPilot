@@ -1,6 +1,6 @@
 [package]
 name = "jobpilot-desktop"
-version = "1.6.0-beta.0"
+version = "1.6.0"
 description = "Tauri desktop application for JobPilot"
 authors = ["JobPilot"]
 edition = "2021"
@@ -35,6 +35,8 @@ zip = { version = "2", default-features = false, features = ["deflate"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 keyring = "3"
+
+
 
 
 

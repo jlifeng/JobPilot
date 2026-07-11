@@ -5,7 +5,7 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 并且本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
-## [1.6.0-beta.0] - 2026-07-11
+## [1.6.0] - 2026-07-11
 
 ### 新增
 
@@ -318,8 +318,8 @@
 - 中英双语 — 完整的国际化支持
 - 本地优先 — 数据存储在本地，隐私安全有保障
 
-[Unreleased]: https://github.com/jlifeng/JobPilot/compare/v1.6.0-beta.0...HEAD
-[1.6.0-beta.0]: https://github.com/jlifeng/JobPilot/compare/v1.5.3...v1.6.0-beta.0
+[Unreleased]: https://github.com/jlifeng/JobPilot/compare/v1.6.0...HEAD
+[1.6.0]: https://github.com/jlifeng/JobPilot/compare/v1.5.3...v1.6.0
 [1.5.3]: https://github.com/jlifeng/JobPilot/compare/v1.5.2...v1.5.3
 [1.5.2]: https://github.com/jlifeng/JobPilot/compare/v1.5.1...v1.5.2
 [1.5.1]: https://github.com/jlifeng/JobPilot/compare/v1.5.0...v1.5.1
