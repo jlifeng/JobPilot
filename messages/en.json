@@ -250,6 +250,7 @@
     "modeBuiltin": "Built-in Personas",
     "modeSkill": "Skill Persona",
     "skillNotSelected": "Please select a Skill persona",
+    "noSkillPersonas": "No Skill personas available",
     "skillUnavailable": "This Skill is no longer available. Please select another.",
     "skillPersona": "Custom Persona"
   },

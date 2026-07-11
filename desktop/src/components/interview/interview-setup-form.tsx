@@ -25,7 +25,7 @@ import {
   getPresetInterviewers,
 } from "../../lib/interviewers";
 import { useSkillStore } from "../../stores/skill-store";
-import { SkillSelector } from "../skill/skill-selector";
+import { SkillRuntime } from "../../lib/skill-runtime";
 import type { InterviewerConfig } from "../../types/interview";
 
 interface InterviewSetupFormProps {
@@ -58,6 +58,11 @@ export function InterviewSetupForm({
   const presetInterviewers = useMemo(
     () => getPresetInterviewers(language),
     [language],
+  );
+  const skills = useSkillStore((state) => state.skills);
+  const capabilities = useMemo(
+    () => new SkillRuntime(skills).getCapabilitiesForScenario("interview-persona"),
+    [skills],
   );
   const [restartDraft] = useState(() => consumeInterviewRestartDraft());
   const [jobTitle, setJobTitle] = useState(restartDraft?.jobTitle ?? "");
@@ -377,8 +382,8 @@ export function InterviewSetupForm({
               </div>
             </div>
           ) : (
-            /* Skill mode: show SkillSelector as the primary persona picker */
-            <div className="space-y-4 rounded-2xl border border-dashed border-violet-300 bg-violet-50/30 p-5 dark:border-violet-700 dark:bg-violet-950/20">
+            /* Skill mode: show card grid matching builtin interviewer style */
+            <div className="space-y-4">
               <div>
                 <h2 className="text-sm font-medium text-zinc-700 dark:text-zinc-200">
                   {t("interview.setup.skillPersonaLabel")}
@@ -387,17 +392,48 @@ export function InterviewSetupForm({
                   {t("interview.setup.skillPersonaHint")}
                 </p>
               </div>
-              <SkillSelector
-                scenarioId="interview-persona"
-                value={selectedSkillSelection ?? undefined}
-                onChange={handleSkillSelectionChange}
-                required
-              />
-              {!isSkillValid ? (
-                <p className="text-xs text-amber-600 dark:text-amber-400">
-                  {t("interview.skillNotSelected")}
+
+              {capabilities.length === 0 ? (
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                  {t("interview.noSkillPersonas")}
                 </p>
-              ) : null}
+              ) : (
+                <div className="grid gap-3 md:grid-cols-2">
+                  {capabilities.map((capability) => {
+                    const capabilityKey = `${capability.skillId}:${capability.capabilityId}`;
+                    const selected = selectedSkillSelection === capabilityKey;
+
+                    return (
+                      <button
+                        key={capabilityKey}
+                        type="button"
+                        onClick={() =>
+                          handleSkillSelectionChange(selected ? null : capabilityKey)
+                        }
+                        className={`rounded-2xl border p-4 text-left transition-colors ${
+                          selected
+                            ? "bg-violet-50 border-violet-200 shadow-sm dark:bg-violet-950/30 dark:border-violet-700"
+                            : "border-zinc-200 bg-white hover:border-zinc-300 hover:bg-zinc-50/50 dark:hover:border-zinc-700 dark:hover:bg-zinc-800"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <div className="text-sm font-semibold text-zinc-950 dark:text-zinc-50">
+                              {capability.capabilityName}
+                            </div>
+                          </div>
+                          <span className="inline-flex rounded-full border px-2 py-1 text-[11px] font-medium">
+                            {selected ? t("interview.setup.selected") : t("interview.setup.add")}
+                          </span>
+                        </div>
+                        <p className="mt-3 line-clamp-3 text-sm leading-6 text-zinc-600 dark:text-zinc-300">
+                          {capability.capabilityDescription}
+                        </p>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
         </CardContent>

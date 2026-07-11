@@ -250,6 +250,7 @@
     "modeBuiltin": "内置人设",
     "modeSkill": "Skill 人设",
     "skillNotSelected": "请选择一个 Skill 人设",
+    "noSkillPersonas": "暂无可用 Skill 人设",
     "skillUnavailable": "该 Skill 已不可用，请重选",
     "skillPersona": "自定义人设"
   },
