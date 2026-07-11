@@ -1030,6 +1030,17 @@
       "requiredContext": "所需上下文",
       "noSelection": "选择左侧 Skill 查看详情"
     },
+    "scenario": {
+      "ai-chat": "简历助手",
+      "cover-letter": "求职信撰写",
+      "grammar-check": "语法检查",
+      "jd-analysis": "JD 分析",
+      "translate": "简历翻译",
+      "generate-resume": "简历生成",
+      "interview-persona": "面试官人设",
+      "interview-evaluation": "面试回答评估",
+      "interview-report": "面试报告"
+    },
     "import": {
       "previewTitle": "导入预览",
       "referencesCount": "引用文件数",

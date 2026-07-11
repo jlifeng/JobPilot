@@ -1030,8 +1030,18 @@
       "requiredContext": "Required context",
       "noSelection": "Select a skill on the left to view details"
     },
+    "scenario": {
+      "ai-chat": "Resume Assistant",
+      "cover-letter": "Cover Letter",
+      "grammar-check": "Grammar Check",
+      "jd-analysis": "JD Analysis",
+      "translate": "Resume Translation",
+      "generate-resume": "Resume Generation",
+      "interview-persona": "Interview Persona",
+      "interview-evaluation": "Answer Evaluation",
+      "interview-report": "Interview Report"
+    },
     "import": {
-      "previewTitle": "Import preview",
       "referencesCount": "Reference file count",
       "noConflict": "New skill, no conflict",
       "conflictWarning": "A skill with the same id already exists (v{version})",

@@ -306,7 +306,7 @@ function ScenarioPicker({ scenarios, onToggle, translate }: ScenarioPickerProps)
                   : "border border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800",
               )}
             >
-              {scenario.name}
+              {translate(`skill.scenario.${scenario.id}`, scenario.name)}
             </button>
           );
         })}
