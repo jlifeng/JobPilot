@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 10
+- **Total Sessions**: 11
 - **Last Active**: 2026-07-11
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~351 | Active |
+| `journal-1.md` | ~384 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 11 | 2026-07-11 | 准备 1.6.0-beta.0 发布 | `ab1dc99` | `feature/skills-pack` |
 | 10 | 2026-07-11 | 预览版发布文档与 Skills 截图 | `0127854` | `feature/skills-pack` |
 | 9 | 2026-07-11 | Skill 人设卡片选择 + 管理页 tab 筛选 + 多项修复 | `b22d56a`, `33da347`, `64f24ea`, `e263207`, `fcf86d5`, `55cb5fd` | `feature/skills-pack` |
 | 8 | 2026-07-11 | Skill 人设卡片选择器 | `33da347` | `feature/skills-pack` |

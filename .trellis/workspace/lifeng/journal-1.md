@@ -349,3 +349,36 @@ Skill 人设模式下将下拉 SkillSelector 替换为卡片列表（grid 2列�
 ### Next Steps
 
 - None - task complete
+
+
+## Session 11: 准备 1.6.0-beta.0 发布
+
+**Date**: 2026-07-11
+**Task**: 准备 1.6.0-beta.0 发布
+**Branch**: `feature/skills-pack`
+
+### Summary
+
+版本号同步至 1.6.0-beta.0（package/desktop/tauri/Cargo），文档 preview 统一为 beta，本地创建 tag v1.6.0-beta.0，版本校验通过。未推送远程。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `ab1dc99` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
