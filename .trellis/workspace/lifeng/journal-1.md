@@ -179,3 +179,36 @@ Skill 管理 UX 收尾：工作台左侧 sidebar「设置」下方加 Skill 管�
 ### Next Steps
 
 - None - task complete
+
+
+## Session 6: 面试 Skill 人设与内置流程解耦
+
+**Date**: 2026-07-11
+**Task**: 面试 Skill 人设与内置流程解耦
+**Branch**: `feature/skills-pack`
+
+### Summary
+
+实现模拟面试 Skill 人设与内置面试官流程解耦：InterviewerType 扩展 skill、占位人设构造、setup-form 互斥模式切换、canCreate OR 逻辑、Skill 失效 fallback、session 卡片展示、restart draft skillSelection round-trip、i18n 5 key。trellis-check 发现并修复 5 个问题（含 TS2741 类型遗漏、disabled Skill 不触发 fallback、auto-start effect 未 guard、handleModeChange 泄漏 skill 占位、consumeInterviewRestartDraft 丢失 skillSelection）。验证 tsc -b/cargo build/28 Rust tests/21 vitest 全过。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `4104f35` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
