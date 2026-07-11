@@ -20,6 +20,7 @@ import {
   type DesktopDocumentListItem,
 } from "../../lib/desktop-api";
 import {
+  createSkillInterviewerConfig,
   getInterviewerColorClass,
   getPresetInterviewers,
 } from "../../lib/interviewers";
@@ -66,11 +67,37 @@ export function InterviewSetupForm({
   const [selectedResumeId, setSelectedResumeId] = useState<string>(
     restartDraft?.resumeId ?? "none",
   );
+
+  // Detect initial mode from restart draft: if all interviewers are skill
+  // placeholders, default to skill mode. Otherwise default to builtin mode.
+  const detectInitialMode = (): "builtin" | "skill" => {
+    if (
+      restartDraft?.interviewers.length
+      && restartDraft.interviewers.every((item) => item.type === "skill")
+    ) {
+      return "skill";
+    }
+    return "builtin";
+  };
+
+  const [setupMode, setSetupMode] = useState<"builtin" | "skill">(detectInitialMode);
+
+  // Builtin-mode interviewer selection (default: first 2 presets)
   const [selectedInterviewers, setSelectedInterviewers] = useState<InterviewerConfig[]>(
-    restartDraft?.interviewers.length
-      ? restartDraft.interviewers
-      : [presetInterviewers[0], presetInterviewers[1]].filter(Boolean),
+    () => {
+      if (restartDraft?.interviewers.length) {
+        // When re-entering a session in builtin mode, restore the existing
+        // interviewers. In skill mode we don't need preset interviewers.
+        return restartDraft.interviewers;
+      }
+      // Fresh builtin session: default to first 2 presets
+      if (detectInitialMode() === "builtin") {
+        return [presetInterviewers[0], presetInterviewers[1]].filter(Boolean);
+      }
+      return [];
+    },
   );
+
   const [error, setError] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
 
@@ -87,7 +114,11 @@ export function InterviewSetupForm({
   // Local override is set only by explicit user interaction; otherwise the
   // persisted default drives the selection (derived value avoids a sync effect
   // and the A→B race that would come with it).
-  const [skillOverride, setSkillOverride] = useState<string | null | undefined>(undefined);
+  // When re-entering from an existing skill-mode session, restore the saved
+  // skillSelection so the user doesn't have to re-select.
+  const [skillOverride, setSkillOverride] = useState<string | null | undefined>(
+    () => (restartDraft?.skillSelection ? restartDraft.skillSelection : undefined),
+  );
   const selectedSkillSelection =
     skillOverride !== undefined ? skillOverride : (defaultSelections["interview-persona"] ?? null);
 
@@ -99,11 +130,37 @@ export function InterviewSetupForm({
     });
   };
 
+  // When switching modes, reset the interviewer list appropriately.
+  const handleModeChange = (mode: "builtin" | "skill") => {
+    setSetupMode(mode);
+    if (mode === "builtin") {
+      // Drop any skill placeholders carried over from a skill-mode restart
+      // draft before deciding whether to restore defaults. This prevents a
+      // stale skill placeholder from leaking into a builtin-mode session.
+      setSelectedInterviewers((current) => {
+        const builtinOnly = current.filter((item) => item.type !== "skill");
+        return builtinOnly.length > 0
+          ? builtinOnly
+          : [presetInterviewers[0], presetInterviewers[1]].filter(Boolean);
+      });
+    } else {
+      // Skill mode: clear builtin interviewers
+      setSelectedInterviewers([]);
+    }
+  };
+
   const selectedIds = new Set(selectedInterviewers.map((item) => item.type));
+
+  // canCreate with OR logic:
+  // - Builtin mode: need jobDescription + at least one interviewer
+  // - Skill mode: need jobDescription + a valid (non-null) skillSelection
+  const isSkillValid = selectedSkillSelection !== null && selectedSkillSelection !== undefined;
   const canCreate =
     !runtimeIsFallback &&
     jobDescription.trim().length > 0 &&
-    selectedInterviewers.length > 0 &&
+    (setupMode === "builtin"
+      ? selectedInterviewers.length > 0
+      : isSkillValid) &&
     !isCreating;
 
   const toggleInterviewer = (interviewer: InterviewerConfig) => {
@@ -138,12 +195,38 @@ export function InterviewSetupForm({
     setIsCreating(true);
     setError(null);
     try {
+      // Build the interviewers array based on mode:
+      // - Builtin: use the user's selection
+      // - Skill: create a placeholder interviewer config
+      const interviewers =
+        setupMode === "builtin"
+          ? selectedInterviewers
+          : [createSkillInterviewerConfig(
+              selectedSkillSelection
+                ? (() => {
+                    // Resolve Skill name from store for the placeholder
+                    const separatorIndex = selectedSkillSelection.indexOf(":");
+                    if (separatorIndex > 0) {
+                      const skillId = selectedSkillSelection.slice(0, separatorIndex);
+                      const capabilityId = selectedSkillSelection.slice(separatorIndex + 1);
+                      const skills = useSkillStore.getState().skills;
+                      const skill = skills.find((s) => s.id === skillId);
+                      if (skill) {
+                        const cap = skill.capabilities.find((c) => c.id === capabilityId);
+                        return cap?.name ?? skill.name;
+                      }
+                    }
+                    return undefined;
+                  })()
+                  : undefined,
+            )];
+
       const detail = await createInterviewSession({
         jobTitle: deriveJobTitle(jobTitle, jobDescription),
         jobDescription: jobDescription.trim(),
         resumeId: selectedResumeId === "none" ? null : selectedResumeId,
-        interviewers: selectedInterviewers,
-        skillSelection: selectedSkillSelection,
+        interviewers,
+        skillSelection: setupMode === "skill" ? selectedSkillSelection : null,
       });
 
       void navigate({
@@ -174,6 +257,32 @@ export function InterviewSetupForm({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
+          {/* Mode toggle tabs */}
+          <div className="flex rounded-2xl bg-zinc-100 p-1 dark:bg-zinc-800">
+            <button
+              type="button"
+              onClick={() => handleModeChange("builtin")}
+              className={`flex-1 rounded-xl px-4 py-2 text-sm font-medium transition-colors ${
+                setupMode === "builtin"
+                  ? "bg-white text-zinc-950 shadow-sm dark:bg-zinc-700 dark:text-zinc-50"
+                  : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
+              }`}
+            >
+              {t("interview.modeBuiltin")}
+            </button>
+            <button
+              type="button"
+              onClick={() => handleModeChange("skill")}
+              className={`flex-1 rounded-xl px-4 py-2 text-sm font-medium transition-colors ${
+                setupMode === "skill"
+                  ? "bg-white text-zinc-950 shadow-sm dark:bg-zinc-700 dark:text-zinc-50"
+                  : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
+              }`}
+            >
+              {t("interview.modeSkill")}
+            </button>
+          </div>
+
           <div className="space-y-2">
             <label className="text-sm font-medium text-zinc-700 dark:text-zinc-200">
               {t("interview.setup.jobTitleLabel")}
@@ -219,70 +328,77 @@ export function InterviewSetupForm({
             </Select>
           </div>
 
-          <div className="space-y-4">
-            <div>
-              <h2 className="text-sm font-medium text-zinc-700 dark:text-zinc-200">
-                {t("interview.setup.rolesLabel")}
-              </h2>
-              <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                {t("interview.setup.rolesHint")}
-              </p>
-            </div>
-
-            <div className="grid gap-3 md:grid-cols-2">
-              {presetInterviewers.map((interviewer) => {
-                const selected = selectedIds.has(interviewer.type);
-
-                return (
-                  <button
-                    key={interviewer.type}
-                    type="button"
-                    onClick={() => toggleInterviewer(interviewer)}
-                    className={`rounded-2xl border p-4 text-left transition-colors ${
-                      selected
-                        ? `${getInterviewerColorClass(interviewer.type)} shadow-sm`
-                        : "border-zinc-200 bg-white hover:border-zinc-300 hover:bg-zinc-50/50 dark:hover:border-zinc-700 dark:hover:bg-zinc-800"
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <div className="text-sm font-semibold text-zinc-950 dark:text-zinc-50">
-                          {interviewer.name}
-                        </div>
-                        <div className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                          {interviewer.title}
-                        </div>
-                      </div>
-                      <span className="inline-flex rounded-full border px-2 py-1 text-[11px] font-medium">
-                        {selected ? t("interview.setup.selected") : t("interview.setup.add")}
-                      </span>
-                    </div>
-                    <p className="mt-3 line-clamp-3 text-sm leading-6 text-zinc-600 dark:text-zinc-300">
-                      {interviewer.style}
-                    </p>
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="rounded-2xl border border-dashed border-zinc-300 p-4 dark:border-zinc-700">
-              <div className="flex flex-col gap-1.5">
-                <div className="text-sm font-medium text-zinc-700 dark:text-zinc-200">
-                  {t("interview.setup.skillPersonaLabel")}
-                </div>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                  {t("interview.setup.skillPersonaHint")}
+          {/* Builtin interviewer selection — only visible in builtin mode */}
+          {setupMode === "builtin" ? (
+            <div className="space-y-4">
+              <div>
+                <h2 className="text-sm font-medium text-zinc-700 dark:text-zinc-200">
+                  {t("interview.setup.rolesLabel")}
+                </h2>
+                <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                  {t("interview.setup.rolesHint")}
                 </p>
-                <div className="mt-1">
-                  <SkillSelector
-                    scenarioId="interview-persona"
-                    value={selectedSkillSelection ?? undefined}
-                    onChange={handleSkillSelectionChange}
-                  />
-                </div>
+              </div>
+
+              <div className="grid gap-3 md:grid-cols-2">
+                {presetInterviewers.map((interviewer) => {
+                  const selected = selectedIds.has(interviewer.type);
+
+                  return (
+                    <button
+                      key={interviewer.type}
+                      type="button"
+                      onClick={() => toggleInterviewer(interviewer)}
+                      className={`rounded-2xl border p-4 text-left transition-colors ${
+                        selected
+                          ? `${getInterviewerColorClass(interviewer.type)} shadow-sm`
+                          : "border-zinc-200 bg-white hover:border-zinc-300 hover:bg-zinc-50/50 dark:hover:border-zinc-700 dark:hover:bg-zinc-800"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <div className="text-sm font-semibold text-zinc-950 dark:text-zinc-50">
+                            {interviewer.name}
+                          </div>
+                          <div className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                            {interviewer.title}
+                          </div>
+                        </div>
+                        <span className="inline-flex rounded-full border px-2 py-1 text-[11px] font-medium">
+                          {selected ? t("interview.setup.selected") : t("interview.setup.add")}
+                        </span>
+                      </div>
+                      <p className="mt-3 line-clamp-3 text-sm leading-6 text-zinc-600 dark:text-zinc-300">
+                        {interviewer.style}
+                      </p>
+                    </button>
+                  );
+                })}
               </div>
             </div>
-          </div>
+          ) : (
+            /* Skill mode: show SkillSelector as the primary persona picker */
+            <div className="space-y-4 rounded-2xl border border-dashed border-violet-300 bg-violet-50/30 p-5 dark:border-violet-700 dark:bg-violet-950/20">
+              <div>
+                <h2 className="text-sm font-medium text-zinc-700 dark:text-zinc-200">
+                  {t("interview.setup.skillPersonaLabel")}
+                </h2>
+                <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                  {t("interview.setup.skillPersonaHint")}
+                </p>
+              </div>
+              <SkillSelector
+                scenarioId="interview-persona"
+                value={selectedSkillSelection ?? undefined}
+                onChange={handleSkillSelectionChange}
+              />
+              {!isSkillValid ? (
+                <p className="text-xs text-amber-600 dark:text-amber-400">
+                  {t("interview.skillNotSelected")}
+                </p>
+              ) : null}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -314,70 +430,107 @@ export function InterviewSetupForm({
             </div>
           </div>
 
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium text-zinc-700 dark:text-zinc-200">
-                {t("interview.setup.orderLabel")}
-              </h3>
-              <Badge variant="outline" className="rounded-full">
-                {selectedInterviewers.length}
-              </Badge>
-            </div>
-
-            {selectedInterviewers.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-zinc-300 px-4 py-6 text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
-                {t("interview.setup.rolesEmpty")}
+          {/* Sidebar interviewers: only show in builtin mode */}
+          {setupMode === "builtin" ? (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-medium text-zinc-700 dark:text-zinc-200">
+                  {t("interview.setup.orderLabel")}
+                </h3>
+                <Badge variant="outline" className="rounded-full">
+                  {selectedInterviewers.length}
+                </Badge>
               </div>
-            ) : (
-              <div className="space-y-3">
-                {selectedInterviewers.map((interviewer, index) => (
-                  <div
-                    key={`selected-${interviewer.type}`}
-                    className="rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="space-y-1">
-                        <div className="text-sm font-semibold text-zinc-950 dark:text-zinc-50">
-                          {index + 1}. {interviewer.name}
+
+              {selectedInterviewers.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-zinc-300 px-4 py-6 text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
+                  {t("interview.setup.rolesEmpty")}
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {selectedInterviewers.map((interviewer, index) => (
+                    <div
+                      key={`selected-${interviewer.type}`}
+                      className="rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="space-y-1">
+                          <div className="text-sm font-semibold text-zinc-950 dark:text-zinc-50">
+                            {index + 1}. {interviewer.name}
+                          </div>
+                          <div className="text-xs text-zinc-500 dark:text-zinc-400">
+                            {interviewer.title}
+                          </div>
                         </div>
-                        <div className="text-xs text-zinc-500 dark:text-zinc-400">
-                          {interviewer.title}
+                        <div className="flex items-center gap-1">
+                          <Button
+                            type="button"
+                            size="icon-xs"
+                            variant="ghost"
+                            onClick={() => moveInterviewer(index, -1)}
+                            disabled={index === 0}
+                          >
+                            <ArrowUp className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            type="button"
+                            size="icon-xs"
+                            variant="ghost"
+                            onClick={() => moveInterviewer(index, 1)}
+                            disabled={index === selectedInterviewers.length - 1}
+                          >
+                            <ArrowDown className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            type="button"
+                            size="icon-xs"
+                            variant="ghost"
+                            onClick={() => toggleInterviewer(interviewer)}
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </Button>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Button
-                          type="button"
-                          size="icon-xs"
-                          variant="ghost"
-                          onClick={() => moveInterviewer(index, -1)}
-                          disabled={index === 0}
-                        >
-                          <ArrowUp className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button
-                          type="button"
-                          size="icon-xs"
-                          variant="ghost"
-                          onClick={() => moveInterviewer(index, 1)}
-                          disabled={index === selectedInterviewers.length - 1}
-                        >
-                          <ArrowDown className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button
-                          type="button"
-                          size="icon-xs"
-                          variant="ghost"
-                          onClick={() => toggleInterviewer(interviewer)}
-                        >
-                          <X className="h-3.5 w-3.5" />
-                        </Button>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            /* Skill mode sidebar: show selected skill info */
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-medium text-zinc-700 dark:text-zinc-200">
+                  {t("interview.modeSkill")}
+                </h3>
               </div>
-            )}
-          </div>
+              <div className="rounded-2xl border border-violet-200 bg-violet-50/40 px-4 py-4 dark:border-violet-800 dark:bg-violet-950/30">
+                <div className="text-sm font-semibold text-zinc-950 dark:text-zinc-50">
+                  {isSkillValid
+                    ? (() => {
+                        const separatorIndex = selectedSkillSelection.indexOf(":");
+                        if (separatorIndex > 0) {
+                          const skillId = selectedSkillSelection.slice(0, separatorIndex);
+                          const capabilityId = selectedSkillSelection.slice(separatorIndex + 1);
+                          const skills = useSkillStore.getState().skills;
+                          const skill = skills.find((s) => s.id === skillId);
+                          if (skill) {
+                            const cap = skill.capabilities.find((c) => c.id === capabilityId);
+                            return cap?.name ?? skill.name;
+                          }
+                        }
+                        return selectedSkillSelection;
+                      })()
+                    : t("interview.skillPersona")}
+                </div>
+                <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                  {isSkillValid
+                    ? t("interview.setup.skillPersonaHint")
+                    : t("interview.skillNotSelected")}
+                </p>
+              </div>
+            </div>
+          )}
 
           {error ? (
             <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">

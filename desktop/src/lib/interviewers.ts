@@ -5,7 +5,13 @@ interface PresetInterviewer {
   en: InterviewerConfig;
 }
 
-const presets: Record<InterviewerType, PresetInterviewer> = {
+/**
+ * Builtin interviewer presets. The `skill` type is intentionally NOT a preset
+ * — it is a placeholder constructed on demand via `createSkillInterviewerConfig`
+ * for Skill-driven sessions. `INTERVIEWER_TYPES` is derived from this object's
+ * keys, so excluding `skill` here keeps it out of the builtin picker grid.
+ */
+const presets: Record<Exclude<InterviewerType, "skill">, PresetInterviewer> = {
   hr: {
     zh: {
       type: "hr",
@@ -224,7 +230,9 @@ const presets: Record<InterviewerType, PresetInterviewer> = {
   },
 };
 
-export const INTERVIEWER_TYPES = Object.keys(presets) as InterviewerType[];
+export type BuiltinInterviewerType = Exclude<InterviewerType, "skill">;
+
+export const INTERVIEWER_TYPES = Object.keys(presets) as BuiltinInterviewerType[];
 
 export const INTERVIEWER_COLOR_MAP: Record<InterviewerType, string> = {
   hr: "bg-zinc-50 border-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-200",
@@ -238,6 +246,8 @@ export const INTERVIEWER_COLOR_MAP: Record<InterviewerType, string> = {
     "bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-950/40 dark:border-emerald-900 dark:text-emerald-200",
   leader:
     "bg-slate-50 border-slate-200 text-slate-700 dark:bg-slate-950/40 dark:border-slate-800 dark:text-slate-200",
+  skill:
+    "bg-violet-50 border-violet-200 text-violet-700 dark:bg-violet-950/40 dark:border-violet-900 dark:text-violet-200",
 };
 
 export function resolveInterviewLocale(language: string): "zh" | "en" {
@@ -264,4 +274,28 @@ export function getInterviewerInitials(config: InterviewerConfig): string {
     .join("")
     .slice(0, 2)
     .toUpperCase();
+}
+
+/**
+ * Build a placeholder InterviewerConfig for a Skill persona. Skill-driven
+ * sessions do NOT use built-in interviewer presets, but the Rust contract
+ * still expects at least one interviewer entry per round. This placeholder
+ * carries the Skill name, no focusAreas, and reasonable defaults so the
+ * session card and evaluation pipeline don't break.
+ */
+export function createSkillInterviewerConfig(skillName?: string): InterviewerConfig {
+  const name = skillName && skillName.trim().length > 0
+    ? skillName.trim()
+    : "Custom Persona";
+  return {
+    type: "skill",
+    name,
+    title: "",
+    avatar: "skill",
+    bio: "",
+    style: "",
+    focusAreas: [],
+    systemPrompt: "",
+    personality: "",
+  };
 }

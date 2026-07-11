@@ -4,7 +4,8 @@ export type InterviewerType =
   | "scenario"
   | "behavioral"
   | "project_deep_dive"
-  | "leader";
+  | "leader"
+  | "skill";
 
 export interface InterviewerConfig {
   type: InterviewerType;

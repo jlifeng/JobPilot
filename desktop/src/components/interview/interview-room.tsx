@@ -201,6 +201,29 @@ export function InterviewRoom({
   const [isDeleting, setIsDeleting] = useState(false);
   const [autoStartedRoundId, setAutoStartedRoundId] = useState<string | null>(null);
 
+  // Detect whether the session was created with a Skill persona, and if so,
+  // verify the Skill is still available. Disabled or deleted Skills block
+  // further progress to prevent a broken interview experience.
+  // Subscribe to the full skills list so the check re-runs after async load.
+  const skillsFromStore = useSkillStore((state) => state.skills);
+  const skillUnavailable = useMemo(() => {
+    if (!session?.skillSelection) {
+      return false;
+    }
+    const separatorIndex = session.skillSelection.indexOf(":");
+    if (separatorIndex <= 0) {
+      return false;
+    }
+    const skillId = session.skillSelection.slice(0, separatorIndex);
+    const capabilityId = session.skillSelection.slice(separatorIndex + 1);
+    const runtime = new SkillRuntime(skillsFromStore);
+    const lookup = runtime.getCapability(skillId, capabilityId);
+    // Treat both deleted Skills (lookup === null) and disabled Skills
+    // (lookup.skill.enabled === false) as unavailable, per the PRD.
+    return lookup === null || lookup.skill.enabled === false;
+  }, [session?.skillSelection, skillsFromStore]);
+
+
   const refreshSession = useCallback(async () => {
     setIsRefreshing(true);
     try {
@@ -494,7 +517,8 @@ export function InterviewRoom({
       runtimeIsFallback ||
       isStreaming ||
       isGeneratingReport ||
-      session.status === "completed"
+      session.status === "completed" ||
+      skillUnavailable
     ) {
       return;
     }
@@ -518,6 +542,7 @@ export function InterviewRoom({
     runTurn,
     runtimeIsFallback,
     session,
+    skillUnavailable,
   ]);
 
   const handleSend = async () => {
@@ -618,6 +643,37 @@ export function InterviewRoom({
           <Button asChild>
             <Link to="/interview">{t("interview.actions.backToLobby")}</Link>
           </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Skill persona sessions: if the original Skill has been disabled or deleted
+  // since the session was created, block progress and prompt re-selection.
+  if (session.skillSelection && skillUnavailable) {
+    return (
+      <Card className="rounded-3xl border-amber-200 bg-amber-50 shadow-none dark:border-amber-900 dark:bg-amber-950/40">
+        <CardHeader>
+          <CardTitle className="text-amber-800 dark:text-amber-200">
+            {t("interview.skillUnavailable")}
+          </CardTitle>
+          <CardDescription className="text-amber-700 dark:text-amber-300">
+            {t("interview.skillUnavailable")}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-amber-700 dark:text-amber-300">
+            {session.jobTitle}
+          </p>
+          <div className="flex gap-2">
+            <Button variant="outline" asChild>
+              <Link to="/interview">{t("interview.actions.backToLobby")}</Link>
+            </Button>
+            <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
+              <Trash2 className="h-4 w-4" />
+              {isDeleting ? t("interview.actions.deleting") : t("interview.actions.delete")}
+            </Button>
+          </div>
         </CardContent>
       </Card>
     );

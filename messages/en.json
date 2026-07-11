@@ -246,7 +246,12 @@
       "feedbackTitle": "Overall feedback",
       "improvementsTitle": "Improvement suggestions",
       "improvementsHint": "These suggestions prioritize the gaps that showed up most clearly during the interview."
-    }
+    },
+    "modeBuiltin": "Built-in Personas",
+    "modeSkill": "Skill Persona",
+    "skillNotSelected": "Please select a Skill persona",
+    "skillUnavailable": "This Skill is no longer available. Please select another.",
+    "skillPersona": "Custom Persona"
   },
   "editor": {
     "toolbar": {

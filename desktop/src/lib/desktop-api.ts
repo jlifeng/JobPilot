@@ -800,6 +800,8 @@ export interface InterviewRestartDraft {
   jobDescription: string;
   resumeId?: string | null;
   interviewers: InterviewerConfig[];
+  /** Restore Skill persona selection when re-entering setup from an existing session. */
+  skillSelection?: string | null;
 }
 
 interface RawInterviewSessionListItem {
@@ -2131,6 +2133,7 @@ export function buildInterviewRestartDraft(
     jobDescription: session.jobDescription,
     resumeId: session.resumeId ?? null,
     interviewers: session.selectedInterviewers,
+    skillSelection: session.skillSelection ?? null,
   };
 }
 
@@ -2184,6 +2187,10 @@ export function consumeInterviewRestartDraft(): InterviewRestartDraft | null {
           ? parsed.resumeId
           : null,
       interviewers: normalizeInterviewerConfigList(parsed.interviewers),
+      skillSelection:
+        typeof parsed.skillSelection === "string" && parsed.skillSelection.trim().length > 0
+          ? parsed.skillSelection.trim()
+          : null,
     };
   } catch {
     return null;

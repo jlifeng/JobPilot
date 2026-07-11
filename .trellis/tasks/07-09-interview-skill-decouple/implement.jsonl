@@ -1,0 +1,7 @@
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "扩展 InterviewerType 联合类型加 'skill'，需要遵守前端类型安全规范"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "setup-form 模式切换 UI、session 卡片改造需遵循组件规范"}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "setup-form 状态管理：模式切换、skillSelection、selectedInterviewers 互斥逻辑"}
+{"file": ".trellis/spec/backend/ai-guidelines.md", "reason": "确认评价/报告 prompt 在 focusAreas 为空时安全性（已确认 safe，但子代理需知此背景）"}
+{"file": ".trellis/spec/frontend/visual-design-guidelines.md", "reason": "模式切换 tab/开关 UI 设计需遵循视觉规范"}
+{"file": ".trellis/spec/guides/desktop-runtime-boundary.md", "reason": "createInterviewSession 调用边界，不直接 invoke()"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "前后端契约：占位 InterviewerConfig 构造、Rust InterviewerType String 透明"}

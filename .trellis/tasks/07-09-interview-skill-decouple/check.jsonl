@@ -1,0 +1,6 @@
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "验证 InterviewerType 扩展后类型检查通过 (tsc -b)"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "验证模式切换组件符合规范：无障碍、响应式、状态一致性"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "验证向后兼容性：内置人设路径行为不变、老 session 重入默认模式正确"}
+{"file": ".trellis/spec/backend/ai-guidelines.md", "reason": "验证 focusAreas 为空时评价/报告 prompt 不报错、正常产出"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "验证占位 InterviewerConfig 序列化/反序列化不破坏 Rust 契约"}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "验证 Skill 失效 fallback 状态流转、skillStore 与 setup-form 状态同步"}

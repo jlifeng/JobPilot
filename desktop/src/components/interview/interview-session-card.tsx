@@ -4,7 +4,7 @@ import { ArrowUpRight, Clock3, FileText, RotateCcw, Trash2, Trophy } from "lucid
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { getInterviewerColorClass } from "../../lib/interviewers";
+import { getInterviewerColorClass, getInterviewerInitials } from "../../lib/interviewers";
 import type { InterviewSession } from "../../types/interview";
 
 function formatTimestamp(value: number, locale: string): string {
@@ -72,16 +72,32 @@ export function InterviewSessionCard({
         </p>
 
         <div className="flex flex-wrap gap-2">
-          {session.selectedInterviewers.map((interviewer) => (
-            <span
-              key={`${session.id}-${interviewer.type}`}
-              className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium ${getInterviewerColorClass(
-                interviewer.type,
-              )}`}
-            >
-              {interviewer.name}
-            </span>
-          ))}
+          {session.selectedInterviewers.map((interviewer) => {
+            if (interviewer.type === "skill") {
+              // Skill placeholder: show Skill name + generic icon, no empty display
+              return (
+                <span
+                  key={`${session.id}-${interviewer.name}`}
+                  className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${getInterviewerColorClass("skill")}`}
+                >
+                  <span className="flex h-4 w-4 items-center justify-center rounded-full bg-violet-400 text-[9px] font-bold text-white">
+                    {getInterviewerInitials(interviewer)}
+                  </span>
+                  {interviewer.name}
+                </span>
+              );
+            }
+            return (
+              <span
+                key={`${session.id}-${interviewer.type}`}
+                className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium ${getInterviewerColorClass(
+                  interviewer.type,
+                )}`}
+              >
+                {interviewer.name}
+              </span>
+            );
+          })}
         </div>
 
         {session.reportOverallScore !== null && session.reportOverallScore !== undefined ? (
