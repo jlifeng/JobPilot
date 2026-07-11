@@ -54,7 +54,7 @@ JobPilot is a **local-first AI job-search desktop app** focused on resume writin
 
 ## 🚀 Recent Highlights
 
-- **v1.6.0-preview** — Skill capability pack system, Skill management page, importable Skills with references/scenario assignment, and mock interview Skill-persona mode decoupled from built-in interviewers.
+- **v1.6.0-beta.0** — Skill capability pack system, Skill management page, importable Skills with references/scenario assignment, and mock interview Skill-persona mode decoupled from built-in interviewers.
 - **v1.5.3** — WebDAV sidebar status refresh fixes, AI chat rendering stability, and docs updates for Chinese AI providers.
 - **v1.5.2** — PDF GitHub link color fix and manual “Sync Now” button on the sync settings page.
 - **v1.5.1** — Free API key guide entry, dashboard unconfigured-key prompt, GitHub module editing improvements, and clearer AI settings save flow.
