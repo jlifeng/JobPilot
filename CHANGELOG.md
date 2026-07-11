@@ -5,6 +5,45 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 并且本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.6.0-preview] - 2026-07-11
+
+### 新增
+
+- **Skill 能力包系统** — 通用 AI Skill 插件体系，覆盖简历助手、面试官人设、求职信、语法检查、JD 分析、翻译、简历生成、面试评估与面试报告等场景
+  - 内置 Skill 中文化，可在 Skill 管理页启用 / 禁用
+  - 支持导入 `.skill` / `.zip` 能力包，自动加载 `references/*.md` 引用文件
+  - Skill 管理页支持导入 / 内置 tab 筛选、适用场景手动指派、引用文件内容查看
+  - AI 对话与模拟面试等入口可按场景切换 Skill
+- **面试 Skill 人设解耦** — 模拟面试支持「内置人设」与「Skill 人设」互斥模式
+  - Skill 人设模式以卡片列表选择能力包，不必再强制选择内置面试官
+  - Skill 失效 / 删除后重新进入会话会提示并阻止继续
+  - 结束后评价与报告流程保留
+- **Skill 管理入口** — 工作台左侧导航新增 Skill 管理入口，页面标题统一由顶栏承担
+
+### 优化
+
+- Skill 无变量时不再显示「此 Skill 无可配置变量」噪音提示
+- Skill 详情面板「适用场景」支持中英文 i18n
+- 导入 Skill 支持 SKILL.md frontmatter 多行 description
+
+### 修复
+
+- 修复导入 Skill 后管理页引用文件数显示为 0、且无法出现在场景选择器中的问题
+- 修复 Skill 人设模式下仍可选择「默认助手」导致无法开始面试的问题
+
+## [1.5.3] - 2026-06-13
+
+### 修复
+
+- 修复 WebDAV 配置保存后侧边栏绿色状态点不刷新的问题
+- 修复 WebDAV 已配置状态未校验用户名、i18n 插值异常的问题
+- 修复 AI 聊天初始提示导致的级联渲染问题
+
+### 文档
+
+- 更新快速入门指南，补充中文 AI 模型服务商说明
+- 完善 GitHub 主页与社区相关文档
+
 ## [1.5.2] - 2026-06-11
 
 ### 修复
@@ -279,7 +318,9 @@
 - 中英双语 — 完整的国际化支持
 - 本地优先 — 数据存储在本地，隐私安全有保障
 
-[Unreleased]: https://github.com/jlifeng/JobPilot/compare/v1.5.2...HEAD
+[Unreleased]: https://github.com/jlifeng/JobPilot/compare/v1.6.0-preview...HEAD
+[1.6.0-preview]: https://github.com/jlifeng/JobPilot/compare/v1.5.3...v1.6.0-preview
+[1.5.3]: https://github.com/jlifeng/JobPilot/compare/v1.5.2...v1.5.3
 [1.5.2]: https://github.com/jlifeng/JobPilot/compare/v1.5.1...v1.5.2
 [1.5.1]: https://github.com/jlifeng/JobPilot/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/jlifeng/JobPilot/compare/v1.4.1...v1.5.0

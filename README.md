@@ -47,18 +47,20 @@ JobPilot is a **local-first AI job-search desktop app** focused on resume writin
 - **Multi-Format Import** — Import resumes from JSON, Markdown, PDF, and images. Regular PDFs and scanned documents can be parsed with multimodal AI.
 - **Privacy-Aware Export** — Export to PDF, smart one-page PDF, HTML, plain text, Markdown, and JSON, with an optional masking switch for names, phone numbers, emails, companies, schools, and private links.
 - **Editor Experience** — Drag-and-drop sections, inline editing, auto-save, Markdown toolbar shortcuts, textarea lists for long content, and 50+ resume templates.
-- **Mock Interview & Review** — Create interview sessions from a JD and target role, simulate conversations, score candidate answers, review weak points, and get a training plan.
+- **Skill Capability Packs** — Installable AI Skills for resume chat, interview personas, cover letters, grammar checks, JD analysis, translation, resume generation, answer evaluation, and interview reports. Import `.skill` packages, assign scenarios, and browse reference files.
+- **Mock Interview & Review** — Create interview sessions from a JD and target role, simulate conversations with built-in or Skill personas, score candidate answers, review weak points, and get a training plan.
 - **Encrypted WebDAV Sync** — Back up resumes, settings, and API keys to 123Cloud, Nutstore, Nextcloud, and other WebDAV services, with manual restore and configurable auto sync.
 - **Release & Update Flow** — In-app update checks, version synchronization, Windows/macOS packaging, and release notes generated from the changelog.
 
 ## 🚀 Recent Highlights
 
+- **v1.6.0-preview** — Skill capability pack system, Skill management page, importable Skills with references/scenario assignment, and mock interview Skill-persona mode decoupled from built-in interviewers.
+- **v1.5.3** — WebDAV sidebar status refresh fixes, AI chat rendering stability, and docs updates for Chinese AI providers.
+- **v1.5.2** — PDF GitHub link color fix and manual “Sync Now” button on the sync settings page.
+- **v1.5.1** — Free API key guide entry, dashboard unconfigured-key prompt, GitHub module editing improvements, and clearer AI settings save flow.
 - **v1.5.0** — Desktop workbench redesign, AI analysis records, auto WebDAV sync, AI resume generation, simplified settings, dark mode polish, and richer mock interview feedback.
 - **v1.4.1** — Added Intel Mac release builds alongside Windows and macOS Apple Silicon artifacts.
 - **v1.4.0** — Export data masking, Anthropic resume editing tools, precise text replacement, and more stable AI streaming output.
-- **v1.3.0** — Redesigned workspace layout, improved editor preview/sidebar, interview deletion/restart, and Anthropic interview streaming.
-- **v1.2.2** — Encrypted WebDAV cloud sync with snapshot backup and restore.
-- **v1.1.x** — Desktop packaging, multi-format import, enhanced PDF parsing, app updates, template improvements, and macOS support.
 
 ## 📋 Changelog
 
@@ -95,6 +97,12 @@ Planned features for upcoming releases:
 | AI Assistant | AI Config |
 |:------------:|:---------:|
 | ![AI Assistant](images/AI助手.png) | ![AI Config](images/AI助手配置.png) |
+
+### Skills
+
+| Skill Management | Skills in AI Chat |
+|:----------------:|:-----------------:|
+| ![Skill Management](images/skills管理.png) | ![Skills in AI Chat](images/AI对话框skills效果.png) |
 
 ### Import & Export
 
