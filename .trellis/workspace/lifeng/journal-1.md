@@ -245,3 +245,36 @@ Skill 管理 UX 收尾：工作台左侧 sidebar「设置」下方加 Skill 管�
 ### Next Steps
 
 - None - task complete
+
+
+## Session 8: Skill 人设卡片选择器
+
+**Date**: 2026-07-11
+**Task**: Skill 人设卡片选择器
+**Branch**: `feature/skills-pack`
+
+### Summary
+
+Skill 人设模式下将下拉 SkillSelector 替换为卡片列表（grid 2列），与内置人设卡片风格一致。单选模式，violet 色系高亮，不显示默认助手。新增 noSkillPersonas i18n key。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `33da347` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
