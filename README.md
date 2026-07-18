@@ -17,6 +17,7 @@
   **🎯 Your data stays local. Your privacy stays yours. Your resumes get better with AI.**
 
 </div>
+<img width="2182" height="324" alt="搜索框传播样式-白色版" src="https://github.com/user-attachments/assets/e054a63b-55a8-4f25-8702-d02ca20f21b3" />
 
 
 ---
