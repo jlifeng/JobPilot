@@ -1,0 +1,5 @@
+{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
+{"file": ".trellis/spec/backend/ai-guidelines.md", "reason": "AI tool 执行、provider、persistence 契约；改 ai.rs tool schema 和 execute_update_section_tool merge 必读"}
+{"file": ".trellis/spec/guides/desktop-runtime-boundary.md", "reason": "Tauri Rust 命令层与 renderer 边界契约；ai.rs 命令改动遵守此边界"}
+{"file": ".trellis/spec/document-model/template-contract.md", "reason": "section content 结构契约；updateSection schema 的 content 形状需与模板/编辑器字段一致"}
+{"file": ".trellis/tasks/07-19-ai-resume-write-target-fix/research/ai-tool-write-path-root-cause.md", "reason": "实测根因 + 关键代码行号引用；实现 updateSection schema/deep merge 时定位具体改动点"}
