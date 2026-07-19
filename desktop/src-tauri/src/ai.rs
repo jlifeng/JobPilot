@@ -1900,7 +1900,7 @@ fn build_resume_tools(document_id: Option<&str>) -> Option<serde_json::Value> {
             "type": "function",
             "function": {
                 "name": "replaceResumeText",
-                "description": "Replace exact text inside existing resume sections without overwriting the whole section. Use this for resume rewrite, polish, optimization, or direct content edits. Each patch replaces the first exact originalText occurrence found in the target section content.",
+                "description": "Replace exact text inside existing resume sections without overwriting the whole section. Use this only for verbatim polish/rewrite of an existing leaf string value (e.g. a summary sentence, a single bullet, or a single description paragraph). Each patch replaces the first exact originalText occurrence found in the target section content. The originalText MUST be a verbatim substring of a single leaf string value in the section content (not a JSON source fragment with quotes, brackets, keys, or indentation). Never use this tool to fill an empty array/object field or to add new structured items — use updateSection instead.",
                 "parameters": {
                     "type": "object",
                     "properties": {
@@ -1915,7 +1915,7 @@ fn build_resume_tools(document_id: Option<&str>) -> Option<serde_json::Value> {
                                     },
                                     "originalText": {
                                         "type": "string",
-                                        "description": "The exact original text to replace. It must exist verbatim in the target section content."
+                                        "description": "The exact original text to replace. It must exist verbatim inside a single leaf string value of the target section content. Do NOT include JSON syntax (quotes around the value, square brackets, the key name, or leading whitespace) — pick the bare text inside one string value."
                                     },
                                     "replacementText": {
                                         "type": "string",
@@ -1933,6 +1933,32 @@ fn build_resume_tools(document_id: Option<&str>) -> Option<serde_json::Value> {
                         }
                     },
                     "required": ["patches"],
+                    "additionalProperties": false
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "updateSection",
+                "description": "Add or rewrite structured fields inside an existing resume section. Use this whenever the edit involves structured fields such as an items array (work_experience, education, projects, skills, etc.), description, technologies, highlights, or any nested object/array field — including filling empty fields (e.g. an empty highlights array or an empty description). The `content` field must be a JSON object representing the section content; the backend deep-merges it into the existing content so keys you omit are preserved, but you SHOULD still echo back the full content object shape for the affected section (including unchanged sibling fields) so the result is predictable. Arrays replace wholesale (not element-wise merge), so always send the complete items array you want the section to end up with. Example for a work_experience section: content = { \"items\": [{ \"id\": \"<keep existing id>\", \"company\": \"...\", \"position\": \"...\", \"location\": \"...\", \"startDate\": \"...\", \"endDate\": null, \"current\": false, \"description\": \"...\", \"technologies\": [\"...\"], \"highlights\": [\"...\"] }] }. Prefer this tool over replaceResumeText whenever you are adding new fields, populating empty arrays/objects, or rewriting multiple related fields at once.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "sectionId": {
+                            "type": "string",
+                            "description": "The exact sectionId from the resume context."
+                        },
+                        "title": {
+                            "type": "string",
+                            "description": "Optional new title for the section. Omit to keep the existing title."
+                        },
+                        "content": {
+                            "type": "object",
+                            "description": "The complete section content object (the backend deep-merges it). Must match the shape of the section's existing content (e.g. { \"items\": [...] } for list-like sections, { \"text\": \"...\" } for summary-like sections). Include all sibling fields you want to keep so the merge result is predictable."
+                        }
+                    },
+                    "required": ["sectionId", "content"],
                     "additionalProperties": false
                 }
             }
@@ -1967,7 +1993,7 @@ fn build_anthropic_resume_tools(document_id: Option<&str>) -> Option<serde_json:
     Some(json!([
         {
             "name": "replaceResumeText",
-            "description": "Replace exact text inside existing resume sections without overwriting the whole section. Use this for resume rewrite, polish, optimization, or direct content edits. Each patch replaces the first exact originalText occurrence found in the target section content.",
+            "description": "Replace exact text inside existing resume sections without overwriting the whole section. Use this only for verbatim polish/rewrite of an existing leaf string value (e.g. a summary sentence, a single bullet, or a single description paragraph). Each patch replaces the first exact originalText occurrence found in the target section content. The originalText MUST be a verbatim substring of a single leaf string value in the section content (not a JSON source fragment with quotes, brackets, keys, or indentation). Never use this tool to fill an empty array/object field or to add new structured items — use updateSection instead.",
             "input_schema": {
                 "type": "object",
                 "properties": {
@@ -1982,7 +2008,7 @@ fn build_anthropic_resume_tools(document_id: Option<&str>) -> Option<serde_json:
                                 },
                                 "originalText": {
                                     "type": "string",
-                                    "description": "The exact original text to replace. It must exist verbatim in the target section content."
+                                    "description": "The exact original text to replace. It must exist verbatim inside a single leaf string value of the target section content. Do NOT include JSON syntax (quotes around the value, square brackets, the key name, or leading whitespace) — pick the bare text inside one string value."
                                 },
                                 "replacementText": {
                                     "type": "string",
@@ -2000,6 +2026,29 @@ fn build_anthropic_resume_tools(document_id: Option<&str>) -> Option<serde_json:
                     }
                 },
                 "required": ["patches"],
+                "additionalProperties": false
+            }
+        },
+        {
+            "name": "updateSection",
+            "description": "Add or rewrite structured fields inside an existing resume section. Use this whenever the edit involves structured fields such as an items array (work_experience, education, projects, skills, etc.), description, technologies, highlights, or any nested object/array field — including filling empty fields (e.g. an empty highlights array or an empty description). The `content` field must be a JSON object representing the section content; the backend deep-merges it into the existing content so keys you omit are preserved, but you SHOULD still echo back the full content object shape for the affected section (including unchanged sibling fields) so the result is predictable. Arrays replace wholesale (not element-wise merge), so always send the complete items array you want the section to end up with. Example for a work_experience section: content = { \"items\": [{ \"id\": \"<keep existing id>\", \"company\": \"...\", \"position\": \"...\", \"location\": \"...\", \"startDate\": \"...\", \"endDate\": null, \"current\": false, \"description\": \"...\", \"technologies\": [\"...\"], \"highlights\": [\"...\"] }] }. Prefer this tool over replaceResumeText whenever you are adding new fields, populating empty arrays/objects, or rewriting multiple related fields at once.",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "sectionId": {
+                        "type": "string",
+                        "description": "The exact sectionId from the resume context."
+                    },
+                    "title": {
+                        "type": "string",
+                        "description": "Optional new title for the section. Omit to keep the existing title."
+                    },
+                    "content": {
+                        "type": "object",
+                        "description": "The complete section content object (the backend deep-merges it). Must match the shape of the section's existing content (e.g. { \"items\": [...] } for list-like sections, { \"text\": \"...\" } for summary-like sections). Include all sibling fields you want to keep so the merge result is predictable."
+                    }
+                },
+                "required": ["sectionId", "content"],
                 "additionalProperties": false
             }
         },
@@ -2205,6 +2254,34 @@ fn execute_replace_resume_text_tool(
     }))
 }
 
+/// Deep-merge `patch` into `base`. When both `base` and `patch` are JSON
+/// objects, recursively merge `patch`'s keys into `base`: keys present in
+/// `patch` overwrite the same key in `base`, keys only in `base` are kept,
+/// and keys present in both recurse if both values are objects (otherwise
+/// `patch`'s value replaces `base`'s). For any non-object type (including
+/// arrays, strings, numbers, booleans, null), `patch` replaces `base`
+/// outright — arrays are treated as whole-replace per the "AI gives a full
+/// items array" contract.
+///
+/// Used by `execute_update_section_tool` so that a partial `content`
+/// payload from the model (e.g. only `{ "items": [...] }`) does not blow
+/// away unrelated sibling fields the model did not echo back.
+fn deep_merge_json(base: serde_json::Value, patch: serde_json::Value) -> serde_json::Value {
+    match (base, patch) {
+        (serde_json::Value::Object(mut base_map), serde_json::Value::Object(patch_map)) => {
+            for (key, patch_value) in patch_map {
+                let merged_value = match base_map.remove(&key) {
+                    Some(base_value) => deep_merge_json(base_value, patch_value),
+                    None => patch_value,
+                };
+                base_map.insert(key, merged_value);
+            }
+            serde_json::Value::Object(base_map)
+        }
+        (_, patch_value) => patch_value,
+    }
+}
+
 fn replace_first_text_in_json(
     value: &mut serde_json::Value,
     original_text: &str,
@@ -2246,7 +2323,12 @@ fn execute_update_section_tool(
         .find(|section| section.id == input.section_id)
         .ok_or_else(|| format!("section not found: {}", input.section_id))?;
 
-    target_section.content = input.content;
+    // Deep merge: preserve nested fields the model did not echo back so
+    // a partial content payload (e.g. only `{ "items": [...] }`) does
+    // not blow away sibling fields like company/position/technologies.
+    // `input.content.is_object()` was verified at the top of this fn, so
+    // for non-object input we already early-returned with an error.
+    target_section.content = deep_merge_json(target_section.content.clone(), input.content);
     target_section.updated_at_epoch_ms = None;
 
     if let Some(title) = input
@@ -4712,11 +4794,12 @@ fn map_parsed_to_sections(parsed: &Value, locale: &str) -> Vec<ParsedResumeSecti
 #[cfg(test)]
 mod tests {
     use super::{
-        extract_openai_delta_text, extract_openai_tool_call_deltas, extract_sse_data_payload,
-        extract_url_candidate, extract_urls, finalize_tool_calls, handle_anthropic_sse_event,
-        merge_tool_call_delta, push_conversation_messages, replace_first_text_in_json,
-        should_search_web, trim_url_token, AnthropicStreamingState, DesktopAiConversationMessage,
-        DesktopAiConversationRole, SseEventBuffer, StreamingToolCall,
+        deep_merge_json, extract_openai_delta_text, extract_openai_tool_call_deltas,
+        extract_sse_data_payload, extract_url_candidate, extract_urls, finalize_tool_calls,
+        handle_anthropic_sse_event, merge_tool_call_delta, push_conversation_messages,
+        replace_first_text_in_json, should_search_web, trim_url_token,
+        AnthropicStreamingState, DesktopAiConversationMessage, DesktopAiConversationRole,
+        SseEventBuffer, StreamingToolCall,
     };
     use serde_json::json;
     use std::collections::BTreeMap;
@@ -4917,6 +5000,159 @@ mod tests {
                         "highlights": ["old text", "keep"]
                     }
                 ]
+            })
+        );
+    }
+
+    #[test]
+    fn deep_merge_preserves_unmentioned_sibling_keys() {
+        // Simulates an AI updateSection call that only provides
+        // { "items": [ { "id": "we-1", "description": "new", "highlights": ["a"] } ] }
+        // while the existing content has company/position fields the model
+        // did not echo back.
+        let base = json!({
+            "items": [
+                {
+                    "id": "we-1",
+                    "company": "Acme",
+                    "position": "Eng",
+                    "description": "old",
+                    "highlights": []
+                }
+            ]
+        });
+        let patch = json!({
+            "items": [
+                {
+                    "id": "we-1",
+                    "description": "rewritten description",
+                    "highlights": ["shipped v2", "led team of 5"]
+                }
+            ]
+        });
+
+        let merged = deep_merge_json(base, patch);
+
+        // Arrays are whole-replaced (NOT element-wise merged), so items[0]
+        // is exactly the patch's first element — minus nothing, plus nothing.
+        // Sibling top-level keys (here: only `items`) are merged at the
+        // object level. Any sibling string field at the same object level
+        // is preserved if absent in the patch.
+        assert_eq!(
+            merged,
+            json!({
+                "items": [
+                    {
+                        "id": "we-1",
+                        "description": "rewritten description",
+                        "highlights": ["shipped v2", "led team of 5"]
+                    }
+                ]
+            })
+        );
+    }
+
+    #[test]
+    fn deep_merge_keeps_top_level_unrelated_keys() {
+        // section content object with two sibling keys: `text` and `meta`.
+        // The patch only rewrites `text`; `meta` must survive.
+        let base = json!({
+            "text": "old summary",
+            "meta": { "source": "manual", "version": 3 }
+        });
+        let patch = json!({ "text": "polished summary" });
+
+        let merged = deep_merge_json(base, patch);
+
+        assert_eq!(
+            merged,
+            json!({
+                "text": "polished summary",
+                "meta": { "source": "manual", "version": 3 }
+            })
+        );
+    }
+
+    #[test]
+    fn deep_merge_recurses_into_nested_objects() {
+        // Nested object merge: patch's key overrides base's, base-only key
+        // survives, deeply nested patch key also merges.
+        let base = json!({
+            "meta": { "a": 1, "b": 2, "nested": { "x": 10, "y": 20 } }
+        });
+        let patch = json!({
+            "meta": { "b": 99, "nested": { "y": 200, "z": 300 } }
+        });
+
+        let merged = deep_merge_json(base, patch);
+
+        assert_eq!(
+            merged,
+            json!({
+                "meta": {
+                    "a": 1,
+                    "b": 99,
+                    "nested": { "x": 10, "y": 200, "z": 300 }
+                }
+            })
+        );
+    }
+
+    #[test]
+    fn deep_merge_replaces_arrays_wholesale() {
+        // Arrays are NOT element-wise merged; patch array replaces base
+        // array entirely (matches the "AI gives a full items array" contract).
+        let base = json!({ "items": [1, 2, 3] });
+        let patch = json!({ "items": [10, 20] });
+
+        let merged = deep_merge_json(base, patch);
+
+        assert_eq!(merged, json!({ "items": [10, 20] }));
+    }
+
+    #[test]
+    fn deep_merge_patch_overrides_when_types_differ() {
+        // When patch's value type differs from base's (object vs string),
+        // patch wins — no recursive merge.
+        let base = json!({ "field": { "deep": true } });
+        let patch = json!({ "field": "now a string" });
+
+        let merged = deep_merge_json(base, patch);
+
+        assert_eq!(merged, json!({ "field": "now a string" }));
+    }
+
+    #[test]
+    fn deep_merge_non_object_patch_replaces_base() {
+        // When patch itself is not an object, it replaces base outright.
+        let base = json!({ "keep": true });
+        let patch = json!("scalar replacement");
+
+        let merged = deep_merge_json(base, patch);
+
+        assert_eq!(merged, json!("scalar replacement"));
+    }
+
+    #[test]
+    fn deep_merge_preserves_top_level_keys_when_patch_omits_them() {
+        // Mirrors the actual updateSection use case: a section content
+        // object has `items` plus a sibling `settings` key; patch only
+        // rewrites `items`, `settings` must survive.
+        let base = json!({
+            "items": [{ "id": "a", "text": "old" }],
+            "settings": { "layout": "compact" }
+        });
+        let patch = json!({
+            "items": [{ "id": "a", "text": "new" }]
+        });
+
+        let merged = deep_merge_json(base, patch);
+
+        assert_eq!(
+            merged,
+            json!({
+                "items": [{ "id": "a", "text": "new" }],
+                "settings": { "layout": "compact" }
             })
         );
     }

@@ -14,6 +14,63 @@ function generateId(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
+type StoreSet = (
+  partial:
+    | Partial<ResumeStore>
+    | ((state: ResumeStore) => Partial<ResumeStore>),
+) => void;
+type StoreGet = () => ResumeStore;
+
+/**
+ * Shared write path for `save()` and `forceSave()`. Reads the latest snapshot
+ * from the store at call time so keystrokes that landed between the trigger
+ * (autosave timer / submit boundary) and this flush are captured. Both
+ * `save()` and `forceSave()` funnel through here; the caller is responsible
+ * for the `isDirty` early-return policy — `save()` honors it, `forceSave()`
+ * skips it so submit boundaries never lose unsaved drafts to AI tool reloads.
+ */
+async function persistResume(
+  get: StoreGet,
+  set: StoreSet,
+): Promise<void> {
+  const { currentResume, sections } = get();
+  if (!currentResume) return;
+
+  set({ isSaving: true });
+  try {
+    await saveDocument({
+      id: currentResume.id,
+      title: currentResume.title,
+      template: currentResume.template,
+      language: currentResume.language,
+      themeJson: JSON.stringify(currentResume.themeConfig),
+      targetJobTitle: currentResume.targetJobTitle,
+      targetCompany: currentResume.targetCompany,
+      sections: sections.map((section) => ({
+        id: section.id,
+        documentId: section.resumeId || currentResume.id,
+        sectionType: section.type,
+        title: section.title,
+        sortOrder: section.sortOrder,
+        visible: section.visible,
+        content: section.content as unknown as Record<string, unknown>,
+        createdAtEpochMs: typeof section.createdAt === "string"
+          ? new Date(section.createdAt).getTime()
+          : Date.now(),
+        updatedAtEpochMs: typeof section.updatedAt === "string"
+          ? new Date(section.updatedAt).getTime()
+          : Date.now(),
+      })),
+    });
+
+    set({ isDirty: false });
+  } catch (error) {
+    console.error("Failed to save resume:", error);
+  } finally {
+    set({ isSaving: false });
+  }
+}
+
 interface ResumeStore {
   currentResume: Resume | null;
   sections: ResumeSection[];
@@ -33,6 +90,14 @@ interface ResumeStore {
   setTitle: (title: string) => void;
   updateTheme: (theme: Partial<ThemeConfig>) => void;
   save: () => Promise<void>;
+  /**
+   * Force-flush the current in-memory resume to desktop storage, bypassing
+   * the `isDirty` early-return inside `save()`. Use this at submit boundaries
+   * (e.g. before kicking off an AI prompt stream) where stale SQLite state
+   * would otherwise cause the AI tool to read / overwrite the user's unsaved
+   * draft. Clears any pending autosave timer first so the two cannot race.
+   */
+  forceSave: () => Promise<void>;
   _captureSnapshot: () => void;
   _scheduleSave: () => void;
   reset: () => void;
@@ -225,42 +290,20 @@ export const useResumeStore = create<ResumeStore>((set, get) => ({
   },
 
   save: async () => {
-    const { currentResume, sections, isDirty } = get();
+    const { currentResume, isDirty } = get();
     if (!currentResume || !isDirty) return;
+    await persistResume(get, set);
+  },
 
-    set({ isSaving: true });
-    try {
-      await saveDocument({
-        id: currentResume.id,
-        title: currentResume.title,
-        template: currentResume.template,
-        language: currentResume.language,
-        themeJson: JSON.stringify(currentResume.themeConfig),
-        targetJobTitle: currentResume.targetJobTitle,
-        targetCompany: currentResume.targetCompany,
-        sections: sections.map((section) => ({
-          id: section.id,
-          documentId: section.resumeId || currentResume.id,
-          sectionType: section.type,
-          title: section.title,
-          sortOrder: section.sortOrder,
-          visible: section.visible,
-          content: section.content as unknown as Record<string, unknown>,
-          createdAtEpochMs: typeof section.createdAt === "string"
-            ? new Date(section.createdAt).getTime()
-            : Date.now(),
-          updatedAtEpochMs: typeof section.updatedAt === "string"
-            ? new Date(section.updatedAt).getTime()
-            : Date.now(),
-        })),
-      });
-
-      set({ isDirty: false });
-    } catch (error) {
-      console.error("Failed to save resume:", error);
-    } finally {
-      set({ isSaving: false });
+  forceSave: async () => {
+    const { currentResume, _saveTimeout } = get();
+    // Cancel any pending autosave so it cannot race this flush.
+    if (_saveTimeout) {
+      clearTimeout(_saveTimeout);
+      set({ _saveTimeout: null });
     }
+    if (!currentResume) return;
+    await persistResume(get, set);
   },
 
   _scheduleSave: () => {
