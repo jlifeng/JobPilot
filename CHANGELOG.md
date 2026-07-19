@@ -5,6 +5,17 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 并且本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.6.1] - 2026-07-19
+
+### 修复
+
+- 修复 AI 补充简历结构化字段（描述、技术栈、亮点等）时写入失败、最终触发 `resume tool execution exceeded the desktop safety limit of 6 rounds` 的问题（issue #10）
+  - 根因：`replaceResumeText` 只在叶子字符串做子串匹配，无法处理结构化字段（空 `highlights` 数组等场景），AI 反复重试触发 6 轮安全熔断；而能正确写入结构化字段的 `updateSection` 未在 tool schema 中暴露给模型
+  - 补全 `updateSection` tool schema（OpenAI + Anthropic 两处），AI 改用 `updateSection` 一次性写入结构化字段
+  - `updateSection` 改为 deep merge，AI 仅给部分字段时不丢失其余字段（数组整体替换）
+  - 系统提示词按字段形状路由工具：结构化字段用 `updateSection`，纯文本逐字润色才用 `replaceResumeText`
+  - 提交 AI 请求前强制 flush 草稿，消除「未保存输入被 AI 基于旧持久化版本的操作覆盖」的竞态
+
 ## [1.6.0] - 2026-07-11
 
 ### 新增
@@ -319,6 +330,7 @@
 - 本地优先 — 数据存储在本地，隐私安全有保障
 
 [Unreleased]: https://github.com/jlifeng/JobPilot/compare/v1.6.0...HEAD
+[1.6.1]: https://github.com/jlifeng/JobPilot/compare/v1.6.0...v1.6.1
 [1.6.0]: https://github.com/jlifeng/JobPilot/compare/v1.5.3...v1.6.0
 [1.5.3]: https://github.com/jlifeng/JobPilot/compare/v1.5.2...v1.5.3
 [1.5.2]: https://github.com/jlifeng/JobPilot/compare/v1.5.1...v1.5.2
