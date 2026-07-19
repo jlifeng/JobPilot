@@ -307,7 +307,10 @@ function buildResumeEditSystemPrompt(
     "When the user asks to update, rewrite, optimize, add, or directly modify the resume, you MUST use the available resume-editing tools instead of outputting raw resume JSON.",
     "Never dump the full resume JSON unless the user explicitly asks for raw JSON.",
     "For section edits, use the exact sectionId values provided below.",
-    "When calling replaceResumeText, send patches with exact originalText values copied verbatim from the resume context and replacementText values. Do not send full section JSON.",
+    "Choosing the right tool for resume edits:",
+    "- Use `updateSection` (with a complete content object) for ANY structured-field edit: adding or rewriting items arrays (work_experience / education / projects / skills sections), filling empty description / technologies / highlights fields, rewriting nested object/array fields, or populating any empty field. Send back the full content object shape for the affected section (including unchanged sibling fields you want to keep) so the result is predictable — the backend deep-merges your content into the existing one, but echoing the full structure avoids accidental loss. For list-like sections, always send the complete items array (arrays are replaced wholesale, not element-wise merged).",
+    "- Use `replaceResumeText` ONLY for verbatim polish of a single existing non-empty leaf string value (e.g. tightening a summary sentence, fixing wording in one bullet). The `originalText` MUST be a verbatim substring of a single leaf string value in the section content — do NOT include JSON syntax such as quotes around the value, square brackets, key names like `\"highlights\":`, or leading whitespace. If you cannot find an exact verbatim substring inside one string value, switch to `updateSection` instead.",
+    "Do NOT use `replaceResumeText` to fill empty fields (empty strings, empty arrays, empty objects) — it cannot match emptiness and will error. For empty fields, always use `updateSection` with the full content object.",
     "After a resume-edit tool succeeds, briefly confirm what changed.",
     "Available resume sections:",
     sectionList,
@@ -336,7 +339,7 @@ export function AIChatContent({
   hideTitle = false,
 }: AIChatContentProps) {
   const { t } = useTranslation();
-  const { currentResume, sections, isDirty, save, setResume } = useResumeStore();
+  const { currentResume, sections, forceSave, setResume } = useResumeStore();
   const { aiChatInitialPrompt } = useEditorStore();
 
   const translate = useCallback(
@@ -870,9 +873,12 @@ export function AIChatContent({
       const requestId = createId("desktop-chat");
       requestIdRef.current = requestId;
 
-      if (isDirty) {
-        await save();
-      }
+      // Force-flush any in-memory draft before kicking off the AI stream.
+      // `save()` early-returns on `!isDirty`, which has historically let
+      // AI tools read stale SQLite state and overwrite unsaved drafts on
+      // reload. `forceSave()` skips the `isDirty` guard and also clears any
+      // pending 500ms autosave timer so the two cannot race.
+      await forceSave();
 
       const resumeContext = {
         title: currentResume?.title || "",
@@ -971,6 +977,7 @@ export function AIChatContent({
       activeSession,
       apiKeyMissingHint,
       currentResume,
+      forceSave,
       genericError,
       input,
       isThinking,
@@ -979,10 +986,8 @@ export function AIChatContent({
       runtimeSettings.hasApiKey,
       runtimeSettings.model,
       runtimeSettings.provider,
-      save,
       sections,
       selectedModel,
-      isDirty,
       resumeId,
       thinkingEnabled,
       selectedSkillCapability,
