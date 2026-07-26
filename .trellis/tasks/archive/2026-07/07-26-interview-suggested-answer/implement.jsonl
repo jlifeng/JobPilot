@@ -1,0 +1,10 @@
+{"file":".trellis/spec/desktop/frontend/index.md","reason":"Desktop React package entry point and pre-development checklist."}
+{"file":".trellis/spec/desktop/frontend/component-guidelines.md","reason":"Defines component, desktop API wrapper, i18n, accessibility, and AI UI conventions."}
+{"file":".trellis/spec/desktop/frontend/quality-guidelines.md","reason":"Defines blocking lint/build gates and forbidden desktop patterns."}
+{"file":".trellis/spec/desktop/frontend/type-safety.md","reason":"Defines TypeScript/Rust payload mirroring and validation ownership."}
+{"file":".trellis/spec/frontend/ai-experience-guidelines.md","reason":"Defines loading, recovery, structured AI result, and product-language expectations."}
+{"file":".trellis/spec/frontend/visual-design-guidelines.md","reason":"Defines restrained productivity-surface visual conventions for the result card."}
+{"file":".trellis/spec/guides/desktop-runtime-boundary.md","reason":"Defines the executable Tauri renderer-to-Rust command contract and validation gates."}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"Required because the feature spans React, Tauri commands, Rust AI, metadata storage, and i18n."}
+{"file":".trellis/spec/guides/code-reuse-thinking-guide.md","reason":"Requires searching for existing AI completion, metadata merge, Skill, and UI patterns before adding code."}
+{"file":".trellis/tasks/07-26-interview-suggested-answer/research/interview-answer-coaching-patterns.md","reason":"Captures the approved answer-after-feedback product pattern and factual-grounding constraints."}

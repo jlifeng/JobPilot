@@ -1,0 +1,9 @@
+{"file":".trellis/spec/desktop/frontend/index.md","reason":"Desktop frontend quality checklist entry point."}
+{"file":".trellis/spec/desktop/frontend/component-guidelines.md","reason":"Review component composition, accessibility, i18n, and desktop API usage."}
+{"file":".trellis/spec/desktop/frontend/quality-guidelines.md","reason":"Run and assess the documented lint/build gates and forbidden patterns."}
+{"file":".trellis/spec/desktop/frontend/type-safety.md","reason":"Verify frontend/native contracts, null handling, and absence of unsafe casts."}
+{"file":".trellis/spec/frontend/ai-experience-guidelines.md","reason":"Verify per-message loading/error recovery and structured AI presentation."}
+{"file":".trellis/spec/frontend/visual-design-guidelines.md","reason":"Verify the result UI matches the surrounding productivity surface."}
+{"file":".trellis/spec/guides/desktop-runtime-boundary.md","reason":"Verify command registration, typed wrapper, permissions, failure behavior, and Rust checks."}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"Verify end-to-end data survival and error handling across every boundary."}
+{"file":".trellis/tasks/07-26-interview-suggested-answer/research/interview-answer-coaching-patterns.md","reason":"Review implementation against the evidence-based UX and grounding requirements."}
