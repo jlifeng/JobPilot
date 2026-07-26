@@ -46,6 +46,7 @@ commands.allow = [
   "update_interview_message_metadata",
   "get_interview_report",
   "generate_interview_report",
+  "generate_interview_suggested_answer",
   "start_interview_turn_stream",
   "get_webdav_sync_status",
   "update_webdav_sync_settings",

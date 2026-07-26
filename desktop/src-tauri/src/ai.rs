@@ -91,6 +91,18 @@ pub struct GenerateInterviewReportInput {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GenerateInterviewSuggestedAnswerInput {
+    pub session_id: String,
+    pub message_id: String,
+    pub provider: Option<String>,
+    pub model: Option<String>,
+    pub base_url: Option<String>,
+    pub locale: Option<String>,
+    pub system_prompt: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum DesktopAiConversationRole {
     User,
@@ -241,6 +253,28 @@ struct InterviewAnswerEvaluationDimensionOutput {
     label: String,
     score: i32,
     feedback: String,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct InterviewSuggestedAnswerModelOutput {
+    #[serde(default)]
+    outline: Vec<String>,
+    #[serde(default)]
+    key_points: Vec<String>,
+    #[serde(default)]
+    improvements: Vec<String>,
+    reference_answer: String,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InterviewSuggestedAnswer {
+    pub outline: Vec<String>,
+    pub key_points: Vec<String>,
+    pub improvements: Vec<String>,
+    pub reference_answer: String,
+    pub generated_at_epoch_ms: u64,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -3423,6 +3457,196 @@ fn build_interview_answer_evaluation_system_prompt(locale: &str) -> String {
     }
 }
 
+pub async fn generate_interview_suggested_answer(
+    app: &AppHandle,
+    workspace_root: &std::path::Path,
+    input: GenerateInterviewSuggestedAnswerInput,
+) -> Result<InterviewSuggestedAnswer, String> {
+    let session_id = input.session_id.trim();
+    if session_id.is_empty() {
+        return Err("sessionId is required for interview suggested answer generation".into());
+    }
+    let message_id = input.message_id.trim();
+    if message_id.is_empty() {
+        return Err("messageId is required for interview suggested answer generation".into());
+    }
+
+    let session = storage::get_interview_session(app, session_id)?
+        .ok_or_else(|| format!("interview session not found: {session_id}"))?;
+    let (round, candidate_index) = session
+        .rounds
+        .iter()
+        .find_map(|round| {
+            round
+                .messages
+                .iter()
+                .position(|message| message.id == message_id)
+                .map(|index| (round, index))
+        })
+        .ok_or_else(|| {
+            format!("interview message {message_id} does not belong to session {session_id}")
+        })?;
+    let candidate_message = &round.messages[candidate_index];
+    if candidate_message.role != "candidate" {
+        return Err(format!(
+            "interview message {message_id} is not a submitted candidate answer"
+        ));
+    }
+    if !candidate_message
+        .metadata
+        .get("answerEvaluation")
+        .is_some_and(Value::is_object)
+    {
+        return Err(
+            "a completed answer evaluation is required before generating a reference answer".into(),
+        );
+    }
+    if let Some(cached) = parse_cached_interview_suggested_answer(&candidate_message.metadata) {
+        return Ok(cached);
+    }
+
+    let question = round.messages[..candidate_index]
+        .iter()
+        .rev()
+        .find(|message| message.role == "interviewer" && !message.content.trim().is_empty())
+        .map(|message| message.content.trim())
+        .ok_or_else(|| "the candidate answer has no preceding interviewer question".to_string())?;
+    let transcript_start = candidate_index.saturating_sub(7);
+    let transcript_context = round.messages[transcript_start..=candidate_index]
+        .iter()
+        .filter(|message| matches!(message.role.as_str(), "interviewer" | "candidate"))
+        .map(|message| format!("{}: {}", message.role, message.content.trim()))
+        .collect::<Vec<_>>()
+        .join("\n");
+    let focus_areas = round
+        .interviewer_config
+        .get("focusAreas")
+        .and_then(Value::as_array)
+        .map(|values| {
+            values
+                .iter()
+                .filter_map(Value::as_str)
+                .collect::<Vec<_>>()
+                .join(", ")
+        })
+        .unwrap_or_default();
+    let resume_context = build_resume_context(app, session.resume_id.as_deref())?;
+    let locale = normalize_interview_locale(input.locale.as_deref());
+    let user_prompt = build_interview_suggested_answer_user_prompt(
+        question,
+        &candidate_message.content,
+        session.job_title.as_deref().unwrap_or_default(),
+        &session.job_description,
+        resume_context.as_deref(),
+        &interviewer_display_name(&round.interviewer_config),
+        &round.interviewer_type,
+        &focus_areas,
+        &transcript_context,
+        &locale,
+    );
+    let system_prompt = input
+        .system_prompt
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(ToString::to_string)
+        .unwrap_or_else(|| build_interview_suggested_answer_system_prompt(&locale));
+    let resolved = resolve_provider_config_from_parts(
+        workspace_root,
+        input.provider.as_deref(),
+        input.model.as_deref(),
+        input.base_url.as_deref(),
+    )?;
+    let client = reqwest::Client::new();
+    let response_json = match resolved.provider.as_str() {
+        "openai" => {
+            let endpoint = format!(
+                "{}/chat/completions",
+                resolved.base_url.trim_end_matches('/')
+            );
+            request_openai_json_completion(
+                &client,
+                &endpoint,
+                &resolved,
+                &system_prompt,
+                &user_prompt,
+            )
+            .await?
+        }
+        "anthropic" => {
+            let endpoint = format!("{}/v1/messages", resolved.base_url.trim_end_matches('/'));
+            request_anthropic_json_completion(
+                &client,
+                &endpoint,
+                &resolved,
+                &system_prompt,
+                &user_prompt,
+            )
+            .await?
+        }
+        other => {
+            return Err(format!(
+                "provider '{other}' is not supported for interview suggested answers."
+            ));
+        }
+    };
+    let parsed = parse_interview_suggested_answer(response_json)?;
+    let suggested_answer = InterviewSuggestedAnswer {
+        outline: parsed.outline,
+        key_points: parsed.key_points,
+        improvements: parsed.improvements,
+        reference_answer: parsed.reference_answer,
+        generated_at_epoch_ms: now_epoch_ms()?,
+    };
+    storage::update_interview_message_metadata(
+        app,
+        storage::UpdateInterviewMessageMetadataInput {
+            message_id: message_id.to_string(),
+            metadata: json!({ "suggestedAnswer": suggested_answer }),
+        },
+    )?;
+
+    Ok(suggested_answer)
+}
+
+fn build_interview_suggested_answer_system_prompt(locale: &str) -> String {
+    if locale == "zh" {
+        "你是一位严谨的面试回答教练。请在用户已经作答后提供可调整的参考回答，而不是标准答案。只能使用提供的 JD、简历、原回答和面试上下文中的事实。绝不虚构公司、项目、职责、指标、结果或技术；证据不足时使用 [补充具体指标] 等明确占位符。只输出合法 JSON。".into()
+    } else {
+        "You are a rigorous interview answer coach. After the user has answered, provide an adaptable reference answer, not a standard answer. Use only facts supplied in the JD, resume, original answer, and interview context. Never invent employers, projects, responsibilities, metrics, outcomes, or technologies; when evidence is missing, use an explicit placeholder such as [add a concrete metric]. Return valid JSON only.".into()
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn build_interview_suggested_answer_user_prompt(
+    question: &str,
+    candidate_answer: &str,
+    job_title: &str,
+    job_description: &str,
+    resume_context: Option<&str>,
+    interviewer_name: &str,
+    interviewer_type: &str,
+    focus_areas: &str,
+    transcript_context: &str,
+    locale: &str,
+) -> String {
+    let resume_evidence = resume_context.unwrap_or(if locale == "zh" {
+        "未关联简历。不要补写候选人经历。"
+    } else {
+        "No resume is linked. Do not add candidate experience."
+    });
+
+    if locale == "zh" {
+        format!(
+            "请基于用户刚刚提交的回答生成训练用参考回答。\n\n只输出以下 JSON：\n{{\n  \"outline\": [<3-5 个回答步骤>],\n  \"keyPoints\": [<需要覆盖的证据或概念>],\n  \"improvements\": [<相对原回答的具体改进>],\n  \"referenceAnswer\": <第一人称完整参考回答>\n}}\n\n要求：参考回答必须忠于证据；缺少事实时保留 [补充具体指标]、[补充你的具体职责] 等占位符，不要猜测。\n\n岗位标题：{job_title}\n岗位 JD：\n{job_description}\n\n面试官：{interviewer_name} / {interviewer_type}\n本轮重点：{focus_areas}\n\n当前问题：\n{question}\n\n用户原回答：\n{candidate_answer}\n\n简历证据：\n{resume_evidence}\n\n必要对话上下文：\n{transcript_context}"
+        )
+    } else {
+        format!(
+            "Create a training reference answer based on the answer the user just submitted.\n\nReturn only this JSON:\n{{\n  \"outline\": [<3-5 answer steps>],\n  \"keyPoints\": [<evidence or concepts to cover>],\n  \"improvements\": [<specific improvements over the original answer>],\n  \"referenceAnswer\": <complete first-person reference answer>\n}}\n\nRequirements: keep the answer faithful to supplied evidence. When facts are missing, retain placeholders such as [add a concrete metric] or [add your specific responsibility] instead of guessing.\n\nJob title: {job_title}\nJob description:\n{job_description}\n\nInterviewer: {interviewer_name} / {interviewer_type}\nRound focus: {focus_areas}\n\nCurrent question:\n{question}\n\nUser's original answer:\n{candidate_answer}\n\nResume evidence:\n{resume_evidence}\n\nNecessary transcript context:\n{transcript_context}"
+        )
+    }
+}
+
 fn build_interview_answer_evaluation_user_prompt(
     session: &storage::InterviewSessionDetail,
     round: &storage::InterviewRoundDetail,
@@ -3497,7 +3721,7 @@ fn build_interview_report_user_prompt(
                     json!({
                         "role": message.role,
                         "content": message.content,
-                        "metadata": message.metadata,
+                        "metadata": metadata_for_interview_report(&message.metadata),
                     })
                 }).collect::<Vec<_>>(),
             })
@@ -3523,12 +3747,46 @@ fn build_interview_report_user_prompt(
     }
 }
 
+fn metadata_for_interview_report(metadata: &Value) -> Value {
+    let mut report_metadata = metadata.as_object().cloned().unwrap_or_default();
+    report_metadata.remove("suggestedAnswer");
+    Value::Object(report_metadata)
+}
+
 fn clean_string_list(values: Vec<String>) -> Vec<String> {
     values
         .into_iter()
         .map(|value| value.trim().to_string())
         .filter(|value| !value.is_empty())
         .collect()
+}
+
+fn parse_interview_suggested_answer(
+    value: Value,
+) -> Result<InterviewSuggestedAnswerModelOutput, String> {
+    let mut parsed: InterviewSuggestedAnswerModelOutput = serde_json::from_value(value)
+        .map_err(|error| format!("failed to parse interview suggested answer JSON: {error}"))?;
+    parsed.outline = clean_string_list(parsed.outline);
+    parsed.key_points = clean_string_list(parsed.key_points);
+    parsed.improvements = clean_string_list(parsed.improvements);
+    parsed.reference_answer = parsed.reference_answer.trim().to_string();
+    if parsed.reference_answer.is_empty() {
+        return Err("interview suggested answer referenceAnswer must not be empty".into());
+    }
+    Ok(parsed)
+}
+
+fn parse_cached_interview_suggested_answer(metadata: &Value) -> Option<InterviewSuggestedAnswer> {
+    let mut cached: InterviewSuggestedAnswer =
+        serde_json::from_value(metadata.get("suggestedAnswer")?.clone()).ok()?;
+    cached.outline = clean_string_list(cached.outline);
+    cached.key_points = clean_string_list(cached.key_points);
+    cached.improvements = clean_string_list(cached.improvements);
+    cached.reference_answer = cached.reference_answer.trim().to_string();
+    if cached.reference_answer.is_empty() {
+        return None;
+    }
+    Some(cached)
 }
 
 fn normalize_priority_or_severity(value: &str) -> String {
@@ -4794,15 +5052,112 @@ fn map_parsed_to_sections(parsed: &Value, locale: &str) -> Vec<ParsedResumeSecti
 #[cfg(test)]
 mod tests {
     use super::{
-        deep_merge_json, extract_openai_delta_text, extract_openai_tool_call_deltas,
-        extract_sse_data_payload, extract_url_candidate, extract_urls, finalize_tool_calls,
-        handle_anthropic_sse_event, merge_tool_call_delta, push_conversation_messages,
-        replace_first_text_in_json, should_search_web, trim_url_token,
-        AnthropicStreamingState, DesktopAiConversationMessage, DesktopAiConversationRole,
-        SseEventBuffer, StreamingToolCall,
+        build_interview_suggested_answer_system_prompt,
+        build_interview_suggested_answer_user_prompt, deep_merge_json, extract_openai_delta_text,
+        extract_openai_tool_call_deltas, extract_sse_data_payload, extract_url_candidate,
+        extract_urls, finalize_tool_calls, handle_anthropic_sse_event, merge_tool_call_delta,
+        metadata_for_interview_report, parse_cached_interview_suggested_answer,
+        parse_interview_suggested_answer, push_conversation_messages, replace_first_text_in_json,
+        should_search_web, trim_url_token, AnthropicStreamingState, DesktopAiConversationMessage,
+        DesktopAiConversationRole, SseEventBuffer, StreamingToolCall,
     };
     use serde_json::json;
     use std::collections::BTreeMap;
+
+    #[test]
+    fn parses_and_sanitizes_interview_suggested_answer() {
+        let parsed = parse_interview_suggested_answer(json!({
+            "outline": ["  Clarify the situation  ", "", "Explain the action"],
+            "keyPoints": ["  Use resume evidence  "],
+            "improvements": ["  Add a measurable result  "],
+            "referenceAnswer": "  I would first explain the context.  "
+        }))
+        .expect("suggested answer should parse");
+
+        assert_eq!(
+            parsed.outline,
+            vec!["Clarify the situation", "Explain the action"]
+        );
+        assert_eq!(parsed.key_points, vec!["Use resume evidence"]);
+        assert_eq!(parsed.improvements, vec!["Add a measurable result"]);
+        assert_eq!(
+            parsed.reference_answer,
+            "I would first explain the context."
+        );
+    }
+
+    #[test]
+    fn rejects_interview_suggested_answer_without_reference_answer() {
+        let error = parse_interview_suggested_answer(json!({
+            "outline": [],
+            "keyPoints": [],
+            "improvements": [],
+            "referenceAnswer": "   "
+        }))
+        .expect_err("blank reference answer must be rejected");
+
+        assert!(error.contains("referenceAnswer"));
+    }
+
+    #[test]
+    fn suggested_answer_prompts_bind_candidate_evidence_and_forbid_invention() {
+        let system_prompt = build_interview_suggested_answer_system_prompt("en");
+        let user_prompt = build_interview_suggested_answer_user_prompt(
+            "How did you improve service reliability?",
+            "I added monitoring and fixed recurring incidents.",
+            "Senior Backend Engineer",
+            "Own production reliability and observability.",
+            Some("Resume evidence: reduced incident response time by 30%."),
+            "Technical interviewer",
+            "technical",
+            "reliability, observability",
+            "interviewer: Tell me about an outage.\ncandidate: I investigated the logs.",
+            "en",
+        );
+
+        assert!(system_prompt.contains("Never invent"));
+        assert!(system_prompt.contains("[add a concrete metric]"));
+        assert!(user_prompt.contains("How did you improve service reliability?"));
+        assert!(user_prompt.contains("I added monitoring and fixed recurring incidents."));
+        assert!(user_prompt.contains("Own production reliability and observability."));
+        assert!(user_prompt.contains("reduced incident response time by 30%"));
+    }
+
+    #[test]
+    fn reads_persisted_interview_suggested_answer_from_metadata() {
+        let cached = parse_cached_interview_suggested_answer(&json!({
+            "marked": true,
+            "suggestedAnswer": {
+                "outline": ["State the context"],
+                "keyPoints": ["Use the 30% result"],
+                "improvements": ["Clarify personal ownership"],
+                "referenceAnswer": "I improved the service by adding monitoring.",
+                "generatedAtEpochMs": 1234
+            }
+        }))
+        .expect("persisted result should be reusable");
+
+        assert_eq!(cached.generated_at_epoch_ms, 1234);
+        assert_eq!(
+            cached.reference_answer,
+            "I improved the service by adding monitoring."
+        );
+    }
+
+    #[test]
+    fn interview_report_metadata_excludes_suggested_answer() {
+        let filtered = metadata_for_interview_report(&json!({
+            "marked": true,
+            "answerEvaluation": { "overallScore": 80 },
+            "suggestedAnswer": {
+                "referenceAnswer": "This coaching artifact must not affect scoring."
+            }
+        }));
+
+        assert_eq!(filtered.get("marked"), Some(&json!(true)));
+        assert!(filtered.get("answerEvaluation").is_some());
+        assert!(filtered.get("suggestedAnswer").is_none());
+    }
 
     #[test]
     fn sse_buffer_handles_split_boundaries() {

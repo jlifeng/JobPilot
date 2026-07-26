@@ -902,7 +902,7 @@ mod tests {
 
     /// 在内存中构建一个 zip 包，返回完整字节。`entries` 为 (filename, content) 列表。
     fn build_test_zip(entries: &[(&str, &str)]) -> Vec<u8> {
-        use std::io::{Seek, Write};
+        use std::io::Write;
         let mut buffer: Vec<u8> = Vec::new();
         {
             let mut writer = zip::ZipWriter::new(std::io::Cursor::new(&mut buffer));
@@ -980,6 +980,24 @@ mod tests {
         let references = collect_reference_entries(&mut archive).expect("collect failed");
         assert!(references.is_empty());
     }
+
+    #[test]
+    fn builtin_interview_suggested_answer_declares_grounded_json_contract() {
+        let skill = build_builtin_interview_suggested_answer_skill()
+            .expect("builtin suggested answer skill should build");
+        let capability = skill.capabilities.as_array().unwrap().first().unwrap();
+
+        assert_eq!(
+            capability
+                .pointer("/matchOn/scenarios/0")
+                .and_then(Value::as_str),
+            Some("interview-suggested-answer")
+        );
+        let prompt = capability.get("prompt").and_then(Value::as_str).unwrap();
+        assert!(prompt.contains("referenceAnswer"));
+        assert!(prompt.contains("不要虚构"));
+        assert!(prompt.contains("[补充具体指标]"));
+    }
 }
 
 // =====================================================
@@ -1013,6 +1031,7 @@ const BUILTIN_GRAMMAR_CHECK_VERSION: &str = "1.1.0";
 const BUILTIN_JD_ANALYSIS_VERSION: &str = "1.1.0";
 const BUILTIN_GENERATE_RESUME_VERSION: &str = "1.1.0";
 const BUILTIN_INTERVIEW_EVALUATION_VERSION: &str = "1.1.0";
+const BUILTIN_INTERVIEW_SUGGESTED_ANSWER_VERSION: &str = "1.0.0";
 const BUILTIN_INTERVIEW_REPORT_VERSION: &str = "1.1.0";
 
 pub fn bootstrap_builtin_skills(app: &AppHandle) -> Result<(), String> {
@@ -1079,6 +1098,14 @@ pub fn bootstrap_builtin_skills(app: &AppHandle) -> Result<(), String> {
         != Some(BUILTIN_INTERVIEW_EVALUATION_VERSION)
     {
         save_skill(app.clone(), build_builtin_interview_evaluation_skill()?)?;
+    }
+    if read_skill_version(app, "builtin-interview-suggested-answer")?.as_deref()
+        != Some(BUILTIN_INTERVIEW_SUGGESTED_ANSWER_VERSION)
+    {
+        save_skill(
+            app.clone(),
+            build_builtin_interview_suggested_answer_skill()?,
+        )?;
     }
     if read_skill_version(app, "builtin-interview-report")?.as_deref()
         != Some(BUILTIN_INTERVIEW_REPORT_VERSION)
@@ -1433,6 +1460,39 @@ fn build_builtin_interview_evaluation_skill() -> Result<Skill, String> {
     })
 }
 
+fn build_builtin_interview_suggested_answer_skill() -> Result<Skill, String> {
+    let capability = serde_json::json!([{
+        "id": "default",
+        "name": "面试参考回答",
+        "description": "在候选人作答后生成有事实依据的结构化训练参考。",
+        "matchOn": {
+            "scenarios": ["interview-suggested-answer"],
+            "categories": ["interview", "coaching"]
+        },
+        "prompt": BUILTIN_INTERVIEW_SUGGESTED_ANSWER_PROMPT,
+        "outputFormat": "json",
+        "requiresTools": []
+    }]);
+
+    Ok(Skill {
+        id: "builtin-interview-suggested-answer".into(),
+        name: "面试参考回答".into(),
+        description: "JobPilot 内置面试参考回答教练。".into(),
+        version: BUILTIN_INTERVIEW_SUGGESTED_ANSWER_VERSION.into(),
+        author: Some("JobPilot".into()),
+        source: "builtin".into(),
+        icon: Some("message-square-text".into()),
+        tags: serde_json::json!(["interview", "coaching", "builtin"]),
+        capabilities: capability,
+        references: serde_json::json!([]),
+        required_context: serde_json::json!([]),
+        variables: serde_json::json!([]),
+        enabled: true,
+        created_at_epoch_ms: now_epoch_ms()? as i64,
+        updated_at_epoch_ms: now_epoch_ms()? as i64,
+    })
+}
+
 /// `builtin-interview-report`：scenarioId="interview-report"。
 /// prompt 来自 `ai.rs:build_interview_report_system_prompt` 的中文版返回字符串，
 /// 并附上原 user prompt 中的 JSON 输出格式约束块（自定义 prompt 必须保留，否则解析失败）。
@@ -1632,6 +1692,19 @@ const BUILTIN_INTERVIEW_EVALUATION_PROMPT: &str = "\
 - `riskPoints` 指出面试官可能质疑的点。
 - `followUpQuestion` 必须基于这次回答的缺口，不要泛泛而谈。
 - 只基于给定内容判断。";
+
+const BUILTIN_INTERVIEW_SUGGESTED_ANSWER_PROMPT: &str = "\
+你是一位严谨的面试回答教练。请在候选人已经作答后提供可调整的训练参考，而不是标准答案。
+只使用请求中提供的岗位 JD、简历、原回答和面试上下文事实。不要虚构公司、项目、职责、指标、结果、技术或其他经历；证据不足时保留 [补充具体指标]、[补充你的具体职责] 等明确占位符。
+按照用户请求的语言输出，只输出合法 JSON，不要附加 Markdown 或解释。
+
+JSON 字段且仅字段如下：
+{
+  \"outline\": [<3-5 个可调整的回答步骤>],
+  \"keyPoints\": [<应该覆盖的关键证据或概念>],
+  \"improvements\": [<相对原回答的具体改进点>],
+  \"referenceAnswer\": <第一人称完整参考回答>
+}";
 
 // interview-report 的 builtin prompt：角色设定（中文版）+ JSON 输出格式约束块。
 // 角色设定来自 ai.rs:build_interview_report_system_prompt 的 zh 分支返回字符串；

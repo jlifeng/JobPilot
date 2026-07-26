@@ -391,6 +391,15 @@ async fn generate_interview_report(
 }
 
 #[tauri::command]
+async fn generate_interview_suggested_answer(
+    app: tauri::AppHandle,
+    input: ai::GenerateInterviewSuggestedAnswerInput,
+) -> Result<ai::InterviewSuggestedAnswer, String> {
+    let workspace_root = resolve_workspace_root(&app)?;
+    ai::generate_interview_suggested_answer(&app, &workspace_root, input).await
+}
+
+#[tauri::command]
 fn start_interview_turn_stream(
     app: tauri::AppHandle,
     input: ai::StartInterviewTurnStreamInput,
@@ -623,6 +632,7 @@ pub fn run() {
             update_interview_message_metadata,
             get_interview_report,
             generate_interview_report,
+            generate_interview_suggested_answer,
             start_interview_turn_stream,
             fetch_ai_models,
             test_ai_connectivity,

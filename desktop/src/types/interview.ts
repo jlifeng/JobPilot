@@ -50,6 +50,14 @@ export interface InterviewAnswerEvaluation {
   trainingSuggestions: string[];
 }
 
+export interface InterviewSuggestedAnswer {
+  outline: string[];
+  keyPoints: string[];
+  improvements: string[];
+  referenceAnswer: string;
+  generatedAtEpochMs: number;
+}
+
 export interface InterviewMessageMetadata {
   marked?: boolean;
   hinted?: boolean;
@@ -57,6 +65,7 @@ export interface InterviewMessageMetadata {
   turnKind?: InterviewTurnKind;
   answerEvaluation?: InterviewAnswerEvaluation;
   answerEvaluationError?: string;
+  suggestedAnswer?: InterviewSuggestedAnswer;
 }
 
 export interface InterviewMessage {
@@ -186,6 +195,16 @@ export interface GenerateInterviewReportInput {
    * default builder is used (backward compatible). Custom prompts must
    * preserve the JSON output format constraint expected by the parser.
    */
+  systemPrompt?: string;
+}
+
+export interface GenerateInterviewSuggestedAnswerInput {
+  sessionId: string;
+  messageId: string;
+  locale: "zh" | "en";
+  provider?: string;
+  model?: string;
+  baseUrl?: string;
   systemPrompt?: string;
 }
 

@@ -86,6 +86,15 @@ export const AI_SCENARIOS: AIScenario[] = [
     defaultSystemPrompt: "",
   },
   {
+    id: "interview-suggested-answer",
+    name: "Interview Suggested Answer",
+    description: "Generate a grounded coaching structure and reference answer after an attempt.",
+    providesContext: ["resume", "jd", "interview_answer", "interview_transcript"],
+    availableTools: [],
+    expectedOutput: "json",
+    defaultSystemPrompt: "",
+  },
+  {
     id: "interview-report",
     name: "Interview Report",
     description: "Aggregate an interview transcript into a structured report.",

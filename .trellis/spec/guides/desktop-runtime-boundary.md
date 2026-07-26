@@ -444,6 +444,110 @@ Rules:
    The system prompt (`buildResumeEditSystemPrompt`) must route the model to the correct tool by field shape and forbid `replaceResumeText` for empty fields and JSON source fragments. This rule supersedes the earlier "edits must use `replaceResumeText` only" contract, which caused the structured-field retry loop.
 10. Future providers extend by adding dispatcher branches behind the same command + event contract; the renderer event model must stay stable.
 
+## Interview Suggested Answer Contract
+
+### 1. Scope / Trigger
+
+- Trigger: a candidate message already has a completed `answerEvaluation` and the user explicitly requests a coaching example.
+- Scope: one on-demand, structured result per candidate message. The operation is separate from the interview turn stream and report scoring.
+
+### 2. Signatures
+
+- Rust command: `generate_interview_suggested_answer`
+- Renderer wrapper: `generateInterviewSuggestedAnswer(input)` in `desktop/src/lib/desktop-api.ts`
+- Persistence target: `interview_messages.metadata_json.suggestedAnswer`
+
+Input:
+
+```json
+{
+  "sessionId": "session-1",
+  "messageId": "candidate-message-1",
+  "locale": "zh",
+  "provider": null,
+  "model": null,
+  "baseUrl": null,
+  "systemPrompt": null
+}
+```
+
+Response and persisted metadata value:
+
+```json
+{
+  "outline": ["State the situation", "Explain the action", "Close with the result"],
+  "keyPoints": ["Use evidence from the linked resume"],
+  "improvements": ["Clarify personal ownership"],
+  "referenceAnswer": "I first ...",
+  "generatedAtEpochMs": 1710000000000
+}
+```
+
+### 3. Contracts
+
+1. The message must belong to the supplied session, have role `candidate`, and contain an object-valued `answerEvaluation`.
+2. The prompt may use only the preceding interviewer question, original answer, JD, linked-resume evidence, interviewer focus, and a bounded transcript window. Missing evidence uses explicit placeholders rather than invented experience.
+3. A valid cached `metadata.suggestedAnswer` is returned before provider resolution or a model call. A successful result is immutable in this contract.
+4. The command merges the result into message metadata without inserting an interview message or changing round/session progress.
+5. Interview report prompt assembly must remove `suggestedAnswer` from message metadata so coaching text cannot affect scoring.
+6. Renderer loading, error, and expansion state is keyed by candidate message id. Successful command output is merged into the current renderer session with a functional state update; generation must not use the room's global error or refresh state.
+7. The optional Skill scenario id is `interview-suggested-answer`. Missing, malformed, disabled, or unavailable default selection falls back to the Rust prompt.
+
+### 4. Validation & Error Matrix
+
+| Condition | Command behavior | UI behavior |
+|---|---|---|
+| Blank session or message id | Reject before storage access | Show localized inline retry state on that answer card |
+| Message is absent from session | Reject without model call | Keep interview input and other cards usable |
+| Message is not a candidate answer | Reject without model call | Show localized inline retry state |
+| `answerEvaluation` is missing or malformed | Reject without model call | Do not normally render the entry point |
+| Cached result is valid | Return cached result without provider resolution | Expand the persisted result; do not offer regeneration |
+| Provider/model request fails | Do not persist partial metadata | Show retry only on the originating card |
+| Parsed `referenceAnswer` is blank | Reject and do not persist | Show retry only on the originating card |
+| Skill default is absent/disabled/unavailable | Use Rust built-in prompt | Generation remains available |
+
+### 5. Good / Base / Bad Cases
+
+- Good: the user answers, receives evaluation, requests a reference answer, keeps interviewing while it runs, and can reopen the persisted four-part result later.
+- Base: no Skill default or linked resume exists; Rust uses the built-in grounded prompt and explicit placeholders for missing candidate facts.
+- Bad: calling `start_interview_turn_stream` for coaching inserts transcript messages, advances question counters, or changes round status.
+- Bad: refreshing the whole room after generation writes to global loading/error state and can overwrite concurrent interview UI state.
+
+### 6. Tests Required
+
+- Rust parsing: trim list/reference fields and reject a blank `referenceAnswer`.
+- Rust grounding: assert the prompt includes question, original answer, JD, resume evidence, anti-invention language, and an explicit missing-evidence placeholder.
+- Rust cache/report isolation: assert valid metadata is reusable and report metadata excludes `suggestedAnswer`.
+- Rust Skill bootstrap: assert the built-in capability matches `interview-suggested-answer` and declares the grounded JSON contract.
+- Renderer normalization: accept a valid persisted result and drop missing/malformed values.
+- Static/build gates: Tauri command registration, permission allowlist, typed wrapper, i18n parity, `pnpm build:desktop-shell`, and `cargo check`.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```ts
+await startInterviewTurnStream({ kind: "question", prompt: "Generate a better answer" });
+await refreshSession(); // also mutates room-global loading/error state
+```
+
+#### Correct
+
+```ts
+const result = await generateInterviewSuggestedAnswer({ sessionId, messageId, locale });
+setSession((current) => current ? {
+  ...current,
+  rounds: current.rounds.map((round) => ({
+    ...round,
+    messages: round.messages.map((message) => message.id === messageId
+      ? { ...message, metadata: { ...message.metadata, suggestedAnswer: result } }
+      : message),
+  })),
+} : current);
+```
+
+The dedicated command has no interview-state-machine side effects, and the renderer update stays scoped to the originating message.
+
 ## AI Provider Discovery And Resume Import Settings Contract
 
 Rust commands:

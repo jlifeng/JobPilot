@@ -7,6 +7,7 @@ import {
   BadgeHelp,
   BarChart3,
   CheckCircle2,
+  ChevronDown,
   ChevronRight,
   Lightbulb,
   Loader2,
@@ -25,6 +26,7 @@ import {
   buildInterviewRestartDraft,
   deleteInterviewSession,
   generateInterviewReport,
+  generateInterviewSuggestedAnswer,
   getInterviewSession,
   listenToAiStreamEvents,
   saveInterviewRestartDraft,
@@ -39,7 +41,6 @@ import {
 import { SkillRuntime } from "../../lib/skill-runtime";
 import { useSkillStore } from "../../stores/skill-store";
 import type {
-  InterviewAnswerEvaluation,
   InterviewMessage,
   InterviewSessionDetail,
   InterviewTurnKind,
@@ -81,11 +82,29 @@ function getScoreTone(score: number): string {
 }
 
 interface AnswerEvaluationCardProps {
-  evaluation: InterviewAnswerEvaluation;
+  message: InterviewMessage;
+  isGenerating: boolean;
+  generationError?: string;
+  isExpanded: boolean;
+  onGenerate: () => void;
+  onExpandedChange: (expanded: boolean) => void;
 }
 
-function AnswerEvaluationCard({ evaluation }: AnswerEvaluationCardProps) {
+function AnswerEvaluationCard({
+  message,
+  isGenerating,
+  generationError,
+  isExpanded,
+  onGenerate,
+  onExpandedChange,
+}: AnswerEvaluationCardProps) {
   const { t } = useTranslation();
+  const evaluation = message.metadata.answerEvaluation;
+  const suggestedAnswer = message.metadata.suggestedAnswer;
+
+  if (!evaluation) {
+    return null;
+  }
 
   return (
     <div className="mt-3 max-w-[85%] rounded-2xl border border-zinc-200 bg-white px-4 py-4 text-left text-sm shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
@@ -165,6 +184,93 @@ function AnswerEvaluationCard({ evaluation }: AnswerEvaluationCardProps) {
           </ul>
         </div>
       ) : null}
+
+      <div className="mt-4 border-t border-zinc-200 pt-4 dark:border-zinc-800">
+        {suggestedAnswer ? (
+          <details
+            open={isExpanded}
+            onToggle={(event) => onExpandedChange(event.currentTarget.open)}
+          >
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 font-medium text-zinc-900 dark:text-zinc-100">
+              <span className="inline-flex items-center gap-2">
+                <MessageSquareText className="h-4 w-4" />
+                {t("interview.practice.suggestedAnswerTitle")}
+              </span>
+              <ChevronDown className={`h-4 w-4 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+            </summary>
+            <p className="mt-2 text-xs leading-5 text-zinc-500 dark:text-zinc-400">
+              {t("interview.practice.suggestedAnswerHint")}
+            </p>
+            <div className="mt-4 space-y-4">
+              <section>
+                <h4 className="font-medium text-zinc-900 dark:text-zinc-100">
+                  {t("interview.practice.suggestedAnswerOutline")}
+                </h4>
+                <ol className="mt-2 list-decimal space-y-1 pl-5 text-zinc-600 dark:text-zinc-300">
+                  {suggestedAnswer.outline.map((item, index) => (
+                    <li key={`outline-${index}`}>{item}</li>
+                  ))}
+                </ol>
+              </section>
+              <section>
+                <h4 className="font-medium text-zinc-900 dark:text-zinc-100">
+                  {t("interview.practice.suggestedAnswerKeyPoints")}
+                </h4>
+                <ul className="mt-2 list-disc space-y-1 pl-5 text-zinc-600 dark:text-zinc-300">
+                  {suggestedAnswer.keyPoints.map((item, index) => (
+                    <li key={`key-point-${index}`}>{item}</li>
+                  ))}
+                </ul>
+              </section>
+              <section>
+                <h4 className="font-medium text-zinc-900 dark:text-zinc-100">
+                  {t("interview.practice.suggestedAnswerImprovements")}
+                </h4>
+                <ul className="mt-2 list-disc space-y-1 pl-5 text-zinc-600 dark:text-zinc-300">
+                  {suggestedAnswer.improvements.map((item, index) => (
+                    <li key={`improvement-${index}`}>{item}</li>
+                  ))}
+                </ul>
+              </section>
+              <section>
+                <h4 className="font-medium text-zinc-900 dark:text-zinc-100">
+                  {t("interview.practice.suggestedAnswerReference")}
+                </h4>
+                <p className="mt-2 whitespace-pre-wrap leading-6 text-zinc-700 dark:text-zinc-200">
+                  {suggestedAnswer.referenceAnswer}
+                </p>
+              </section>
+            </div>
+          </details>
+        ) : (
+          <div className="space-y-3">
+            {generationError ? (
+              <div className="inline-flex items-start gap-2 text-sm text-red-700 dark:text-red-300">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>{generationError}</span>
+              </div>
+            ) : null}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={onGenerate}
+              disabled={isGenerating}
+            >
+              {isGenerating ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Sparkles className="h-4 w-4" />
+              )}
+              {isGenerating
+                ? t("interview.practice.suggestedAnswerGenerating")
+                : generationError
+                  ? t("interview.practice.suggestedAnswerRetry")
+                  : t("interview.practice.suggestedAnswerGenerate")}
+            </Button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -200,6 +306,12 @@ export function InterviewRoom({
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [autoStartedRoundId, setAutoStartedRoundId] = useState<string | null>(null);
+  const [suggestedAnswerStates, setSuggestedAnswerStates] = useState<
+    Record<string, { isGenerating: boolean; error?: string }>
+  >({});
+  const [expandedSuggestedAnswerIds, setExpandedSuggestedAnswerIds] = useState<Set<string>>(
+    () => new Set(),
+  );
 
   // Detect whether the session was created with a Skill persona, and if so,
   // verify the Skill is still available. Disabled or deleted Skills block
@@ -395,6 +507,79 @@ export function InterviewRoom({
       );
     },
     [],
+  );
+
+  const buildSuggestedAnswerSystemPrompt = useCallback((): string | undefined => {
+    const selection = useSkillStore.getState().defaultSelections["interview-suggested-answer"];
+    if (!selection) {
+      return undefined;
+    }
+    const separatorIndex = selection.indexOf(":");
+    if (separatorIndex <= 0) {
+      return undefined;
+    }
+    const skillId = selection.slice(0, separatorIndex);
+    const capabilityId = selection.slice(separatorIndex + 1);
+    const runtime = new SkillRuntime(useSkillStore.getState().skills);
+    const lookup = runtime.getCapability(skillId, capabilityId);
+    if (!lookup || !lookup.skill.enabled) {
+      return undefined;
+    }
+    return runtime.buildSystemPrompt(
+      "interview-suggested-answer",
+      lookup.capability,
+      lookup.skill,
+      { variables: useSkillStore.getState().variableValues[skillId] ?? {} },
+    );
+  }, []);
+
+  const handleGenerateSuggestedAnswer = useCallback(
+    async (messageId: string) => {
+      setSuggestedAnswerStates((current) => ({
+        ...current,
+        [messageId]: { isGenerating: true },
+      }));
+      try {
+        const suggestedAnswer = await generateInterviewSuggestedAnswer({
+          sessionId,
+          messageId,
+          locale,
+          systemPrompt: buildSuggestedAnswerSystemPrompt(),
+        });
+        setSession((current) => current ? {
+          ...current,
+          rounds: current.rounds.map((round) => ({
+            ...round,
+            messages: round.messages.map((message) => message.id === messageId ? {
+              ...message,
+              metadata: {
+                ...message.metadata,
+                suggestedAnswer,
+              },
+            } : message),
+          })),
+        } : current);
+        setExpandedSuggestedAnswerIds((current) => {
+          const next = new Set(current);
+          next.add(messageId);
+          return next;
+        });
+        setSuggestedAnswerStates((current) => ({
+          ...current,
+          [messageId]: { isGenerating: false },
+        }));
+      } catch (caughtError) {
+        console.error("Failed to generate interview suggested answer", caughtError);
+        setSuggestedAnswerStates((current) => ({
+          ...current,
+          [messageId]: {
+            isGenerating: false,
+            error: t("interview.practice.suggestedAnswerError"),
+          },
+        }));
+      }
+    },
+    [buildSuggestedAnswerSystemPrompt, locale, sessionId, t],
   );
 
   const runTurn = useCallback(
@@ -786,7 +971,24 @@ export function InterviewRoom({
                         </div>
                       </div>
                       {isCandidate && message.metadata.answerEvaluation ? (
-                        <AnswerEvaluationCard evaluation={message.metadata.answerEvaluation} />
+                        <AnswerEvaluationCard
+                          message={message}
+                          isGenerating={suggestedAnswerStates[message.id]?.isGenerating ?? false}
+                          generationError={suggestedAnswerStates[message.id]?.error}
+                          isExpanded={expandedSuggestedAnswerIds.has(message.id)}
+                          onGenerate={() => void handleGenerateSuggestedAnswer(message.id)}
+                          onExpandedChange={(expanded) => {
+                            setExpandedSuggestedAnswerIds((current) => {
+                              const next = new Set(current);
+                              if (expanded) {
+                                next.add(message.id);
+                              } else {
+                                next.delete(message.id);
+                              }
+                              return next;
+                            });
+                          }}
+                        />
                       ) : null}
                       {isCandidate && message.metadata.answerEvaluationError ? (
                         <AnswerEvaluationErrorCard />

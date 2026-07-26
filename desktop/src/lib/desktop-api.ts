@@ -4,6 +4,7 @@ import { relaunch } from "@tauri-apps/plugin-process";
 import type {
   CreateInterviewSessionInput,
   GenerateInterviewReportInput,
+  GenerateInterviewSuggestedAnswerInput,
   InterviewAnswerEvaluation,
   InterviewAnswerEvaluationDimension,
   InterviewerConfig,
@@ -12,6 +13,7 @@ import type {
   InterviewReport,
   InterviewSession,
   InterviewSessionDetail,
+  InterviewSuggestedAnswer,
   InterviewRound,
   InterviewTrainingPlanItem,
   StartInterviewTurnStreamInput,
@@ -1661,7 +1663,28 @@ function normalizeTrainingPlanItem(value: unknown): InterviewTrainingPlanItem | 
   };
 }
 
-function normalizeInterviewMessageMetadata(value: unknown): InterviewMessageMetadata {
+function normalizeInterviewSuggestedAnswer(value: unknown): InterviewSuggestedAnswer | undefined {
+  const record = asRecord(value);
+  if (!record) {
+    return undefined;
+  }
+
+  const referenceAnswer =
+    typeof record.referenceAnswer === "string" ? record.referenceAnswer.trim() : "";
+  if (!referenceAnswer || typeof record.generatedAtEpochMs !== "number") {
+    return undefined;
+  }
+
+  return {
+    outline: normalizeStringList(record.outline),
+    keyPoints: normalizeStringList(record.keyPoints),
+    improvements: normalizeStringList(record.improvements),
+    referenceAnswer,
+    generatedAtEpochMs: record.generatedAtEpochMs,
+  };
+}
+
+export function normalizeInterviewMessageMetadata(value: unknown): InterviewMessageMetadata {
   const record = asRecord(value) ?? {};
   const turnKind = record.turnKind;
 
@@ -1682,6 +1705,7 @@ function normalizeInterviewMessageMetadata(value: unknown): InterviewMessageMeta
       typeof record.answerEvaluationError === "string"
         ? record.answerEvaluationError
         : undefined,
+    suggestedAnswer: normalizeInterviewSuggestedAnswer(record.suggestedAnswer),
   };
 }
 
@@ -2242,6 +2266,14 @@ export async function generateInterviewReport(
     input,
   });
   return normalizeInterviewReport(report);
+}
+
+export async function generateInterviewSuggestedAnswer(
+  input: GenerateInterviewSuggestedAnswerInput,
+): Promise<InterviewSuggestedAnswer> {
+  return invoke<InterviewSuggestedAnswer>("generate_interview_suggested_answer", {
+    input,
+  });
 }
 
 export async function startInterviewTurnStream(
