@@ -382,3 +382,37 @@ Skill 人设模式下将下拉 SkillSelector 替换为卡片列表（grid 2列�
 ### Next Steps
 
 - None - task complete
+
+
+## Session 12: Implement interview suggested answers
+
+**Date**: 2026-07-26
+**Task**: Implement interview suggested answers
+**Branch**: `main`
+
+### Summary
+
+Added grounded on-demand interview reference answers with persisted metadata, Skill integration, per-message UI states, tests, runtime contract documentation, and v1.7.0 release preparation.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `014166d` | (see git log) |
+| `abf02e8` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
