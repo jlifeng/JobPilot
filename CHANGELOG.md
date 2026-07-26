@@ -5,6 +5,22 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 并且本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.7.0] - 2026-07-26
+
+### 新增
+
+- **模拟面试参考回答** — 用户完成回答并获得评价后，可按需生成结合当前问题、岗位 JD、关联简历和面试上下文的训练参考
+  - 输出回答思路、关键要点、相对原回答的改进点和完整参考回答
+  - 每条回答只保存一份成功结果，历史面试可再次查看；失败可在对应评价卡内重试
+  - 生成过程按消息隔离，不阻塞继续面试，也不会推进题目或改变评分
+  - 新增 `interview-suggested-answer` Skill 场景和内置 Skill，支持现有默认 Skill 选择机制
+  - 严格限制事实来源，信息不足时使用明确占位提示，避免虚构候选人经历
+
+### 优化
+
+- 面试报告生成会排除参考回答元数据，确保训练示例不参与评分和复盘计算
+- 参考回答加载、错误和展开状态与面试房间全局状态隔离
+
 ## [1.6.1] - 2026-07-19
 
 ### 修复
@@ -329,7 +345,8 @@
 - 中英双语 — 完整的国际化支持
 - 本地优先 — 数据存储在本地，隐私安全有保障
 
-[Unreleased]: https://github.com/jlifeng/JobPilot/compare/v1.6.0...HEAD
+[Unreleased]: https://github.com/jlifeng/JobPilot/compare/v1.7.0...HEAD
+[1.7.0]: https://github.com/jlifeng/JobPilot/compare/v1.6.1...v1.7.0
 [1.6.1]: https://github.com/jlifeng/JobPilot/compare/v1.6.0...v1.6.1
 [1.6.0]: https://github.com/jlifeng/JobPilot/compare/v1.5.3...v1.6.0
 [1.5.3]: https://github.com/jlifeng/JobPilot/compare/v1.5.2...v1.5.3
