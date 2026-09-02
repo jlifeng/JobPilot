@@ -416,3 +416,36 @@ Added grounded on-demand interview reference answers with persisted metadata, Sk
 ### Next Steps
 
 - None - task complete
+
+
+## Session 13: Release OrcaRouter provider support
+
+**Date**: 2026-09-02
+**Task**: Release OrcaRouter provider support
+**Branch**: `main`
+
+### Summary
+
+Added OrcaRouter as a first-class desktop AI provider, documented free model onboarding, updated provider contracts, and prepared the 1.8.0 release.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `b1f2e8a` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
