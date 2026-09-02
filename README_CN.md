@@ -54,6 +54,7 @@ JobPilot 是一款本地优先的 AI 求职桌面应用，聚焦简历编写、A
 
 ## 近期亮点
 
+- **v1.8.0** — 接入 OrcaRouter AI 服务商，支持 OpenAI 兼容聊天、模型列表获取、连接测试、本地化注册引导，以及默认免费路由模型 `orcarouter/free`。
 - **v1.6.0** — Skill 能力包系统、Skill 管理页、可导入 Skill（引用文件 / 场景指派），以及模拟面试 Skill 人设与内置人设解耦。
 - **v1.5.3** — WebDAV 侧边栏状态刷新修复、AI 聊天渲染稳定性优化，以及中文 AI 服务商文档更新。
 - **v1.5.2** — 修复 PDF 中 GitHub 链接颜色，同步设置页新增「立即同步」按钮。
@@ -132,8 +133,9 @@ JobPilot 是一款本地优先的 AI 求职桌面应用，聚焦简历编写、A
 ### 首次使用
 
 1. **配置 AI 服务商**（设置 → AI 助手）
-   - 添加 OpenAI、Anthropic 或 Google API 密钥
-   - [免费 API 密钥获取指南 →](https://github.com/jlifeng/JobPilot/wiki)
+   - 添加 OpenAI、Anthropic、Google Gemini 或 OrcaRouter API 密钥
+   - OrcaRouter 默认使用 `orcarouter/free` 免费路由，可选择 `deepseek/deepseek-v4-flash-free`、`qwen/qwen3.8-27b-free` 等国产模型；免费额度可能受供应商策略限制或耗尽
+   - [免费 API 密钥获取指南 →](./docs/free-api-key-guide.md)
 
 2. **创建第一份简历**
    - AI 从头生成

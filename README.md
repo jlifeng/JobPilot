@@ -55,6 +55,7 @@ JobPilot is a **local-first AI job-search desktop app** focused on resume writin
 
 ## 🚀 Recent Highlights
 
+- **v1.8.0** — OrcaRouter provider integration with OpenAI-compatible chat, model discovery, connectivity testing, localized registration onboarding, and the `orcarouter/free` default router, with domestic free models such as `deepseek/deepseek-v4-flash-free` and `qwen/qwen3.8-27b-free`.
 - **v1.6.0** — Skill capability pack system, Skill management page, importable Skills with references/scenario assignment, and mock interview Skill-persona mode decoupled from built-in interviewers.
 - **v1.5.3** — WebDAV sidebar status refresh fixes, AI chat rendering stability, and docs updates for Chinese AI providers.
 - **v1.5.2** — PDF GitHub link color fix and manual “Sync Now” button on the sync settings page.
@@ -133,8 +134,9 @@ Planned features for upcoming releases:
 ### First Steps
 
 1. **Configure AI Provider** (Settings → AI Assistant)
-   - Add your OpenAI, Anthropic, or Google API key
-   - [Get free API keys guide →](https://github.com/jlifeng/JobPilot/wiki)
+   - Add your OpenAI, Anthropic, Google Gemini, or OrcaRouter API key
+   - OrcaRouter uses the `orcarouter/free` router by default, with domestic models such as `deepseek/deepseek-v4-flash-free` and `qwen/qwen3.8-27b-free`; free allowances may be limited or exhausted according to provider policy
+   - [Get free API keys guide →](./docs/free-api-key-guide.md)
 
 2. **Create Your First Resume**
    - Use AI generation from scratch

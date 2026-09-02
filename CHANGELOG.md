@@ -5,6 +5,25 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 并且本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.8.0] - 2026-09-02
+
+### 新增
+
+- **OrcaRouter AI 服务商** — 接入 OrcaRouter OpenAI 兼容 API，支持模型列表获取、连接测试，以及桌面端现有的聊天、简历生成与导入、翻译、语法检查、JD 分析、求职信和模拟面试等 AI 流程
+  - 设置页新增 OrcaRouter 协议选项，默认 API 地址为 `https://api.orcarouter.ai/v1`，默认模型为 `orcarouter/free`，可选择 `deepseek/deepseek-v4-flash-free`、`qwen/qwen3.8-27b-free` 等国产免费模型
+  - OrcaRouter 使用独立的本地 API Key 配置，不影响 OpenAI 等其他服务商
+  - 选择 OrcaRouter 时显示注册引导，并提供推广注册链接
+
+### 优化
+
+- **AI 配置提示** — 选择 OrcaRouter 后仅显示 OrcaRouter 相关说明，注册链接按钮文案改为「注册账号」；其他服务商继续显示通用免费额度指引
+- **免费额度说明** — 补充 OrcaRouter 免费路由额度可能耗尽的提示；额度用尽后可等待平台恢复或重置额度（如平台提供）、切换服务商，或使用账户余额调用具体模型
+
+### 文档
+
+- 更新中英文 README，补充 OrcaRouter 配置说明和免费额度限制提示
+- 更新免费 API Key 指南，将 OrcaRouter 放在推荐平台首位
+
 ## [1.7.0] - 2026-07-26
 
 ### 新增
@@ -345,7 +364,8 @@
 - 中英双语 — 完整的国际化支持
 - 本地优先 — 数据存储在本地，隐私安全有保障
 
-[Unreleased]: https://github.com/jlifeng/JobPilot/compare/v1.7.0...HEAD
+[Unreleased]: https://github.com/jlifeng/JobPilot/compare/v1.8.0...HEAD
+[1.8.0]: https://github.com/jlifeng/JobPilot/compare/v1.7.0...v1.8.0
 [1.7.0]: https://github.com/jlifeng/JobPilot/compare/v1.6.1...v1.7.0
 [1.6.1]: https://github.com/jlifeng/JobPilot/compare/v1.6.0...v1.6.1
 [1.6.0]: https://github.com/jlifeng/JobPilot/compare/v1.5.3...v1.6.0
