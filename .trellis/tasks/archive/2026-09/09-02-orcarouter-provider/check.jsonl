@@ -1,0 +1,6 @@
+{"file":".trellis/spec/desktop/frontend/quality-guidelines.md","reason":"Defines required frontend build and lint validation."}
+{"file":".trellis/spec/desktop/frontend/type-safety.md","reason":"Verify provider unions and API boundary shapes remain aligned."}
+{"file":".trellis/spec/guides/desktop-runtime-boundary.md","reason":"Verify provider settings, secrets, discovery, connectivity, and streaming stay truthful across the Tauri boundary."}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"Check end-to-end provider data flow and backward compatibility."}
+{"file":".trellis/spec/guides/code-reuse-thinking-guide.md","reason":"Check that OpenAI-compatible behavior is reused consistently."}
+{"file":".trellis/tasks/09-02-orcarouter-provider/research/orcarouter-api.md","reason":"Validate implementation defaults and protocol behavior against official OrcaRouter documentation."}

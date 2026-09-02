@@ -1,0 +1,9 @@
+{"file":".trellis/spec/desktop/frontend/index.md","reason":"Desktop React/Vite entry point and required layer guidance."}
+{"file":".trellis/spec/desktop/frontend/component-guidelines.md","reason":"Settings UI composition, i18n, accessibility, and desktop-specific component conventions."}
+{"file":".trellis/spec/desktop/frontend/hook-guidelines.md","reason":"Requires desktop backend calls to flow through typed desktop-api wrappers."}
+{"file":".trellis/spec/desktop/frontend/quality-guidelines.md","reason":"Desktop lint/build gates and forbidden patterns."}
+{"file":".trellis/spec/desktop/frontend/type-safety.md","reason":"Rust/TypeScript boundary types and strict TypeScript requirements."}
+{"file":".trellis/spec/guides/desktop-runtime-boundary.md","reason":"Provider settings, secrets, model discovery, connectivity, and streaming boundary contract."}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"The provider identity flows through UI, TypeScript wrappers, Rust settings, and runtime dispatch."}
+{"file":".trellis/spec/guides/code-reuse-thinking-guide.md","reason":"OrcaRouter must reuse the existing OpenAI-compatible transport instead of duplicating it."}
+{"file":".trellis/tasks/09-02-orcarouter-provider/research/orcarouter-api.md","reason":"Official OrcaRouter endpoint, authentication, models, free router, and referral research."}
