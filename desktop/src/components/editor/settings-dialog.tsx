@@ -60,7 +60,39 @@ const AI_PROVIDERS: { value: AiProvider; label: string }[] = [
   { value: "openai", label: "OpenAI" },
   { value: "anthropic", label: "Anthropic" },
   { value: "gemini", label: "Google Gemini" },
+  { value: "orcarouter", label: "OrcaRouter" },
 ];
+
+const AI_PROVIDER_DEFAULTS: Record<AiProvider, { baseUrl: string; model: string }> = {
+  openai: { baseUrl: "https://api.openai.com/v1", model: "gpt-4o" },
+  anthropic: {
+    baseUrl: "https://api.anthropic.com",
+    model: "claude-sonnet-4-20250514",
+  },
+  gemini: {
+    baseUrl: "https://generativelanguage.googleapis.com/v1beta",
+    model: "gemini-2.0-flash",
+  },
+  orcarouter: {
+    baseUrl: "https://api.orcarouter.ai/v1",
+    model: "orcarouter/free",
+  },
+};
+
+function isAiProvider(value: string): value is AiProvider {
+  return AI_PROVIDERS.some(({ value: provider }) => provider === value);
+}
+
+function normalizeAiProvider(value: unknown): AiProvider {
+  const normalized = typeof value === "string" ? value.trim().toLowerCase() : "";
+  if (normalized === "orca-router" || normalized === "orca_router") {
+    return "orcarouter";
+  }
+  if (isAiProvider(normalized)) {
+    return normalized;
+  }
+  return "openai";
+}
 
 type SettingsContentMode = "tabs" | "ai-only" | "settings" | "sync-only";
 
@@ -156,11 +188,12 @@ export function SettingsContent({
   // Load AI settings
   const loadAiSettings = useCallback(async () => {
     const settings = await getWorkspaceSettingsSnapshot();
-    const provider = (settings.ai?.defaultProvider as AiProvider) || "openai";
+    const provider = normalizeAiProvider(settings.ai?.defaultProvider);
     setAIProvider(provider);
     const config = settings.ai?.providerConfigs?.[provider];
-    setAIBaseURL(config?.baseUrl || "");
-    setAIModel(config?.model || "");
+    const defaults = AI_PROVIDER_DEFAULTS[provider] || AI_PROVIDER_DEFAULTS.openai;
+    setAIBaseURL(config?.baseUrl?.trim() || defaults.baseUrl);
+    setAIModel(config?.model?.trim() || defaults.model);
     setResumeImportVisionModel(settings.ai?.resumeImportVisionModel || "");
     const apiKey = await readSecretValue(`provider.${provider}.api_key`);
     setAIApiKey(apiKey || "");
@@ -336,19 +369,33 @@ export function SettingsContent({
 
   const handleProviderChange = async (value: AiProvider) => {
     setAIProvider(value);
+    let nextBaseURL = AI_PROVIDER_DEFAULTS[value].baseUrl;
+    let nextModel = AI_PROVIDER_DEFAULTS[value].model;
     // Load config for new provider
     try {
       const settings = await getWorkspaceSettingsSnapshot();
       const config = settings.ai?.providerConfigs?.[value];
-      setAIBaseURL(config?.baseUrl || "");
-      setAIModel(config?.model || "");
+      const defaults = AI_PROVIDER_DEFAULTS[value];
+      nextBaseURL = config?.baseUrl?.trim() || defaults.baseUrl;
+      nextModel = config?.model?.trim() || defaults.model;
+      setAIBaseURL(nextBaseURL);
+      setAIModel(nextModel);
       // Load API key for new provider
       const apiKey = await readSecretValue(`provider.${value}.api_key`);
       setAIApiKey(apiKey || "");
     } catch {
-      /* ignore */
+      const defaults = AI_PROVIDER_DEFAULTS[value];
+      nextBaseURL = defaults.baseUrl;
+      nextModel = defaults.model;
+      setAIBaseURL(nextBaseURL);
+      setAIModel(nextModel);
+      setAIApiKey("");
     }
-    void saveAIConfig({ provider: value });
+    void saveAIConfig({
+      provider: value,
+      baseUrl: nextBaseURL,
+      model: nextModel,
+    });
   };
 
   const handleBaseURLChange = (value: string) => {
@@ -720,17 +767,35 @@ export function SettingsContent({
                 </div>
 
                 {/* Free API Key Hint */}
-                <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-zinc-400 -mt-1">
-                  <span>{t("settings.ai.freeApiKeyHint")}</span>
-                  <button
-                    type="button"
-                    className="inline-flex items-center gap-0.5 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 hover:underline cursor-pointer"
-                    onClick={() => void openExternalUrl(t("settings.ai.freeApiKeyUrl"))}
-                  >
-                    {t("settings.ai.freeApiKeyLink")}
-                    <ExternalLink className="h-3 w-3" />
-                  </button>
-                </div>
+                {aiProvider !== "orcarouter" && (
+                  <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-zinc-400 -mt-1">
+                    <span>{t("settings.ai.freeApiKeyHint")}</span>
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-0.5 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 hover:underline cursor-pointer"
+                      onClick={() => void openExternalUrl(t("settings.ai.freeApiKeyUrl"))}
+                    >
+                      {t("settings.ai.freeApiKeyLink")}
+                      <ExternalLink className="h-3 w-3" />
+                    </button>
+                  </div>
+                )}
+
+                {aiProvider === "orcarouter" && (
+                  <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-zinc-400 -mt-1">
+                    <span>{t("settings.ai.orcaRouterHint")}</span>
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-0.5 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 hover:underline cursor-pointer"
+                      onClick={() =>
+                        void openExternalUrl(t("settings.ai.orcaRouterReferralUrl"))
+                      }
+                    >
+                      {t("settings.ai.orcaRouterReferralLink")}
+                      <ExternalLink className="h-3 w-3" />
+                    </button>
+                  </div>
+                )}
 
                 {/* API Key */}
                 <div className="space-y-2">

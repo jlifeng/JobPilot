@@ -550,6 +550,13 @@ The dedicated command has no interview-state-machine side effects, and the rende
 
 ## AI Provider Discovery And Resume Import Settings Contract
 
+### 1. Scope / Trigger
+
+- Trigger: adding or changing a desktop AI provider identity affects Rust provider normalization, persisted workspace settings, secret keys, renderer unions/defaults, model discovery, connectivity testing, and all compatible AI dispatch branches.
+- Scope: OpenAI, Anthropic, Gemini, and OrcaRouter provider configuration in the Tauri desktop application. OrcaRouter is a first-class provider identity that reuses the OpenAI-compatible transport.
+
+### 2. Signatures
+
 Rust commands:
 
 - File: `desktop/src-tauri/src/lib.rs`
@@ -570,6 +577,19 @@ Renderer / settings files:
 - `desktop/vite.config.ts`
 - `desktop/src/vite-env.d.ts`
 
+### 3. Contracts
+
+Provider identity and defaults:
+
+| Provider | Normalized key | Default base URL | Default model | Secret key |
+|---|---|---|---|---|
+| OpenAI | `openai` | `https://api.openai.com/v1` | `gpt-4o` | `provider.openai.api_key` |
+| Anthropic | `anthropic` | `https://api.anthropic.com` | `claude-sonnet-4-20250514` | `provider.anthropic.api_key` |
+| Gemini | `gemini` | `https://generativelanguage.googleapis.com/v1beta` | `gemini-2.0-flash` | `provider.gemini.api_key` |
+| OrcaRouter | `orcarouter` | `https://api.orcarouter.ai/v1` | `orcarouter/free` | `provider.orcarouter.api_key` |
+
+`orcarouter`, `orca-router`, and `orca_router` must normalize to `orcarouter`. The canonical TypeScript `AiProvider` value and persisted settings key are always `orcarouter`.
+
 Workspace settings payload fields:
 
 ```json
@@ -580,6 +600,10 @@ Workspace settings payload fields:
       "openai": {
         "baseUrl": "https://api.openai.com/v1",
         "model": "gpt-4o"
+      },
+      "orcarouter": {
+        "baseUrl": "https://api.orcarouter.ai/v1",
+        "model": "orcarouter/free"
       }
     },
     "exaPoolBaseUrl": "https://api.exa.ai",
@@ -592,11 +616,11 @@ Provider config write input:
 
 ```json
 {
-  "provider": "openai",
-  "baseUrl": "https://api.openai.com/v1",
-  "model": "gpt-4o",
+  "provider": "orcarouter",
+  "baseUrl": "https://api.orcarouter.ai/v1",
+  "model": "orcarouter/free",
   "setAsDefault": true,
-  "resumeImportVisionModel": "gpt-4.1-mini"
+  "resumeImportVisionModel": null
 }
 ```
 
@@ -604,8 +628,8 @@ Fetch models result:
 
 ```json
 {
-  "provider": "openai",
-  "models": ["gpt-4.1", "gpt-4.1-mini", "gpt-4o"]
+  "provider": "orcarouter",
+  "models": ["orcarouter/free"]
 }
 ```
 
@@ -619,15 +643,74 @@ Connectivity result:
 }
 ```
 
+OrcaRouter runtime requests use the existing OpenAI-compatible endpoints:
+
+- Model discovery: `GET {baseUrl}/models` with bearer authentication.
+- Connectivity and non-stream completion: `POST {baseUrl}/chat/completions` with bearer authentication.
+- Streaming and tool calls: the same OpenAI-compatible stream/tool adapter used by `openai`.
+
+### 4. Validation & Error Matrix
+
+| Condition | Rust behavior | Renderer behavior |
+|---|---|---|
+| Unsupported provider key | Reject with `unsupported provider '<value>'` | Keep the previous valid provider selection |
+| OrcaRouter legacy alias | Normalize to `orcarouter` | Persist and read the canonical key |
+| Missing or blank saved base URL/model | Resolve the provider-specific default | Show the provider-specific default immediately |
+| Explicit clear flag | Persist an empty field or remove the provider config according to the existing clear contract | Keep the cleared UI value until the user selects or saves a default again |
+| Missing API key during model discovery | Return `{ provider, models: [] }` | Leave manual model entry available |
+| Missing API key during connectivity test | Return `success=false`, `latencyMs=0`, and a provider-specific message | Show the test failure without discarding settings |
+| Provider HTTP failure, including quota errors | Return `success=false` with the upstream status/body in `errorMessage` | Surface the provider error; do not silently switch providers or bill another model |
+| Browser fallback runtime | Return the documented desktop-unavailable fallback | Explain that native desktop runtime is required |
+
+### 5. Good / Base / Bad Cases
+
+- Good: a user selects OrcaRouter for the first time; the renderer fills `https://api.orcarouter.ai/v1` and `orcarouter/free`, saves the key under `provider.orcarouter.api_key`, fetches models, and routes AI requests through the OpenAI-compatible adapter.
+- Base: an older settings document has no OrcaRouter entry; Rust and TypeScript fallbacks independently provide the same defaults without changing the user's existing default provider.
+- Bad: OrcaRouter is added only to the settings selector but omitted from a Rust dispatch match, default map, fallback contract, or secret inventory. The UI appears configured but one or more AI workflows fail at runtime.
+
+### 6. Tests Required
+
+- Rust unit test: assert `orcarouter`, `orca-router`, and `orca_router` normalize to `orcarouter`.
+- Rust unit test: assert OrcaRouter default base URL and model are exactly synchronized with the renderer fallback contract.
+- Desktop build/type check: assert the `AiProvider` union, selector, provider defaults, and fallback snapshots compile together.
+- Targeted lint: assert the settings component introduces no hard-coded user-facing copy outside i18n.
+- Runtime smoke: save an OrcaRouter key, fetch models, test connectivity, and start one streamed prompt; assert events keep `provider="orcarouter"` while using the OpenAI-compatible transport.
+- Regression smoke: switch back to OpenAI, Anthropic, and Gemini and confirm their saved base URL, model, and key remain independent.
+
+### 7. Wrong vs Correct
+
+Wrong:
+
+```rust
+match provider.as_str() {
+    "openai" => run_openai_compatible_stream(...),
+    _ => Err("unsupported provider".into()),
+}
+```
+
+This creates a provider that can be selected and saved but cannot execute existing OpenAI-compatible workflows.
+
+Correct:
+
+```rust
+match provider.as_str() {
+    "openai" | "orcarouter" => run_openai_compatible_stream(...),
+    "anthropic" => run_anthropic_stream(...),
+    "gemini" => run_gemini_stream(...),
+    _ => Err("unsupported provider".into()),
+}
+```
+
 Rules:
 
-1. `update_ai_provider_settings` must reject unsupported providers plus empty `baseUrl` or `model`; when `resumeImportVisionModel` is present but blank, the persisted field must be cleared to `null` instead of saving whitespace.
+1. `update_ai_provider_settings` must reject unsupported providers. Missing or blank `baseUrl` / `model` values reuse an existing non-empty value or fall back to the normalized provider defaults unless an explicit clear flag is set. When `resumeImportVisionModel` is present but blank, the persisted field must be cleared to `null` instead of saving whitespace.
 2. `fetch_ai_models` resolves the provider from the optional input override or the persisted `defaultProvider`, reads the provider API key from `provider.{provider}.api_key`, and returns `{ provider, models: [] }` when no key is configured.
-3. Provider-specific model discovery must stay explicit: OpenAI-compatible providers call `GET {baseUrl}/models`, Anthropic calls `GET {baseUrl}/v1/models` with `x-api-key` and `anthropic-version`, and Gemini calls `GET {baseUrl}/models?key={apiKey}` then strips the `models/` prefix from returned names.
+3. Provider-specific model discovery must stay explicit: OpenAI and OrcaRouter call `GET {baseUrl}/models`, Anthropic calls `GET {baseUrl}/v1/models` with `x-api-key` and `anthropic-version`, and Gemini calls `GET {baseUrl}/models?key={apiKey}` then strips the `models/` prefix from returned names.
 4. `test_ai_connectivity` and `test_exa_connectivity` must return `{ success, latencyMs, errorMessage }` even for common upstream failures; browser fallback returns `success=false`, `latencyMs=0`, and `errorMessage="Desktop runtime not available"`.
 5. `settings-dialog.tsx` must use the fetched model list for both the main model picker and the resume-import vision-model picker, while still allowing a manual text override that persists through `update_ai_provider_settings`.
 6. `create-resume-dialog.tsx` and `resume-import.ts` must read `resumeImportVisionModel` from runtime settings, block direct image uploads when it is missing, and switch scanned-PDF parsing to the vision model only after text extraction proves the PDF is not text-based.
 7. `desktop/vite.config.ts` must keep `mupdf` out of `optimizeDeps`, and `desktop/src/lib/resume-import.ts` must load `mupdf-wasm.wasm` through a Vite `?url` import; otherwise the renderer can receive HTML instead of Wasm and fail with `WebAssembly.instantiate(): expected magic word`.
+8. Adding another OpenAI-compatible provider requires synchronized changes to Rust normalization/defaults/dispatch, TypeScript provider/default/fallback contracts, independent secret naming, settings UI/i18n, tests, and user documentation. Do not model a distinct provider by overwriting OpenAI's saved configuration.
 
 ## WebDAV Sync Settings Contract
 

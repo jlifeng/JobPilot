@@ -13,6 +13,8 @@ const SETTINGS_FILE: &str = "workspace-settings.json";
 const SECRETS_DIR: &str = "secrets";
 const SECRETS_MANIFEST_FILE: &str = "secrets-manifest.json";
 const VAULT_FILE_FALLBACK: &str = "vault-fallback.json";
+const DEFAULT_ORCAROUTER_BASE_URL: &str = "https://api.orcarouter.ai/v1";
+const DEFAULT_ORCAROUTER_MODEL: &str = "orcarouter/free";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -409,14 +411,22 @@ pub fn update_ai_provider_settings(
         } else if !base_url.is_empty() {
             base_url.into()
         } else {
-            existing.map(|c| c.base_url.clone()).unwrap_or_default()
+            existing
+                .map(|c| c.base_url.trim())
+                .filter(|value| !value.is_empty())
+                .map(ToString::to_string)
+                .unwrap_or_else(|| default_base_url_for_provider(normalized_provider).into())
         };
         let final_model = if clear_model {
             String::new()
         } else if !model.is_empty() {
             model.into()
         } else {
-            existing.map(|c| c.model.clone()).unwrap_or_default()
+            existing
+                .map(|c| c.model.trim())
+                .filter(|value| !value.is_empty())
+                .map(ToString::to_string)
+                .unwrap_or_else(|| default_model_for_provider(normalized_provider).into())
         };
 
         document.ai.provider_configs.insert(
@@ -721,6 +731,13 @@ fn default_settings_document() -> Result<WorkspaceSettingsDocument, String> {
         ProviderRuntimeSettings {
             base_url: "https://generativelanguage.googleapis.com/v1beta".into(),
             model: "gemini-2.0-flash".into(),
+        },
+    );
+    provider_configs.insert(
+        "orcarouter".into(),
+        ProviderRuntimeSettings {
+            base_url: DEFAULT_ORCAROUTER_BASE_URL.into(),
+            model: DEFAULT_ORCAROUTER_MODEL.into(),
         },
     );
 
@@ -1477,7 +1494,26 @@ fn normalize_provider_key(provider: &str) -> Option<&'static str> {
         "openai" | "custom" | "azure" => Some("openai"),
         "anthropic" => Some("anthropic"),
         "gemini" => Some("gemini"),
+        "orcarouter" | "orca-router" | "orca_router" => Some("orcarouter"),
         _ => None,
+    }
+}
+
+fn default_base_url_for_provider(provider: &str) -> &'static str {
+    match provider {
+        "anthropic" => "https://api.anthropic.com",
+        "gemini" => "https://generativelanguage.googleapis.com/v1beta",
+        "orcarouter" => DEFAULT_ORCAROUTER_BASE_URL,
+        _ => "https://api.openai.com/v1",
+    }
+}
+
+fn default_model_for_provider(provider: &str) -> &'static str {
+    match provider {
+        "anthropic" => "claude-sonnet-4-20250514",
+        "gemini" => "gemini-2.0-flash",
+        "orcarouter" => DEFAULT_ORCAROUTER_MODEL,
+        _ => "gpt-4o",
     }
 }
 
@@ -1568,4 +1604,27 @@ pub fn now_epoch_ms() -> Result<u64, String> {
 
 fn path_to_string(path: &Path) -> String {
     path.to_string_lossy().replace('\\', "/")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        default_base_url_for_provider, default_model_for_provider, normalize_provider_key,
+    };
+
+    #[test]
+    fn normalizes_orcarouter_provider_aliases() {
+        assert_eq!(normalize_provider_key("orcarouter"), Some("orcarouter"));
+        assert_eq!(normalize_provider_key("orca-router"), Some("orcarouter"));
+        assert_eq!(normalize_provider_key("ORCA_ROUTER"), Some("orcarouter"));
+    }
+
+    #[test]
+    fn exposes_orcarouter_defaults() {
+        assert_eq!(
+            default_base_url_for_provider("orcarouter"),
+            "https://api.orcarouter.ai/v1"
+        );
+        assert_eq!(default_model_for_provider("orcarouter"), "orcarouter/free");
+    }
 }

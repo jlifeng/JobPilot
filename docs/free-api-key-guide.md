@@ -8,7 +8,23 @@ JobPilot 的 AI 功能（智能导入、AI 助手、JD 分析等）需要配置�
 
 ## 推荐平台
 
-### 1. 硅基流动 (SiliconFlow)
+### 1. OrcaRouter
+
+- **官网**：<https://www.orcarouter.ai>
+- **推广注册**：<https://www.orcarouter.ai/ref/ref_77fed7ef35745efad2f0>
+- **免费额度**：注册后可使用 OrcaRouter 提供的免费路由模型，例如 `deepseek/deepseek-v4-flash-free`、`qwen/qwen3.8-27b-free` 等国产模型
+- **兼容格式**：OpenAI API
+- **配置方式**：
+  1. 通过上方推广链接注册并登录 OrcaRouter
+  2. 在 OrcaRouter 控制台创建 API Key
+  3. 在 JobPilot 设置中选择 **OrcaRouter**
+  4. API 地址填 `https://api.orcarouter.ai/v1`
+  5. API Key 填你创建的密钥
+  6. 默认模型填 `orcarouter/free`；也可以从模型列表选择其他可用模型
+
+OrcaRouter 的免费路由只会选择免费模型，例如 `deepseek/deepseek-v4-flash-free`、`qwen/qwen3.8-27b-free` 等国产模型。免费模型可能有速率或上下文限制，具体可用模型以 OrcaRouter 官方说明为准。
+
+### 2. 硅基流动 (SiliconFlow)
 
 - **官网**：<https://siliconflow.cn>
 - **免费额度**：注册即送额度，支持 Qwen、DeepSeek、Llama 等多种模型
@@ -22,7 +38,7 @@ JobPilot 的 AI 功能（智能导入、AI 助手、JD 分析等）需要配置�
      - API Key 填你创建的密钥
      - 默认模型填 `Qwen/Qwen3-8B`（或其他可用模型）
 
-### 2. 讯飞星辰 (iFlytek MaaS)
+### 3. 讯飞星辰 (iFlytek MaaS)
 
 - **官网**：<https://maas.xfyun.cn/modelSquare>
 - **免费额度**：Qwen 模型服务免费开放，高并发不限量
@@ -36,7 +52,7 @@ JobPilot 的 AI 功能（智能导入、AI 助手、JD 分析等）需要配置�
      - API Key 填你获取的密钥
      - 默认模型填 `qwen-plus`（或其他可用模型）
 
-### 3. 魔搭 ModelScope
+### 4. 魔搭 ModelScope
 
 - **官网**：<https://modelscope.cn>
 - **免费额度**：阿里旗下平台，提供部分模型的免费 API 调用
@@ -50,7 +66,7 @@ JobPilot 的 AI 功能（智能导入、AI 助手、JD 分析等）需要配置�
      - API Key 填你获取的密钥
      - 默认模型填对应模型名称
 
-### 4. DeepSeek
+### 5. DeepSeek
 
 - **官网**：<https://platform.deepseek.com>
 - **免费额度**：注册送额度，DeepSeek-V3 / R1 等模型可用
@@ -64,7 +80,7 @@ JobPilot 的 AI 功能（智能导入、AI 助手、JD 分析等）需要配置�
      - API Key 填你创建的密钥
      - 默认模型填 `deepseek-chat`
 
-### 5. Google AI Studio (Gemini)
+### 6. Google AI Studio (Gemini)
 
 - **官网**：<https://aistudio.google.com>
 - **免费额度**：Gemini 模型有较大免费额度
@@ -77,7 +93,7 @@ JobPilot 的 AI 功能（智能导入、AI 助手、JD 分析等）需要配置�
      - API Key 填你获取的密钥
      - 默认模型填 `gemini-2.0-flash`
 
-### 6. OpenRouter
+### 7. OpenRouter
 
 - **官网**：<https://openrouter.ai>
 - **免费额度**：部分模型标记为 Free，可免费调用

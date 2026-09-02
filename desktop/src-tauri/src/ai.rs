@@ -431,7 +431,7 @@ pub fn start_ai_prompt_stream(
 
     tauri::async_runtime::spawn(async move {
         let run_result = match resolved.provider.as_str() {
-            "openai" => {
+            "openai" | "orcarouter" => {
                 run_openai_compatible_stream(
                     &app_handle,
                     &workspace_root,
@@ -529,7 +529,7 @@ pub fn start_interview_turn_stream(
 
     tauri::async_runtime::spawn(async move {
         let run_result = match resolved.provider.as_str() {
-            "openai" | "anthropic" => {
+            "openai" | "orcarouter" | "anthropic" => {
                 run_interview_turn_stream(
                     &app_handle,
                     &workspace_root,
@@ -617,14 +617,18 @@ pub async fn generate_interview_report(
     // 与 PR3 的三元模式一致：传入非空 system_prompt → 用传入；否则 → 回退到默认
     // build_interview_report_system_prompt。自定义 prompt 必须自行保留 JSON 输出格式约束
     //（builtin Skill 已在 prompt 中包含）。
-    let resolved_system_prompt =
-        match input.system_prompt.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
-            Some(custom) => custom.to_string(),
-            None => build_interview_report_system_prompt(&locale),
-        };
+    let resolved_system_prompt = match input
+        .system_prompt
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+    {
+        Some(custom) => custom.to_string(),
+        None => build_interview_report_system_prompt(&locale),
+    };
     let client = reqwest::Client::new();
     let response_json = match resolved.provider.as_str() {
-        "openai" => {
+        "openai" | "orcarouter" => {
             let endpoint = format!(
                 "{}/chat/completions",
                 resolved.base_url.trim_end_matches('/')
@@ -727,10 +731,16 @@ async fn evaluate_interview_answer(
         locale,
     );
     let response_json = match config.provider.as_str() {
-        "openai" => {
+        "openai" | "orcarouter" => {
             let endpoint = format!("{}/chat/completions", config.base_url.trim_end_matches('/'));
-            request_openai_json_completion(client, &endpoint, config, &resolved_system_prompt, &user_prompt)
-                .await?
+            request_openai_json_completion(
+                client,
+                &endpoint,
+                config,
+                &resolved_system_prompt,
+                &user_prompt,
+            )
+            .await?
         }
         "anthropic" => {
             let endpoint = format!("{}/v1/messages", config.base_url.trim_end_matches('/'));
@@ -878,7 +888,7 @@ async fn run_interview_turn_stream(
     let mut accumulated_thinking = String::new();
     let mut chunk_index = 0u32;
     let outcome = match config.provider.as_str() {
-        "openai" => {
+        "openai" | "orcarouter" => {
             let endpoint = format!("{}/chat/completions", config.base_url.trim_end_matches('/'));
             stream_openai_round(
                 app,
@@ -1058,11 +1068,13 @@ fn resolve_provider_config_from_parts(
         .map(|value| value.trim().to_string())
         .filter(|value| !value.is_empty())
         .or_else(|| configured.map(|value| value.base_url.trim().to_string()))
+        .filter(|value| !value.is_empty())
         .unwrap_or_else(|| default_base_url_for_provider(&provider).to_string());
     let model = model_override
         .map(|value| value.trim().to_string())
         .filter(|value| !value.is_empty())
         .or_else(|| configured.map(|value| value.model.trim().to_string()))
+        .filter(|value| !value.is_empty())
         .unwrap_or_else(|| default_model_for_provider(&provider).to_string());
     let api_key_secret_key = format!("provider.{provider}.api_key");
     let api_key = settings::read_secret_value(workspace_root, &api_key_secret_key)?
@@ -1889,11 +1901,9 @@ fn should_force_resume_text_tool(messages: &[serde_json::Value]) -> bool {
         .unwrap_or(&user_text)
         .to_lowercase();
 
-    [
-        "润色", "polish", "应用", "apply",
-    ]
-    .iter()
-    .any(|keyword| intent_text.contains(keyword))
+    ["润色", "polish", "应用", "apply"]
+        .iter()
+        .any(|keyword| intent_text.contains(keyword))
 }
 
 fn message_contains_anthropic_tool_result(message: &serde_json::Value) -> bool {
@@ -3559,7 +3569,7 @@ pub async fn generate_interview_suggested_answer(
     )?;
     let client = reqwest::Client::new();
     let response_json = match resolved.provider.as_str() {
-        "openai" => {
+        "openai" | "orcarouter" => {
             let endpoint = format!(
                 "{}/chat/completions",
                 resolved.base_url.trim_end_matches('/')
@@ -4235,7 +4245,10 @@ fn handle_anthropic_sse_event(
 
 fn normalize_supported_provider(provider: &str) -> Option<String> {
     match provider.trim().to_ascii_lowercase().as_str() {
-        "openai" | "anthropic" | "gemini" => Some(provider.trim().to_ascii_lowercase()),
+        "openai" | "anthropic" | "gemini" | "orcarouter" => {
+            Some(provider.trim().to_ascii_lowercase())
+        }
+        "orca-router" | "orca_router" => Some("orcarouter".into()),
         _ => None,
     }
 }
@@ -4244,6 +4257,7 @@ fn default_base_url_for_provider(provider: &str) -> &'static str {
     match provider {
         "anthropic" => "https://api.anthropic.com",
         "gemini" => "https://generativelanguage.googleapis.com/v1beta",
+        "orcarouter" => "https://api.orcarouter.ai/v1",
         _ => "https://api.openai.com/v1",
     }
 }
@@ -4252,6 +4266,7 @@ fn default_model_for_provider(provider: &str) -> &'static str {
     match provider {
         "anthropic" => "claude-sonnet-4-20250514",
         "gemini" => "gemini-2.0-flash",
+        "orcarouter" => "orcarouter/free",
         _ => "gpt-4o",
     }
 }

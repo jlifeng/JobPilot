@@ -133,6 +133,7 @@ pub enum AiProvider {
     Openai,
     Anthropic,
     Gemini,
+    Orcarouter,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -253,6 +254,12 @@ pub fn domain_contract_summary() -> DomainContractSummary {
                         base_url: "https://generativelanguage.googleapis.com/v1beta".into(),
                         model: "gemini-2.0-flash".into(),
                         api_key_secret_key: "provider.gemini.api_key".into(),
+                    },
+                    ProviderRuntimeConfig {
+                        provider: AiProvider::Orcarouter,
+                        base_url: "https://api.orcarouter.ai/v1".into(),
+                        model: "orcarouter/free".into(),
+                        api_key_secret_key: "provider.orcarouter.api_key".into(),
                     },
                 ],
                 exa_pool: ExaPoolSettings {

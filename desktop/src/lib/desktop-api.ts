@@ -235,7 +235,7 @@ export interface ResumeThemeConfig {
   avatarStyle: AvatarStyle;
 }
 
-export type AiProvider = "openai" | "anthropic" | "gemini";
+export type AiProvider = "openai" | "anthropic" | "gemini" | "orcarouter";
 
 export interface ProviderRuntimeContract {
   provider: AiProvider;
@@ -976,6 +976,12 @@ const FALLBACK_DOMAIN_CONTRACT: DomainContractSummary = {
           model: "gemini-2.0-flash",
           apiKeySecretKey: "provider.gemini.api_key",
         },
+        {
+          provider: "orcarouter",
+          baseUrl: "https://api.orcarouter.ai/v1",
+          model: "orcarouter/free",
+          apiKeySecretKey: "provider.orcarouter.api_key",
+        },
       ],
       exaPool: {
         baseUrl: "https://api.exa.ai",
@@ -1042,6 +1048,10 @@ const FALLBACK_SETTINGS: WorkspaceSettingsDocument = {
       gemini: {
         baseUrl: "https://generativelanguage.googleapis.com/v1beta",
         model: "gemini-2.0-flash",
+      },
+      orcarouter: {
+        baseUrl: "https://api.orcarouter.ai/v1",
+        model: "orcarouter/free",
       },
     },
     exaPoolBaseUrl: "https://api.exa.ai",
@@ -1190,6 +1200,13 @@ const FALLBACK_SECRET_INVENTORY: SecretInventorySnapshot = {
     {
       key: "provider.gemini.api_key",
       provider: "gemini",
+      purpose: "Desktop AI runtime credential.",
+      updatedAtEpochMs: 0,
+      isConfigured: false,
+    },
+    {
+      key: "provider.orcarouter.api_key",
+      provider: "orcarouter",
       purpose: "Desktop AI runtime credential.",
       updatedAtEpochMs: 0,
       isConfigured: false,
