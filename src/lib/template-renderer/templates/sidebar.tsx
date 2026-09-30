@@ -257,22 +257,22 @@ function buildSidebarSideHtml(section: CanonicalSection): string {
   }
   if (section.type === 'custom') {
     const items = (content as unknown as CustomContent).items || [];
-    return `<div class="space-y-1.5">${items.map((item) => `<div><p class="text-xs font-semibold text-blue-100">${esc(item.title)}</p>${item.subtitle ? `<p class="text-[10px] text-blue-300">${esc(item.subtitle)}</p>` : ''}${item.description ? `<p class="text-[10px] text-blue-300">${md(item.description)}</p>` : ''}</div>`).join('')}</div>`;
+    return `<div class="space-y-1.5">${items.map((item) => `<div><p class="text-xs font-semibold text-blue-100">${esc(item.title)}</p>${item.subtitle ? `<p class="text-[10px] text-blue-300">${esc(item.subtitle)}</p>` : ''}${item.description ? `<div class="text-[10px] text-blue-300">${md(item.description)}</div>` : ''}</div>`).join('')}</div>`;
   }
   if (section.type === 'qr_codes') return buildQrCodesHtml(content);
   if ('items' in content && Array.isArray(content.items)) {
     const items = content.items as GenericItem[];
-    return `<div class="space-y-1.5">${items.map((item) => `<div><span class="text-xs font-medium text-blue-100">${esc(item.name || item.title || item.language || '')}</span>${item.description ? `<p class="text-[10px] text-blue-300">${md(item.description)}</p>` : ''}</div>`).join('')}</div>`;
+    return `<div class="space-y-1.5">${items.map((item) => `<div><span class="text-xs font-medium text-blue-100">${esc(item.name || item.title || item.language || '')}</span>${item.description ? `<div class="text-[10px] text-blue-300">${md(item.description)}</div>` : ''}</div>`).join('')}</div>`;
   }
   return '';
 }
 
 function buildSidebarMainHtml(section: CanonicalSection, lang: string): string {
   const content = section.content as unknown as Record<string, unknown>;
-  if (section.type === 'summary') return `<p class="text-sm leading-relaxed text-zinc-600">${md((content as unknown as SummaryContent).text)}</p>`;
+  if (section.type === 'summary') return `<div class="text-sm leading-relaxed text-zinc-600">${md((content as unknown as SummaryContent).text)}</div>`;
   if (section.type === 'work_experience') {
     const items = (content as unknown as WorkExperienceContent).items || [];
-    return `<div class="space-y-3">${items.map((item) => `<div><div class="flex items-baseline justify-between"><div><span class="text-sm font-semibold text-zinc-800">${esc(item.position)}</span>${item.company ? `<span class="text-sm" style="color:${ACCENT}"> | ${esc(item.company)}</span>` : ''}</div><span class="shrink-0 text-xs text-zinc-400">${esc(dateRange(item.startDate, item.endDate, item.current, lang))}</span></div>${item.description ? `<p class="mt-1 text-sm text-zinc-600"><span class="font-medium text-zinc-700">${lang === 'zh' ? '职责' : 'Responsibilities'}:</span> <span>${md(item.description)}</span></p>` : ''}${item.technologies?.length ? `<div class="mt-1 flex flex-wrap gap-1">${item.technologies.map((technology) => `<span class="rounded-sm px-1.5 py-0.5 text-[10px] text-white" style="background-color:${ACCENT}">${esc(technology)}</span>`).join('')}</div>` : ''}${item.highlights?.length ? `<div class="mt-1"><p class="mb-0.5 text-xs font-medium text-zinc-500">${lang === 'zh' ? '主要成就' : 'Key Achievements'}:</p><ul class="list-disc pl-4">${buildHighlights(item.highlights, 'text-sm text-zinc-600')}</ul></div>` : ''}</div>`).join('')}</div>`;
+    return `<div class="space-y-3">${items.map((item) => `<div><div class="flex items-baseline justify-between"><div><span class="text-sm font-semibold text-zinc-800">${esc(item.position)}</span>${item.company ? `<span class="text-sm" style="color:${ACCENT}"> | ${esc(item.company)}</span>` : ''}</div><span class="shrink-0 text-xs text-zinc-400">${esc(dateRange(item.startDate, item.endDate, item.current, lang))}</span></div>${item.description ? `<div class="mt-1 text-sm text-zinc-600"><span class="font-medium text-zinc-700">${lang === 'zh' ? '职责' : 'Responsibilities'}:</span> <span>${md(item.description)}</span></div>` : ''}${item.technologies?.length ? `<div class="mt-1 flex flex-wrap gap-1">${item.technologies.map((technology) => `<span class="rounded-sm px-1.5 py-0.5 text-[10px] text-white" style="background-color:${ACCENT}">${esc(technology)}</span>`).join('')}</div>` : ''}${item.highlights?.length ? `<div class="mt-1"><p class="mb-0.5 text-xs font-medium text-zinc-500">${lang === 'zh' ? '主要成就' : 'Key Achievements'}:</p><ul class="list-disc pl-4">${buildHighlights(item.highlights, 'text-sm text-zinc-600')}</ul></div>` : ''}</div>`).join('')}</div>`;
   }
   if (section.type === 'education') {
     const items = (content as unknown as EducationContent).items || [];
@@ -280,16 +280,16 @@ function buildSidebarMainHtml(section: CanonicalSection, lang: string): string {
   }
   if (section.type === 'projects') {
     const items = (content as unknown as ProjectsContent).items || [];
-    return `<div class="space-y-3">${items.map((item) => `<div><div class="flex items-baseline justify-between"><span class="text-sm font-semibold text-zinc-800">${esc(item.name)}</span>${item.startDate ? `<span class="shrink-0 text-xs text-zinc-400">${esc(dateRange(item.startDate, item.endDate, true, lang))}</span>` : ''}</div>${item.description ? `<p class="mt-1 text-sm text-zinc-600">${md(item.description)}</p>` : ''}${item.technologies?.length ? `<div class="mt-1 flex flex-wrap gap-1">${item.technologies.map((technology) => `<span class="rounded-sm px-1.5 py-0.5 text-[10px] text-white" style="background-color:${ACCENT}">${esc(technology)}</span>`).join('')}</div>` : ''}${item.highlights?.length ? `<ul class="mt-1 list-disc pl-4">${buildHighlights(item.highlights, 'text-sm text-zinc-600')}</ul>` : ''}</div>`).join('')}</div>`;
+    return `<div class="space-y-3">${items.map((item) => `<div><div class="flex items-baseline justify-between"><span class="text-sm font-semibold text-zinc-800">${esc(item.name)}</span>${item.startDate ? `<span class="shrink-0 text-xs text-zinc-400">${esc(dateRange(item.startDate, item.endDate, true, lang))}</span>` : ''}</div>${item.description ? `<div class="mt-1 text-sm text-zinc-600">${md(item.description)}</div>` : ''}${item.technologies?.length ? `<div class="mt-1 flex flex-wrap gap-1">${item.technologies.map((technology) => `<span class="rounded-sm px-1.5 py-0.5 text-[10px] text-white" style="background-color:${ACCENT}">${esc(technology)}</span>`).join('')}</div>` : ''}${item.highlights?.length ? `<ul class="mt-1 list-disc pl-4">${buildHighlights(item.highlights, 'text-sm text-zinc-600')}</ul>` : ''}</div>`).join('')}</div>`;
   }
   if (section.type === 'github') {
     const items = (content as unknown as GitHubContent).items || [];
-    return `<div class="space-y-3">${items.map((item) => `<div><div class="flex items-baseline justify-between"><span class="text-sm font-semibold text-zinc-800">${esc(item.name)}${item.repoUrl ? ` <a href="${esc(item.repoUrl)}" target="_blank" rel="noopener noreferrer" class="ml-1 text-xs font-normal" style="color:#3b82f6">${esc(item.repoUrl)}</a>` : ''}</span><span class="text-xs text-zinc-400">★ ${item.stars?.toLocaleString() ?? 0}</span></div>${item.language ? `<span class="text-xs" style="color:${ACCENT}">${esc(item.language)}</span>` : ''}${item.description ? `<p class="mt-1 text-sm text-zinc-600">${md(item.description)}</p>` : ''}</div>`).join('')}</div>`;
+    return `<div class="space-y-3">${items.map((item) => `<div><div class="flex items-baseline justify-between"><span class="text-sm font-semibold text-zinc-800">${esc(item.name)}${item.repoUrl ? ` <a href="${esc(item.repoUrl)}" target="_blank" rel="noopener noreferrer" class="ml-1 text-xs font-normal" style="color:#3b82f6">${esc(item.repoUrl)}</a>` : ''}</span><span class="text-xs text-zinc-400">★ ${item.stars?.toLocaleString() ?? 0}</span></div>${item.language ? `<span class="text-xs" style="color:${ACCENT}">${esc(item.language)}</span>` : ''}${item.description ? `<div class="mt-1 text-sm text-zinc-600">${md(item.description)}</div>` : ''}</div>`).join('')}</div>`;
   }
   if (section.type === 'qr_codes') return buildQrCodesHtml(content);
   if ('items' in content && Array.isArray(content.items)) {
     const items = content.items as GenericItem[];
-    return `<div class="space-y-2">${items.map((item) => `<div><span class="text-sm font-medium text-zinc-700">${esc(item.name || item.title || item.language || '')}</span>${item.description ? `<p class="text-sm text-zinc-600">${md(item.description)}</p>` : ''}</div>`).join('')}</div>`;
+    return `<div class="space-y-2">${items.map((item) => `<div><span class="text-sm font-medium text-zinc-700">${esc(item.name || item.title || item.language || '')}</span>${item.description ? `<div class="text-sm text-zinc-600">${md(item.description)}</div>` : ''}</div>`).join('')}</div>`;
   }
   return '';
 }

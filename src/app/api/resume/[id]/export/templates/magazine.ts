@@ -31,7 +31,7 @@ function buildMagazineSectionContent(section: Section, lang: string): string {
     }
     const first = text.length > 0 ? text[0] : '';
     const rest = text.length > 0 ? text.slice(1) : '';
-    return `<p class="text-sm leading-relaxed" style="color:${SECONDARY}">${first ? `<span class="float-left mr-1 text-3xl font-black leading-none" style="color:${ACCENT}">${esc(first)}</span>` : ''}${md(rest)}</p>`;
+    return `<div class="text-sm leading-relaxed" style="color:${SECONDARY}">${first ? `<span class="float-left mr-1 text-3xl font-black leading-none" style="color:${ACCENT}">${esc(first)}</span>` : ''}${md(rest)}</div>`;
   }
 
   if (section.type === 'work_experience') {

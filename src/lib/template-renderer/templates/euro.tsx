@@ -333,13 +333,13 @@ function EuroSectionContent({
 function buildEuroSectionHtml(section: CanonicalResume['sections'][number], lang: string): string {
   const content = section.content as unknown as Record<string, unknown>;
 
-  if (section.type === 'summary') return `<p class="text-sm leading-relaxed text-zinc-600">${md((content as unknown as SummaryContent).text)}</p>`;
+  if (section.type === 'summary') return `<div class="text-sm leading-relaxed text-zinc-600">${md((content as unknown as SummaryContent).text)}</div>`;
 
   if (section.type === 'work_experience') {
     const items = (content as unknown as WorkExperienceContent).items || [];
     return `<div class="space-y-3">${items.map((item) => `<div>
       <div class="flex items-baseline justify-between"><div><span class="text-sm font-bold text-zinc-800">${esc(item.position)}</span>${item.company ? `<span class="text-sm text-zinc-500"> — ${esc(item.company)}</span>` : ''}</div><span class="shrink-0 text-xs text-zinc-400">${esc(dateRange(item.startDate, item.endDate, item.current, lang))}</span></div>
-      ${item.description ? `<p class="mt-1 text-sm text-zinc-600"><span class="font-medium text-zinc-700">${lang === 'zh' ? '职责' : 'Responsibilities'}:</span> <span>${md(item.description)}</span></p>` : ''}
+      ${item.description ? `<div class="mt-1 text-sm text-zinc-600"><span class="font-medium text-zinc-700">${lang === 'zh' ? '职责' : 'Responsibilities'}:</span> <span>${md(item.description)}</span></div>` : ''}
       ${item.technologies?.length ? `<p class="mt-0.5 text-xs text-zinc-400">${lang === 'zh' ? '技术栈' : 'Tech'}: ${esc(item.technologies.join(', '))}</p>` : ''}
       ${item.highlights?.length ? `<div class="mt-1"><p class="mb-0.5 text-xs font-medium text-zinc-500">${lang === 'zh' ? '主要成就' : 'Key Achievements'}:</p><ul class="list-disc pl-4">${buildHighlights(item.highlights, 'text-sm text-zinc-600')}</ul></div>` : ''}
     </div>`).join('')}</div>`;
@@ -363,7 +363,7 @@ function buildEuroSectionHtml(section: CanonicalResume['sections'][number], lang
     const items = (content as unknown as ProjectsContent).items || [];
     return `<div class="space-y-3">${items.map((item) => `<div>
       <div class="flex items-baseline justify-between"><span class="text-sm font-bold text-zinc-800">${esc(item.name)}</span>${item.startDate ? `<span class="shrink-0 text-xs text-zinc-400">${esc(dateRange(item.startDate, item.endDate, true, lang))}</span>` : ''}</div>
-      ${item.description ? `<p class="mt-1 text-sm text-zinc-600">${md(item.description)}</p>` : ''}
+      ${item.description ? `<div class="mt-1 text-sm text-zinc-600">${md(item.description)}</div>` : ''}
       ${item.technologies?.length ? `<p class="mt-0.5 text-xs text-zinc-400">${lang === 'zh' ? '技术栈' : 'Tech'}: ${esc(item.technologies.join(', '))}</p>` : ''}
       ${item.highlights?.length ? `<ul class="mt-1 list-disc pl-4">${buildHighlights(item.highlights, 'text-sm text-zinc-600')}</ul>` : ''}
     </div>`).join('')}</div>`;
@@ -384,7 +384,7 @@ function buildEuroSectionHtml(section: CanonicalResume['sections'][number], lang
     return `<div class="space-y-3">${items.map((item) => `<div>
       <div class="flex items-baseline justify-between"><span class="text-sm font-bold text-zinc-800">${esc(item.name)}${item.repoUrl ? ` <a href="${esc(item.repoUrl)}" target="_blank" rel="noopener noreferrer" class="ml-1 text-xs font-normal" style="color:#3b82f6">${esc(item.repoUrl)}</a>` : ''}</span><span class="text-xs text-zinc-400">★ ${item.stars?.toLocaleString() ?? 0}</span></div>
       ${item.language ? `<span class="text-xs text-zinc-500">${esc(item.language)}</span>` : ''}
-      ${item.description ? `<p class="mt-1 text-sm text-zinc-600">${md(item.description)}</p>` : ''}
+      ${item.description ? `<div class="mt-1 text-sm text-zinc-600">${md(item.description)}</div>` : ''}
     </div>`).join('')}</div>`;
   }
 
@@ -392,7 +392,7 @@ function buildEuroSectionHtml(section: CanonicalResume['sections'][number], lang
     const items = (content as unknown as CustomContent).items || [];
     return `<div class="space-y-3">${items.map((item) => `<div>
       <div class="flex items-baseline justify-between"><div><span class="text-sm font-semibold text-zinc-800">${esc(item.title)}</span>${item.subtitle ? `<span class="text-sm text-zinc-500"> — ${esc(item.subtitle)}</span>` : ''}</div>${item.date ? `<span class="shrink-0 text-xs text-zinc-400">${esc(item.date)}</span>` : ''}</div>
-      ${item.description ? `<p class="mt-0.5 text-sm text-zinc-600">${md(item.description)}</p>` : ''}
+      ${item.description ? `<div class="mt-0.5 text-sm text-zinc-600">${md(item.description)}</div>` : ''}
     </div>`).join('')}</div>`;
   }
 
@@ -408,7 +408,7 @@ function buildEuroSectionHtml(section: CanonicalResume['sections'][number], lang
 
   if ('items' in content && Array.isArray(content.items)) {
     const items = content.items as GenericItem[];
-    return `<div class="space-y-2">${items.map((item) => `<div><span class="text-sm font-medium text-zinc-700">${esc(item.name || item.title || item.language || '')}</span>${item.description ? `<p class="text-sm text-zinc-600">${md(item.description)}</p>` : ''}</div>`).join('')}</div>`;
+    return `<div class="space-y-2">${items.map((item) => `<div><span class="text-sm font-medium text-zinc-700">${esc(item.name || item.title || item.language || '')}</span>${item.description ? `<div class="text-sm text-zinc-600">${md(item.description)}</div>` : ''}</div>`).join('')}</div>`;
   }
 
   return '';

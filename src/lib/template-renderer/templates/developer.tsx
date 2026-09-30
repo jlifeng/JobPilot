@@ -331,14 +331,14 @@ function buildDeveloperSectionHtml(section: CanonicalResume['sections'][number],
 
     return summaryItems
       ? buildPromptList(summaryItems, 'space-y-0.5')
-      : `<p class="text-sm leading-relaxed text-zinc-600">${md(summaryText)}</p>`;
+      : `<div class="text-sm leading-relaxed text-zinc-600">${md(summaryText)}</div>`;
   }
 
   if (section.type === 'work_experience') {
     const items = (content as unknown as WorkExperienceContent).items || [];
     return `<div class="space-y-4">${items.map((item) => `<div>
       <div class="flex items-baseline justify-between"><div><span class="text-sm font-bold" style="color:${DARK}">${esc(item.position)}</span>${item.company ? `<span class="text-sm" style="color:${BLUE}"> @ ${esc(item.company)}</span>` : ''}</div><span class="shrink-0 rounded px-2 py-0.5 text-[10px] font-medium" style="background:#f0f0f0;color:#636d83">${esc(dateRange(item.startDate, item.endDate, item.current, lang))}</span></div>
-      ${(() => { const responsibilityItems = extractMarkdownBulletItems(item.description); if (responsibilityItems?.length) { return `<div class="mt-1"><p class="mb-0.5 text-xs font-medium text-zinc-500">${lang === 'zh' ? '职责' : 'Responsibilities'}:</p>${buildPromptList(responsibilityItems, 'space-y-0.5')}</div>`; } return item.description ? `<p class="mt-1 text-sm text-zinc-600"><span class="font-medium text-zinc-700">${lang === 'zh' ? '职责' : 'Responsibilities'}:</span> <span>${md(item.description)}</span></p>` : ''; })()}
+      ${(() => { const responsibilityItems = extractMarkdownBulletItems(item.description); if (responsibilityItems?.length) { return `<div class="mt-1"><p class="mb-0.5 text-xs font-medium text-zinc-500">${lang === 'zh' ? '职责' : 'Responsibilities'}:</p>${buildPromptList(responsibilityItems, 'space-y-0.5')}</div>`; } return item.description ? `<div class="mt-1 text-sm text-zinc-600"><span class="font-medium text-zinc-700">${lang === 'zh' ? '职责' : 'Responsibilities'}:</span> <span>${md(item.description)}</span></div>` : ''; })()}
       ${item.technologies?.length ? `<p class="mt-0.5 text-xs" style="color:${BLUE}">${lang === 'zh' ? '技术栈' : 'Tech'}: ${esc(item.technologies.join(' | '))}</p>` : ''}
       ${item.highlights?.length ? `<div class="mt-1"><p class="mb-0.5 text-xs font-medium text-zinc-500">${lang === 'zh' ? '主要成就' : 'Key Achievements'}:</p>${buildPromptList(item.highlights, 'space-y-0.5')}</div>` : ''}
     </div>`).join('')}</div>`;
@@ -362,7 +362,7 @@ function buildDeveloperSectionHtml(section: CanonicalResume['sections'][number],
     const items = (content as unknown as ProjectsContent).items || [];
     return `<div class="space-y-4">${items.map((item) => `<div>
       <div class="flex items-baseline justify-between"><span class="text-sm font-bold" style="color:${DARK}">${esc(item.name)}</span>${item.startDate ? `<span class="shrink-0 rounded px-2 py-0.5 text-[10px] font-medium" style="background:#f0f0f0;color:#636d83">${esc(dateRange(item.startDate, item.endDate, true, lang))}</span>` : ''}</div>
-      ${item.description ? `<p class="mt-1 text-sm text-zinc-600">${md(item.description)}</p>` : ''}
+      ${item.description ? `<div class="mt-1 text-sm text-zinc-600">${md(item.description)}</div>` : ''}
       ${item.technologies?.length ? `<p class="mt-0.5 text-xs" style="color:${BLUE}">${lang === 'zh' ? '技术栈' : 'Tech'}: ${esc(item.technologies.join(' | '))}</p>` : ''}
       ${buildPromptList(item.highlights, 'mt-1 space-y-0.5')}
     </div>`).join('')}</div>`;
@@ -383,7 +383,7 @@ function buildDeveloperSectionHtml(section: CanonicalResume['sections'][number],
     return `<div class="space-y-3">${items.map((item) => `<div>
       <div class="flex items-baseline justify-between"><span class="text-sm font-bold" style="color:${DARK}">${esc(item.name)}${item.repoUrl ? ` <a href="${esc(item.repoUrl)}" target="_blank" rel="noopener noreferrer" class="ml-1 text-xs font-normal" style="color:#3b82f6">${esc(item.repoUrl)}</a>` : ''}</span><span class="shrink-0 text-xs text-zinc-400">★ ${item.stars?.toLocaleString() ?? 0}</span></div>
       ${item.language ? `<span class="text-xs" style="color:${BLUE}">${esc(item.language)}</span>` : ''}
-      ${item.description ? `<p class="mt-1 text-sm text-zinc-600">${md(item.description)}</p>` : ''}
+      ${item.description ? `<div class="mt-1 text-sm text-zinc-600">${md(item.description)}</div>` : ''}
     </div>`).join('')}</div>`;
   }
 
@@ -391,7 +391,7 @@ function buildDeveloperSectionHtml(section: CanonicalResume['sections'][number],
     const items = (content as unknown as CustomContent).items || [];
     return `<div class="space-y-3">${items.map((item) => `<div>
       <div class="flex items-baseline justify-between"><div><span class="text-sm font-bold" style="color:${DARK}">${esc(item.title)}</span>${item.subtitle ? `<span class="text-sm text-zinc-500"> — ${esc(item.subtitle)}</span>` : ''}</div>${item.date ? `<span class="shrink-0 text-xs text-zinc-400">${esc(item.date)}</span>` : ''}</div>
-      ${item.description ? `<p class="mt-1 text-sm text-zinc-600">${md(item.description)}</p>` : ''}
+      ${item.description ? `<div class="mt-1 text-sm text-zinc-600">${md(item.description)}</div>` : ''}
     </div>`).join('')}</div>`;
   }
 
@@ -405,7 +405,7 @@ function buildDeveloperSectionHtml(section: CanonicalResume['sections'][number],
 
   if ('items' in content && Array.isArray(content.items)) {
     const items = content.items as GenericItem[];
-    return `<div class="space-y-2">${items.map((item) => `<div><span class="text-sm font-medium" style="color:${DARK}">${esc(item.name || item.title || item.language || '')}</span>${item.description ? `<p class="text-sm text-zinc-600">${md(item.description)}</p>` : ''}</div>`).join('')}</div>`;
+    return `<div class="space-y-2">${items.map((item) => `<div><span class="text-sm font-medium" style="color:${DARK}">${esc(item.name || item.title || item.language || '')}</span>${item.description ? `<div class="text-sm text-zinc-600">${md(item.description)}</div>` : ''}</div>`).join('')}</div>`;
   }
 
   return '';

@@ -561,7 +561,7 @@ function buildModernMinimalSectionHtml(
     return `<div data-section style="padding:0 32px 24px">
       <div style="border-top:1px solid ${DIVIDER};margin-bottom:16px"></div>
       ${sectionHeader}
-      <p style="font-size:14px;line-height:1.6;color:${TEXT_SECONDARY};margin:0">${md((content as unknown as SummaryContent).text)}</p>
+      <div style="font-size:14px;line-height:1.6;color:${TEXT_SECONDARY};margin:0">${md((content as unknown as SummaryContent).text)}</div>
     </div>`;
   }
 
@@ -584,7 +584,7 @@ function buildModernMinimalSectionHtml(
             ${it.company ? `<span style="font-size:13px;color:${ACCENT}">${esc(it.company)}</span>` : ''}
           </div>
           ${it.location ? `<p style="font-size:11px;color:${TEXT_SECONDARY};margin:2px 0 0">${esc(it.location)}</p>` : ''}
-          ${it.description ? `<p class="mt-1 text-sm" style="color:${TEXT_SECONDARY}"><span class="font-medium" style="color:${TEXT_PRIMARY}">${lang === 'zh' ? '职责' : 'Responsibilities'}:</span> <span>${md(it.description)}</span></p>` : ''}
+          ${it.description ? `<div class="mt-1 text-sm" style="color:${TEXT_SECONDARY}"><span class="font-medium" style="color:${TEXT_PRIMARY}">${lang === 'zh' ? '职责' : 'Responsibilities'}:</span> <span>${md(it.description)}</span></div>` : ''}
           ${techs}
           ${it.highlights?.length ? `<div class="mt-1.5"><p class="text-xs font-medium mb-0.5" style="color:${TEXT_PRIMARY}">${lang === 'zh' ? '主要成就' : 'Key Achievements'}:</p><ul class="list-disc pl-4" style="margin:0;padding-inline-start:16px">${it.highlights.filter(Boolean).map((h) => `<li class="text-sm" style="color:${TEXT_SECONDARY}">${md(h)}</li>`).join('')}</ul></div>` : ''}
         </div>
@@ -617,7 +617,7 @@ function buildModernMinimalSectionHtml(
           </div>
           ${it.startDate ? `<span style="flex-shrink:0;font-size:11px;color:${TEXT_SECONDARY};text-align:right">${formatDate(it.startDate, it.endDate || null, false, lang)}</span>` : ''}
         </div>
-        ${it.description ? `<p style="font-size:13px;line-height:1.5;color:${TEXT_SECONDARY};margin:6px 0 0">${md(it.description)}</p>` : ''}
+        ${it.description ? `<div style="font-size:13px;line-height:1.5;color:${TEXT_SECONDARY};margin:6px 0 0">${md(it.description)}</div>` : ''}
         ${techs}${highlights}
       </div>`;
     }).join('');
@@ -676,7 +676,7 @@ function buildModernMinimalSectionHtml(
         ${it.stars != null ? `<span style="font-size:11px;color:${TEXT_SECONDARY}">★ ${it.stars.toLocaleString()}</span>` : ''}
       </div>
       ${it.language ? `<span style="font-size:11px;color:${ACCENT}">${esc(it.language)}</span>` : ''}
-      ${it.description ? `<p style="font-size:12px;color:${TEXT_SECONDARY};margin:4px 0 0">${md(it.description)}</p>` : ''}
+      ${it.description ? `<div style="font-size:12px;color:${TEXT_SECONDARY};margin:4px 0 0">${md(it.description)}</div>` : ''}
     </div>`).join('');
     return `<div data-section style="padding:0 32px 24px">
       <div style="border-top:1px solid ${DIVIDER};margin-bottom:16px"></div>
@@ -728,7 +728,7 @@ function buildModernMinimalSectionHtml(
         </div>
         ${it.date ? `<span style="font-size:11px;color:${TEXT_SECONDARY}">${esc(it.date)}</span>` : ''}
       </div>
-      ${it.description ? `<p style="font-size:13px;color:${TEXT_SECONDARY};margin:2px 0 0">${md(it.description)}</p>` : ''}
+      ${it.description ? `<div style="font-size:13px;color:${TEXT_SECONDARY};margin:2px 0 0">${md(it.description)}</div>` : ''}
     </div>`).join('');
     return `<div data-section style="padding:0 32px 24px">
       <div style="border-top:1px solid ${DIVIDER};margin-bottom:16px"></div>
@@ -742,7 +742,7 @@ function buildModernMinimalSectionHtml(
     const items = content.items as Array<{ id: string; name?: string; title?: string; language?: string; description?: string }>;
     const itemsHtml = items.map((it) => `<div>
       <span style="font-size:14px;font-weight:500;color:${TEXT_PRIMARY}">${esc(it.name || it.title || it.language || '')}</span>
-      ${it.description ? `<p style="font-size:13px;color:${TEXT_SECONDARY};margin:2px 0 0">${md(it.description)}</p>` : ''}
+      ${it.description ? `<div style="font-size:13px;color:${TEXT_SECONDARY};margin:2px 0 0">${md(it.description)}</div>` : ''}
     </div>`).join('');
     return `<div data-section style="padding:0 32px 24px">
       <div style="border-top:1px solid ${DIVIDER};margin-bottom:16px"></div>

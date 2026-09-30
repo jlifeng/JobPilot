@@ -194,7 +194,7 @@ function buildCreativeCardHtml({ title, subtitle, location, date, description, t
     <div class="flex items-baseline justify-between"><h3 class="text-sm font-bold"${titlePrimary ? ` style="color:${PRIMARY}"` : ''}>${esc(title)}${link ? ` <a href="${esc(link)}" target="_blank" rel="noopener noreferrer" class="ml-1 text-xs font-normal" style="color:#3b82f6">${esc(link)}</a>` : ''}</h3>${date ? `<span class="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold text-white" style="background:${PRIMARY}">${esc(date)}</span>` : ''}</div>
     ${subtitle ? `<p class="text-sm font-medium" style="color:${PRIMARY}">${esc(subtitle)}${location ? `<span class="text-xs font-normal text-zinc-400">, ${esc(location)}</span>` : ''}</p>` : ''}
     ${description && descriptionBulletItems ? `<div class="mt-1">${label ? `<p class="mb-0.5 text-xs font-medium text-zinc-500">${esc(label)}:</p>` : ''}${buildDotList(descriptionBulletItems)}</div>` : ''}
-    ${description && !descriptionBulletItems ? `<p class="mt-1 text-sm text-zinc-600">${label ? `<span class="font-medium text-zinc-700">${esc(label)}: </span>` : ''}<span>${md(description)}</span></p>` : ''}
+    ${description && !descriptionBulletItems ? `<div class="mt-1 text-sm text-zinc-600">${label ? `<span class="font-medium text-zinc-700">${esc(label)}: </span>` : ''}<span>${md(description)}</span></div>` : ''}
   ${gpa ? `<p class="text-xs text-zinc-500">GPA: ${esc(gpa)}</p>` : ''}
     ${technologies?.length ? `<div class="mt-2 flex flex-wrap gap-1">${technologies.map((technology) => `<span class="rounded-full px-2 py-0.5 text-[10px] font-medium text-white" style="background:${EXPORT_GRADIENT}">${esc(technology)}</span>`).join('')}</div>` : ''}
     ${highlights?.length ? `<div class="mt-1.5">${highlightLabel ? `<p class="mb-0.5 text-xs font-medium text-zinc-500">${esc(highlightLabel)}:</p>` : ''}${buildDotList(highlights)}</div>` : ''}
@@ -208,7 +208,7 @@ function buildCreativeSectionHtml(section: CanonicalResume['sections'][number], 
     const summaryText = (content as unknown as SummaryContent).text;
     const summaryItems = extractMarkdownBulletItems(summaryText);
 
-    return `<div class="rounded-lg bg-zinc-50 p-4 text-sm italic leading-relaxed text-zinc-600">${summaryItems ? buildDotList(summaryItems) : `<p>${md(summaryText)}</p>`}</div>`;
+    return `<div class="rounded-lg bg-zinc-50 p-4 text-sm italic leading-relaxed text-zinc-600">${summaryItems ? buildDotList(summaryItems) : `<div>${md(summaryText)}</div>`}</div>`;
   }
   if (section.type === 'work_experience') {
     const items = (content as unknown as WorkExperienceContent).items || [];

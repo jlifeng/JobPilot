@@ -29,7 +29,7 @@ function buildRetroSectionContent(section: Section, lang: string): string {
     if (summaryItems?.length) {
       return buildRetroBulletList(summaryItems);
     }
-    return `<p class="text-center text-sm italic leading-relaxed" style="color:${ACCENT}">&ldquo;${md((c as SummaryContent).text)}&rdquo;</p>`;
+    return `<div class="text-center text-sm italic leading-relaxed" style="color:${ACCENT}">&ldquo;${md((c as SummaryContent).text)}&rdquo;</div>`;
   }
 
   if (section.type === 'work_experience') {

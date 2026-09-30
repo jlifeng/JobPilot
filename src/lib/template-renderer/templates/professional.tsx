@@ -350,14 +350,14 @@ function buildProfessionalSectionHtml(section: CanonicalResume['sections'][numbe
   const content = section.content as unknown as Record<string, unknown>;
 
   if (section.type === 'summary') {
-    return `<p class="text-sm leading-relaxed text-zinc-600" style="font-family:Georgia,serif">${md((content as unknown as SummaryContent).text)}</p>`;
+    return `<div class="text-sm leading-relaxed text-zinc-600" style="font-family:Georgia,serif">${md((content as unknown as SummaryContent).text)}</div>`;
   }
 
   if (section.type === 'work_experience') {
     const items = (content as unknown as WorkExperienceContent).items || [];
     return `<div class="space-y-4">${items.map((it) => `<div>
       <div class="flex items-baseline justify-between"><div><span class="text-sm font-bold" style="color:${BLUE}">${esc(it.position)}</span>${it.company ? `<span class="text-sm text-zinc-600"> — ${esc(it.company)}</span>` : ''}${it.location ? `<span class="text-sm text-zinc-400"> (${esc(it.location)})</span>` : ''}</div><span class="shrink-0 text-xs text-zinc-400 italic">${esc(dateRange(it.startDate, it.endDate, it.current, lang))}</span></div>
-      ${it.description ? `<p class="mt-1 text-sm text-zinc-600"><span class="font-medium text-zinc-700">${lang === 'zh' ? '职责' : 'Responsibilities'}:</span> <span>${md(it.description, { listStyle: markdownListStyle('1.25rem') })}</span></p>` : ''}
+      ${it.description ? `<div class="mt-1 text-sm text-zinc-600"><span class="font-medium text-zinc-700">${lang === 'zh' ? '职责' : 'Responsibilities'}:</span> <span>${md(it.description, { listStyle: markdownListStyle('1.25rem') })}</span></div>` : ''}
       ${it.technologies?.length ? `<p class="mt-0.5 text-xs text-zinc-400">${lang === 'zh' ? '技术栈' : 'Tech'}: ${esc(it.technologies.join(', '))}</p>` : ''}
       ${it.highlights?.length ? `<div class="mt-1"><p class="text-xs font-medium text-zinc-500 mb-0.5">${lang === 'zh' ? '主要成就' : 'Key Achievements'}:</p><ul class="list-disc pl-5">${buildHighlights(it.highlights, 'text-sm text-zinc-600')}</ul></div>` : ''}
     </div>`).join('')}</div>`;
@@ -385,7 +385,7 @@ function buildProfessionalSectionHtml(section: CanonicalResume['sections'][numbe
     const items = (content as unknown as ProjectsContent).items || [];
     return `<div class="space-y-3">${items.map((it) => `<div>
       <div class="flex items-baseline justify-between"><span class="text-sm font-bold" style="color:${BLUE}">${esc(it.name)}</span>${it.startDate ? `<span class="shrink-0 text-xs text-zinc-400 italic">${esc(dateRange(it.startDate, it.endDate, !it.endDate, lang))}</span>` : ''}</div>
-      ${it.description ? `<p class="mt-1 text-sm text-zinc-600">${md(it.description)}</p>` : ''}
+      ${it.description ? `<div class="mt-1 text-sm text-zinc-600">${md(it.description)}</div>` : ''}
       ${it.technologies?.length ? `<p class="mt-0.5 text-xs text-zinc-400">${lang === 'zh' ? '技术栈' : 'Tech'}: ${esc(it.technologies.join(', '))}</p>` : ''}
       ${it.highlights?.length ? `<ul class="mt-1 list-disc pl-5">${buildHighlights(it.highlights, 'text-sm text-zinc-600')}</ul>` : ''}
     </div>`).join('')}</div>`;
@@ -396,7 +396,7 @@ function buildProfessionalSectionHtml(section: CanonicalResume['sections'][numbe
     return `<div class="space-y-3">${items.map((it) => `<div>
       <div class="flex items-baseline justify-between"><span class="text-sm font-bold" style="color:${BLUE}">${esc(it.name)}${it.repoUrl ? ` <a href="${esc(it.repoUrl)}" target="_blank" rel="noopener noreferrer" class="ml-1 text-xs font-normal" style="color:#3b82f6">${esc(it.repoUrl)}</a>` : ''}</span><span class="shrink-0 text-xs text-zinc-400 italic">${it.stars?.toLocaleString() ?? 0}</span></div>
       ${it.language ? `<span class="text-xs text-zinc-500">${esc(it.language)}</span>` : ''}
-      ${it.description ? `<p class="mt-1 text-sm text-zinc-600">${md(it.description)}</p>` : ''}
+      ${it.description ? `<div class="mt-1 text-sm text-zinc-600">${md(it.description)}</div>` : ''}
     </div>`).join('')}</div>`;
   }
 
@@ -416,7 +416,7 @@ function buildProfessionalSectionHtml(section: CanonicalResume['sections'][numbe
     const items = (content as unknown as CustomContent).items || [];
     return `<div class="space-y-2">${items.map((it) => `<div>
       <div class="flex items-baseline justify-between"><div><span class="text-sm font-semibold" style="color:${BLUE}">${esc(it.title)}</span>${it.subtitle ? `<span class="text-sm text-zinc-500"> — ${esc(it.subtitle)}</span>` : ''}</div>${it.date ? `<span class="shrink-0 text-xs text-zinc-400 italic">${esc(it.date)}</span>` : ''}</div>
-      ${it.description ? `<p class="mt-0.5 text-sm text-zinc-600">${md(it.description)}</p>` : ''}
+      ${it.description ? `<div class="mt-0.5 text-sm text-zinc-600">${md(it.description)}</div>` : ''}
     </div>`).join('')}</div>`;
   }
 
@@ -432,7 +432,7 @@ function buildProfessionalSectionHtml(section: CanonicalResume['sections'][numbe
 
   if ('items' in content && Array.isArray(content.items)) {
     const items = content.items as Array<{ id: string; name?: string; title?: string; language?: string; description?: string }>;
-    return `<div class="space-y-2">${items.map((it) => `<div><span class="text-sm font-medium" style="color:${BLUE}">${esc(it.name || it.title || it.language || '')}</span>${it.description ? `<p class="text-sm text-zinc-600">${md(it.description)}</p>` : ''}</div>`).join('')}</div>`;
+    return `<div class="space-y-2">${items.map((it) => `<div><span class="text-sm font-medium" style="color:${BLUE}">${esc(it.name || it.title || it.language || '')}</span>${it.description ? `<div class="text-sm text-zinc-600">${md(it.description)}</div>` : ''}</div>`).join('')}</div>`;
   }
 
   return '';

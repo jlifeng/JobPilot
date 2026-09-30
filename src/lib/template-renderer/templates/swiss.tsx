@@ -198,11 +198,11 @@ function buildSwissSectionHtml(section: CanonicalSection, lang: string): string 
 
     return summaryItems
       ? buildRedBulletList(summaryItems, 'list-none space-y-0.5')
-      : `<p class="text-sm leading-relaxed" style="color:${BODY}">${md(summaryText)}</p>`;
+      : `<div class="text-sm leading-relaxed" style="color:${BODY}">${md(summaryText)}</div>`;
   }
   if (section.type === 'work_experience') {
     const items = (content as unknown as WorkExperienceContent).items || [];
-    return `<div class="space-y-4">${items.map((item) => buildSwissGridItem(dateRange(item.startDate, item.endDate, item.current, lang), `<h3 class="text-sm font-bold" style="color:${TEXT}">${esc(item.position)}</h3>${item.company ? `<p class="text-sm" style="color:${RED}">${esc(item.company)}</p>` : ''}${(() => { const responsibilityItems = extractMarkdownBulletItems(item.description); if (responsibilityItems?.length) { return `<div class="mt-1"><p class="mb-0.5 text-xs font-medium" style="color:${MUTED}">${lang === 'zh' ? '职责' : 'Responsibilities'}:</p>${buildRedBulletList(responsibilityItems)}</div>`; } return item.description ? `<p class="mt-1 text-sm" style="color:${BODY}"><span class="font-medium" style="color:${TEXT}">${lang === 'zh' ? '职责' : 'Responsibilities'}:</span> <span>${md(item.description)}</span></p>` : ''; })()}${item.technologies?.length ? `<p class="mt-0.5 text-xs" style="color:${MUTED}">${lang === 'zh' ? '技术栈' : 'Tech'}: ${esc(item.technologies.join(', '))}</p>` : ''}${item.highlights?.length ? `<div class="mt-1"><p class="mb-0.5 text-xs font-medium" style="color:${MUTED}">${lang === 'zh' ? '主要成就' : 'Key Achievements'}:</p>${buildRedBulletList(item.highlights)}</div>` : ''}`)).join('')}</div>`;
+    return `<div class="space-y-4">${items.map((item) => buildSwissGridItem(dateRange(item.startDate, item.endDate, item.current, lang), `<h3 class="text-sm font-bold" style="color:${TEXT}">${esc(item.position)}</h3>${item.company ? `<p class="text-sm" style="color:${RED}">${esc(item.company)}</p>` : ''}${(() => { const responsibilityItems = extractMarkdownBulletItems(item.description); if (responsibilityItems?.length) { return `<div class="mt-1"><p class="mb-0.5 text-xs font-medium" style="color:${MUTED}">${lang === 'zh' ? '职责' : 'Responsibilities'}:</p>${buildRedBulletList(responsibilityItems)}</div>`; } return item.description ? `<div class="mt-1 text-sm" style="color:${BODY}"><span class="font-medium" style="color:${TEXT}">${lang === 'zh' ? '职责' : 'Responsibilities'}:</span> <span>${md(item.description)}</span></div>` : ''; })()}${item.technologies?.length ? `<p class="mt-0.5 text-xs" style="color:${MUTED}">${lang === 'zh' ? '技术栈' : 'Tech'}: ${esc(item.technologies.join(', '))}</p>` : ''}${item.highlights?.length ? `<div class="mt-1"><p class="mb-0.5 text-xs font-medium" style="color:${MUTED}">${lang === 'zh' ? '主要成就' : 'Key Achievements'}:</p>${buildRedBulletList(item.highlights)}</div>` : ''}`)).join('')}</div>`;
   }
   if (section.type === 'education') {
     const items = (content as unknown as EducationContent).items || [];
@@ -214,7 +214,7 @@ function buildSwissSectionHtml(section: CanonicalSection, lang: string): string 
   }
   if (section.type === 'projects') {
     const items = (content as unknown as ProjectsContent).items || [];
-    return `<div class="space-y-3">${items.map((item) => buildSwissGridItem(item.startDate ? dateRange(item.startDate, item.endDate, true, lang) : '', `<h3 class="text-sm font-bold" style="color:${TEXT}">${esc(item.name)}</h3>${item.description ? `<p class="mt-0.5 text-sm" style="color:${BODY}">${md(item.description)}</p>` : ''}${item.technologies?.length ? `<p class="mt-0.5 text-xs" style="color:${MUTED}">${lang === 'zh' ? '技术栈' : 'Tech'}: ${esc(item.technologies.join(', '))}</p>` : ''}${buildRedBulletList(item.highlights)}`)).join('')}</div>`;
+    return `<div class="space-y-3">${items.map((item) => buildSwissGridItem(item.startDate ? dateRange(item.startDate, item.endDate, true, lang) : '', `<h3 class="text-sm font-bold" style="color:${TEXT}">${esc(item.name)}</h3>${item.description ? `<div class="mt-0.5 text-sm" style="color:${BODY}">${md(item.description)}</div>` : ''}${item.technologies?.length ? `<p class="mt-0.5 text-xs" style="color:${MUTED}">${lang === 'zh' ? '技术栈' : 'Tech'}: ${esc(item.technologies.join(', '))}</p>` : ''}${buildRedBulletList(item.highlights)}`)).join('')}</div>`;
   }
   if (section.type === 'certifications') {
     const items = (content as unknown as CertificationsContent).items || [];
@@ -226,16 +226,16 @@ function buildSwissSectionHtml(section: CanonicalSection, lang: string): string 
   }
   if (section.type === 'github') {
     const items = (content as unknown as GitHubContent).items || [];
-    return `<div class="space-y-3">${items.map((item) => buildSwissGridItem(`★ ${item.stars?.toLocaleString() ?? 0}`, `<h3 class="text-sm font-bold" style="color:${TEXT}">${esc(item.name)}${item.repoUrl ? ` <a href="${esc(item.repoUrl)}" target="_blank" rel="noopener noreferrer" class="ml-1 text-xs font-normal" style="color:#3b82f6">${esc(item.repoUrl)}</a>` : ''}</h3>${item.language ? `<span class="text-xs" style="color:${RED}">${esc(item.language)}</span>` : ''}${item.description ? `<p class="mt-0.5 text-sm" style="color:${BODY}">${md(item.description)}</p>` : ''}`)).join('')}</div>`;
+    return `<div class="space-y-3">${items.map((item) => buildSwissGridItem(`★ ${item.stars?.toLocaleString() ?? 0}`, `<h3 class="text-sm font-bold" style="color:${TEXT}">${esc(item.name)}${item.repoUrl ? ` <a href="${esc(item.repoUrl)}" target="_blank" rel="noopener noreferrer" class="ml-1 text-xs font-normal" style="color:#3b82f6">${esc(item.repoUrl)}</a>` : ''}</h3>${item.language ? `<span class="text-xs" style="color:${RED}">${esc(item.language)}</span>` : ''}${item.description ? `<div class="mt-0.5 text-sm" style="color:${BODY}">${md(item.description)}</div>` : ''}`)).join('')}</div>`;
   }
   if (section.type === 'custom') {
     const items = (content as unknown as CustomContent).items || [];
-    return `<div class="space-y-3">${items.map((item) => buildSwissGridItem(item.date || '', `<h3 class="text-sm font-bold" style="color:${TEXT}">${esc(item.title)}</h3>${item.subtitle ? `<p class="text-sm" style="color:${RED}">${esc(item.subtitle)}</p>` : ''}${item.description ? `<p class="mt-0.5 text-sm" style="color:${BODY}">${md(item.description)}</p>` : ''}`)).join('')}</div>`;
+    return `<div class="space-y-3">${items.map((item) => buildSwissGridItem(item.date || '', `<h3 class="text-sm font-bold" style="color:${TEXT}">${esc(item.title)}</h3>${item.subtitle ? `<p class="text-sm" style="color:${RED}">${esc(item.subtitle)}</p>` : ''}${item.description ? `<div class="mt-0.5 text-sm" style="color:${BODY}">${md(item.description)}</div>` : ''}`)).join('')}</div>`;
   }
   if (section.type === 'qr_codes') return buildQrCodesHtml(content);
   if ('items' in content && Array.isArray(content.items)) {
     const items = content.items as GenericItem[];
-    return `<div class="space-y-2">${items.map((item) => `<div><span class="text-sm font-bold" style="color:${TEXT}">${esc(item.name || item.title || item.language || '')}</span>${item.description ? `<p class="text-sm" style="color:${BODY}">${md(item.description)}</p>` : ''}</div>`).join('')}</div>`;
+    return `<div class="space-y-2">${items.map((item) => `<div><span class="text-sm font-bold" style="color:${TEXT}">${esc(item.name || item.title || item.language || '')}</span>${item.description ? `<div class="text-sm" style="color:${BODY}">${md(item.description)}</div>` : ''}</div>`).join('')}</div>`;
   }
   return '';
 }

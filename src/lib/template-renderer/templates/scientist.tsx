@@ -375,14 +375,14 @@ function buildScientistSectionHtml(section: CanonicalResume['sections'][number],
 
     return summaryItems
       ? buildDashList(summaryItems, 'space-y-0.5 pl-6')
-      : `<p class="text-sm italic leading-relaxed" style="color:${BODY_TEXT}">${md(summaryText)}</p>`;
+      : `<div class="text-sm italic leading-relaxed" style="color:${BODY_TEXT}">${md(summaryText)}</div>`;
   }
 
   if (section.type === 'work_experience') {
     const items = (content as unknown as WorkExperienceContent).items || [];
     return `<div class="space-y-4">${items.map((item, index) => `<div>
       <div class="flex items-baseline justify-between"><div><span class="text-xs font-bold" style="color:${ACCENT}">[${index + 1}]</span><span class="ml-1.5 text-sm font-bold" style="color:${PRIMARY}">${esc(item.position)}</span>${item.company ? `<span class="text-sm" style="color:${MUTED}">, ${esc(item.company)}</span>` : ''}</div><span class="shrink-0 text-xs" style="color:${MUTED}">${esc(dateRange(item.startDate, item.endDate, item.current, lang))}</span></div>
-      ${(() => { const responsibilityItems = extractMarkdownBulletItems(item.description); if (responsibilityItems?.length) { return `<div class="mt-1 pl-6"><p class="mb-0.5 text-xs font-medium" style="color:${MUTED}">${lang === 'zh' ? '职责' : 'Responsibilities'}:</p>${buildDashList(responsibilityItems, 'space-y-0.5')}</div>`; } return item.description ? `<p class="mt-1 pl-6 text-sm" style="color:${BODY_TEXT}"><span class="font-medium" style="color:${PRIMARY}">${lang === 'zh' ? '职责' : 'Responsibilities'}:</span> <span>${md(item.description)}</span></p>` : ''; })()}
+      ${(() => { const responsibilityItems = extractMarkdownBulletItems(item.description); if (responsibilityItems?.length) { return `<div class="mt-1 pl-6"><p class="mb-0.5 text-xs font-medium" style="color:${MUTED}">${lang === 'zh' ? '职责' : 'Responsibilities'}:</p>${buildDashList(responsibilityItems, 'space-y-0.5')}</div>`; } return item.description ? `<div class="mt-1 pl-6 text-sm" style="color:${BODY_TEXT}"><span class="font-medium" style="color:${PRIMARY}">${lang === 'zh' ? '职责' : 'Responsibilities'}:</span> <span>${md(item.description)}</span></div>` : ''; })()}
       ${item.technologies?.length ? `<p class="pl-6 text-xs italic" style="color:${MUTED}">${lang === 'zh' ? '技术栈' : 'Methods/Tools'}: ${esc(item.technologies.join(', '))}</p>` : ''}
       ${item.highlights?.length ? `<div class="mt-1 pl-6"><p class="mb-0.5 text-xs font-medium" style="color:${MUTED}">${lang === 'zh' ? '主要成就' : 'Key Achievements'}:</p>${buildDashList(item.highlights, 'space-y-0.5')}</div>` : ''}
     </div>`).join('')}</div>`;
@@ -406,7 +406,7 @@ function buildScientistSectionHtml(section: CanonicalResume['sections'][number],
     const items = (content as unknown as ProjectsContent).items || [];
     return `<div class="space-y-3">${items.map((item, index) => `<div>
       <div class="flex items-baseline justify-between"><div><span class="text-xs font-bold" style="color:${ACCENT}">[${index + 1}]</span><span class="ml-1.5 text-sm font-bold" style="color:${PRIMARY}">${esc(item.name)}</span></div>${item.startDate ? `<span class="shrink-0 text-xs" style="color:${MUTED}">${esc(dateRange(item.startDate, item.endDate, true, lang))}</span>` : ''}</div>
-      ${item.description ? `<p class="mt-1 pl-6 text-sm" style="color:${BODY_TEXT}">${md(item.description)}</p>` : ''}
+      ${item.description ? `<div class="mt-1 pl-6 text-sm" style="color:${BODY_TEXT}">${md(item.description)}</div>` : ''}
       ${item.technologies?.length ? `<p class="pl-6 text-xs italic" style="color:${MUTED}">${lang === 'zh' ? '技术栈' : 'Methods/Tools'}: ${esc(item.technologies.join(', '))}</p>` : ''}
       ${buildDashList(item.highlights, 'mt-1 space-y-0.5 pl-6')}
     </div>`).join('')}</div>`;
@@ -427,7 +427,7 @@ function buildScientistSectionHtml(section: CanonicalResume['sections'][number],
     return `<div class="space-y-3">${items.map((item, index) => `<div>
       <div class="flex items-baseline justify-between"><div><span class="text-xs font-bold" style="color:${ACCENT}">[${index + 1}]</span><span class="ml-1.5 text-sm font-bold" style="color:${PRIMARY}">${esc(item.name)}${item.repoUrl ? ` <a href="${esc(item.repoUrl)}" target="_blank" rel="noopener noreferrer" class="ml-1 text-xs font-normal" style="color:#3b82f6">${esc(item.repoUrl)}</a>` : ''}</span></div><span class="shrink-0 text-xs" style="color:${MUTED}">★ ${item.stars?.toLocaleString() ?? 0}</span></div>
       ${item.language ? `<span class="pl-6 text-xs italic" style="color:${ACCENT}">${esc(item.language)}</span>` : ''}
-      ${item.description ? `<p class="mt-0.5 pl-6 text-sm" style="color:${BODY_TEXT}">${md(item.description)}</p>` : ''}
+      ${item.description ? `<div class="mt-0.5 pl-6 text-sm" style="color:${BODY_TEXT}">${md(item.description)}</div>` : ''}
     </div>`).join('')}</div>`;
   }
 
@@ -435,7 +435,7 @@ function buildScientistSectionHtml(section: CanonicalResume['sections'][number],
     const items = (content as unknown as CustomContent).items || [];
     return `<div class="space-y-3">${items.map((item, index) => `<div>
       <div class="flex items-baseline justify-between"><div><span class="text-xs font-bold" style="color:${ACCENT}">[${index + 1}]</span><span class="ml-1.5 text-sm font-bold" style="color:${PRIMARY}">${esc(item.title)}</span>${item.subtitle ? `<span class="text-sm" style="color:${MUTED}">, ${esc(item.subtitle)}</span>` : ''}</div>${item.date ? `<span class="shrink-0 text-xs" style="color:${MUTED}">${esc(item.date)}</span>` : ''}</div>
-      ${item.description ? `<p class="mt-0.5 pl-6 text-sm" style="color:${BODY_TEXT}">${md(item.description)}</p>` : ''}
+      ${item.description ? `<div class="mt-0.5 pl-6 text-sm" style="color:${BODY_TEXT}">${md(item.description)}</div>` : ''}
     </div>`).join('')}</div>`;
   }
 
@@ -449,7 +449,7 @@ function buildScientistSectionHtml(section: CanonicalResume['sections'][number],
 
   if ('items' in content && Array.isArray(content.items)) {
     const items = content.items as GenericItem[];
-    return `<div class="space-y-2">${items.map((item) => `<div><span class="text-sm font-medium" style="color:${PRIMARY}">${esc(item.name || item.title || item.language || '')}</span>${item.description ? `<p class="text-sm" style="color:${BODY_TEXT}">${md(item.description)}</p>` : ''}</div>`).join('')}</div>`;
+    return `<div class="space-y-2">${items.map((item) => `<div><span class="text-sm font-medium" style="color:${PRIMARY}">${esc(item.name || item.title || item.language || '')}</span>${item.description ? `<div class="text-sm" style="color:${BODY_TEXT}">${md(item.description)}</div>` : ''}</div>`).join('')}</div>`;
   }
 
   return '';
