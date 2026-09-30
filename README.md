@@ -55,6 +55,7 @@ JobPilot is a **local-first AI job-search desktop app** focused on resume writin
 
 ## 🚀 Recent Highlights
 
+- **v1.8.1** — Fix inconsistent text colour in exported PDFs: Markdown lists (for example work-experience responsibilities) rendered pure black instead of the theme body grey, because list markup was nested inside a `<p>` element. Affects 32 templates including Consultant, Classic, Modern, Minimal, Professional, Two-Column and ATS.
 - **v1.8.0** — OrcaRouter provider integration with OpenAI-compatible chat, model discovery, connectivity testing, localized registration onboarding, and the `orcarouter/free` default router, with domestic free models such as `deepseek/deepseek-v4-flash-free` and `qwen/qwen3.8-27b-free`.
 - **v1.6.0** — Skill capability pack system, Skill management page, importable Skills with references/scenario assignment, and mock interview Skill-persona mode decoupled from built-in interviewers.
 - **v1.5.3** — WebDAV sidebar status refresh fixes, AI chat rendering stability, and docs updates for Chinese AI providers.

@@ -5,6 +5,15 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 并且本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.8.1] - 2026-09-30
+
+### 修复
+
+- **导出 PDF 时列表文字颜色不一致** — 修复导出 PDF/HTML 时，工作经历「职责」等包含 Markdown 列表的内容会变成纯黑、与其余正文深灰色不一致的问题
+  - 原因是列表 HTML 被包裹在不允许块级元素的 `<p>` 中，浏览器解析时会自动闭合 `<p>` 并把 `<ul>` 提升为同级节点，导致列表脱离带颜色样式的父元素、回落到浏览器默认黑色
+  - 修复覆盖 32 个模板文件（29 个统一渲染器模板 + 3 个旧导出模板），仅将承载 Markdown 输出的 `<p>` 改为 `<div>`，不改变任何间距与排版
+  - 影响模板包括顾问、经典、现代、极简、专业、双栏、ATS、学术、优雅、高管、设计师、正式、紧凑、欧式、简洁、时间线、北欧、企业、金融、法律、侧栏等
+
 ## [1.8.0] - 2026-09-02
 
 ### 新增
@@ -364,7 +373,8 @@
 - 中英双语 — 完整的国际化支持
 - 本地优先 — 数据存储在本地，隐私安全有保障
 
-[Unreleased]: https://github.com/jlifeng/JobPilot/compare/v1.8.0...HEAD
+[Unreleased]: https://github.com/jlifeng/JobPilot/compare/v1.8.1...HEAD
+[1.8.1]: https://github.com/jlifeng/JobPilot/compare/v1.8.0...v1.8.1
 [1.8.0]: https://github.com/jlifeng/JobPilot/compare/v1.7.0...v1.8.0
 [1.7.0]: https://github.com/jlifeng/JobPilot/compare/v1.6.1...v1.7.0
 [1.6.1]: https://github.com/jlifeng/JobPilot/compare/v1.6.0...v1.6.1
