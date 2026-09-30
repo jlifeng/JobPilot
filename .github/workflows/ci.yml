@@ -83,7 +83,7 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Test Tauri build
-        run: cd desktop && pnpm run tauri build --no-bundle
+        run: pnpm --prefix desktop run tauri:build -- --no-bundle
         env:
           TAURI_SIGNING_PRIVATE_KEY: ""
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""

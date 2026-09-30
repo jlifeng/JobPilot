@@ -31,7 +31,13 @@ if (process.platform === "win32" && !process.env.CARGO_BUILD_JOBS) {
   env.CARGO_BUILD_JOBS = "1";
 }
 
-const args = [TAURI_MODE, ...process.argv.slice(3)];
+// pnpm injects a `--` separator when forwarding script arguments (npm does not),
+// so drop a leading separator before handing arguments to the Tauri CLI.
+const forwardedArgs = process.argv.slice(3);
+const args = [
+  TAURI_MODE,
+  ...(forwardedArgs[0] === "--" ? forwardedArgs.slice(1) : forwardedArgs),
+];
 
 function toPowerShellLiteral(value) {
   return `'${value.replaceAll("'", "''")}'`;
