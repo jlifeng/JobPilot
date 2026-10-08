@@ -1,8 +1,9 @@
-import { esc, buildExportThemeCSS, DEFAULT_THEME, type ResumeWithSections } from './utils';
+import { esc, buildExportThemeCSS, DEFAULT_THEME, type ResumeWithSections, type Section } from './utils';
 import { EXPORT_TAILWIND_CSS } from '@/lib/pdf/export-tailwind-css';
 import { BACKGROUND_TEMPLATES } from '@/lib/constants';
 import { generateQrSvg } from '@/lib/qrcode';
 import { getUnifiedTemplate, toCanonicalResume } from '@/lib/template-renderer';
+import { normalizeSectionContentForRender } from '@/lib/section-content';
 import { buildClassicHtml } from './templates/classic';
 import { buildModernHtml } from './templates/modern';
 import { buildMinimalHtml } from './templates/minimal';
@@ -166,14 +167,24 @@ export async function generateHtml(resume: ResumeWithSections, forPdf = false): 
   // Pre-generate QR SVGs so sync template builders can use them
   await preGenerateQrSvgs(resume);
 
+  // Strip render-only metadata (e.g. the auto-fetched GitHub primary language)
+  // so legacy builders stay consistent with the unified template contract.
+  const renderResume: ResumeWithSections = {
+    ...resume,
+    sections: resume.sections.map((section) => ({
+      ...section,
+      content: normalizeSectionContentForRender(section.type, section.content) as unknown as Section['content'],
+    })),
+  };
+
   // Try unified template first, fallback to legacy builder
   let bodyHtml: string;
-  const unifiedTemplate = getUnifiedTemplate(resume.template);
+  const unifiedTemplate = getUnifiedTemplate(renderResume.template);
   if (unifiedTemplate) {
-    bodyHtml = unifiedTemplate.buildHtml(toCanonicalResume(resume));
+    bodyHtml = unifiedTemplate.buildHtml(toCanonicalResume(renderResume));
   } else {
-    const builder = TEMPLATE_BUILDERS[resume.template] || buildClassicHtml;
-    bodyHtml = builder(resume);
+    const builder = TEMPLATE_BUILDERS[renderResume.template] || buildClassicHtml;
+    bodyHtml = builder(renderResume);
   }
   const theme = { ...DEFAULT_THEME, ...((resume as any).themeConfig || {}) };
   const themeCSS = buildExportThemeCSS(theme, resume.template);

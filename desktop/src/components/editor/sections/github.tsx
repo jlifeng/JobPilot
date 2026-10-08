@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { Plus, X, RefreshCw, Star, Code2, Loader2 } from "lucide-react";
+import { Plus, X, RefreshCw, Star, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { EditableText } from "../fields/editable-text";
@@ -15,10 +15,9 @@ interface Props {
   onUpdate: (content: Partial<GitHubContent>) => void;
 }
 
-async function fetchGitHubRepo(url: string): Promise<{
+async function fetchGitHubRepoMeta(url: string): Promise<{
   name: string;
   stars: number;
-  language: string;
   description: string;
 } | null> {
   try {
@@ -31,8 +30,7 @@ async function fetchGitHubRepo(url: string): Promise<{
     const data = await res.json();
     return {
       name: data.name || "",
-      stars: data.stargazers_count || 0,
-      language: data.language || "",
+      stars: typeof data.stargazers_count === "number" ? data.stargazers_count : 0,
       description: data.description || "",
     };
   } catch {
@@ -58,7 +56,6 @@ export function GitHubSection({ section, onUpdate }: Props) {
       repoUrl: "",
       name: "",
       stars: 0,
-      language: "",
       description: "",
     };
     onUpdate({ items: [...items, newItem] } as any);
@@ -80,21 +77,17 @@ export function GitHubSection({ section, onUpdate }: Props) {
     onUpdate({ items: items.filter((_, i) => i !== index) } as any);
   };
 
-  const fetchRepo = async (index: number, url: string) => {
+  // Refresh only the star count. name/description belong to the user, and the
+  // repository's primary language is never written back: injecting it here
+  // would surface unexpected text ("TypeScript") in the editor and preview.
+  const refreshStars = async (index: number, url: string) => {
     const latest = itemsRef.current;
     const item = latest[index];
     if (!item) return;
     setLoadingIds((prev) => new Set(prev).add(item.id));
     try {
-      const data = await fetchGitHubRepo(url);
-      if (data) {
-        updateItem(index, {
-          name: data.name,
-          stars: data.stars,
-          language: data.language,
-          description: data.description,
-        });
-      }
+      const data = await fetchGitHubRepoMeta(url);
+      if (data) updateItem(index, { stars: data.stars });
     } finally {
       setLoadingIds((prev) => {
         const next = new Set(prev);
@@ -102,6 +95,17 @@ export function GitHubSection({ section, onUpdate }: Props) {
         return next;
       });
     }
+  };
+
+  // Typing/pasting a repo URL pre-fills the editable fields once the URL is valid.
+  const autofillFromUrl = async (index: number, url: string) => {
+    const data = await fetchGitHubRepoMeta(url);
+    if (!data) return;
+    updateItem(index, {
+      name: data.name,
+      stars: data.stars,
+      description: data.description,
+    });
   };
 
   const handleUrlChange = (index: number, value: string) => {
@@ -114,7 +118,7 @@ export function GitHubSection({ section, onUpdate }: Props) {
     if (GITHUB_REPO_RE.test(value)) {
       const timer = setTimeout(() => {
         debounceTimers.current.delete(item.id);
-        fetchRepo(index, value);
+        autofillFromUrl(index, value);
       }, 600);
       debounceTimers.current.set(item.id, timer);
     }
@@ -128,7 +132,7 @@ export function GitHubSection({ section, onUpdate }: Props) {
     const current = itemsRef.current;
     current.forEach((item, index) => {
       if (item.repoUrl && GITHUB_REPO_RE.test(item.repoUrl)) {
-        fetchGitHubRepo(item.repoUrl)
+        fetchGitHubRepoMeta(item.repoUrl)
           .then((data) => {
             if (data) updateItem(index, { stars: data.stars });
           })
@@ -183,16 +187,10 @@ export function GitHubSection({ section, onUpdate }: Props) {
                   className="w-20 rounded border border-zinc-200 bg-transparent px-2 py-1 text-xs text-zinc-600 dark:border-zinc-700 dark:text-zinc-400"
                 />
               </div>
-              {item.language && (
-                <span className="inline-flex items-center gap-0.5 text-xs text-zinc-500">
-                  <Code2 className="h-3 w-3" />
-                  {item.language}
-                </span>
-              )}
               <button
                 type="button"
                 className="inline-flex cursor-pointer items-center gap-0.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
-                onClick={() => fetchRepo(index, item.repoUrl)}
+                onClick={() => refreshStars(index, item.repoUrl)}
                 disabled={loadingIds.has(item.id)}
               >
                 <RefreshCw

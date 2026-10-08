@@ -675,7 +675,6 @@ function buildGitHub(c: GitHubContent, title: string, theme: DocxTheme): DocxChi
   for (const item of c.items || []) {
     const itemChildren: DocxChild[] = [];
     const nameRuns: TextRun[] = [run(safe(item.name), theme, { bold: true, size: theme.h3Size, color: theme.primary })];
-    if (item.language) nameRuns.push(run(`  [${item.language}]`, theme, { color: '666666', size: theme.bodySize - 2 }));
     const rightRuns: TextRun[] = item.stars
       ? [run(`★ ${item.stars}`, theme, { color: '71717a' })]
       : [run('', theme)];

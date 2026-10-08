@@ -34,7 +34,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       name: data.full_name,
       stars: data.stargazers_count,
-      language: data.language || '',
       description: data.description || '',
       url: data.html_url,
     });

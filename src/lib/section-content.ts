@@ -42,5 +42,20 @@ export function normalizeSectionContentForRender(
     content.categories = getSectionCollection(content.categories, 'categories');
   }
 
+  // GitHub repositories carry an auto-fetched primary language. It is not
+  // resume content authored by the user, so strip it here — the single
+  // normalization choke point shared by preview, export and the resume store.
+  // This keeps every template from rendering an unexpected "TypeScript" line.
+  if (sectionType === 'github') {
+    content.items = getSectionCollection<Record<string, unknown>>(content.items, 'items').map(
+      (item) => {
+        if (!('language' in item)) return item;
+        const next = { ...item };
+        delete next.language;
+        return next;
+      },
+    );
+  }
+
   return content;
 }

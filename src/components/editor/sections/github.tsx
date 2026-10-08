@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
-import { Plus, X, RefreshCw, Star, Code2, Loader2 } from 'lucide-react';
+import { Plus, X, RefreshCw, Star, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { EditableText } from '../fields/editable-text';
@@ -33,7 +33,6 @@ export function GitHubSection({ section, onUpdate }: Props) {
       repoUrl: '',
       name: '',
       stars: 0,
-      language: '',
       description: '',
     };
     onUpdate({ items: [...items, newItem] } as any);
@@ -53,7 +52,10 @@ export function GitHubSection({ section, onUpdate }: Props) {
     onUpdate({ items: items.filter((_, i) => i !== index) } as any);
   };
 
-  const fetchRepo = async (index: number, url: string) => {
+  // Refresh only the star count. name/description belong to the user, and the
+  // repository's primary language is never written back: injecting it here
+  // would surface unexpected text ("TypeScript") in the editor and preview.
+  const refreshStars = async (index: number, url: string) => {
     const latest = itemsRef.current;
     const item = latest[index];
     if (!item) return;
@@ -62,12 +64,7 @@ export function GitHubSection({ section, onUpdate }: Props) {
       const res = await fetch(`/api/github/repo?url=${encodeURIComponent(url)}`);
       if (res.ok) {
         const data = await res.json();
-        updateItem(index, {
-          name: data.name,
-          stars: data.stars,
-          language: data.language,
-          description: data.description,
-        });
+        updateItem(index, { stars: data.stars });
       }
     } finally {
       setLoadingIds((prev) => {
@@ -76,6 +73,18 @@ export function GitHubSection({ section, onUpdate }: Props) {
         return next;
       });
     }
+  };
+
+  // Typing/pasting a repo URL pre-fills the editable fields once the URL is valid.
+  const autofillFromUrl = async (index: number, url: string) => {
+    const res = await fetch(`/api/github/repo?url=${encodeURIComponent(url)}`);
+    if (!res.ok) return;
+    const data = await res.json();
+    updateItem(index, {
+      name: data.name,
+      stars: data.stars,
+      description: data.description,
+    });
   };
 
   const handleUrlChange = (index: number, value: string) => {
@@ -88,7 +97,7 @@ export function GitHubSection({ section, onUpdate }: Props) {
     if (GITHUB_REPO_RE.test(value)) {
       const timer = setTimeout(() => {
         debounceTimers.current.delete(item.id);
-        fetchRepo(index, value);
+        autofillFromUrl(index, value);
       }, 600);
       debounceTimers.current.set(item.id, timer);
     }
@@ -149,16 +158,10 @@ export function GitHubSection({ section, onUpdate }: Props) {
                   className="w-20 rounded border border-zinc-200 bg-transparent px-2 py-1 text-xs text-zinc-600 dark:border-zinc-700 dark:text-zinc-400"
                 />
               </div>
-              {item.language && (
-                <span className="inline-flex items-center gap-0.5 text-xs text-zinc-500">
-                  <Code2 className="h-3 w-3" />
-                  {item.language}
-                </span>
-              )}
               <button
                 type="button"
                 className="inline-flex cursor-pointer items-center gap-0.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
-                onClick={() => fetchRepo(index, item.repoUrl)}
+                onClick={() => refreshStars(index, item.repoUrl)}
                 disabled={loadingIds.has(item.id)}
               >
                 <RefreshCw className={`h-3 w-3 ${loadingIds.has(item.id) ? 'animate-spin' : ''}`} />

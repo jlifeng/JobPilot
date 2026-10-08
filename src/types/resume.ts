@@ -132,7 +132,12 @@ export interface GitHubRepoItem {
   repoUrl: string;
   name: string;
   stars: number;
-  language: string;
+  /**
+   * Repository primary language reported by the GitHub API. Read-only metadata
+   * that `normalizeSectionContentForRender` strips before rendering, so templates
+   * never surface it as resume content. Optional because stored data may omit it.
+   */
+  language?: string;
   description: string;
 }
 

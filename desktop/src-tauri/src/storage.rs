@@ -14,7 +14,7 @@ use std::os::windows::process::CommandExt;
 use tauri::{AppHandle, Manager, Url};
 use uuid::Uuid;
 
-const STORAGE_SCHEMA_VERSION: u32 = 3;
+const STORAGE_SCHEMA_VERSION: u32 = 4;
 const WORKSPACE_ROOT_DIR: &str = "workspace";
 const DATABASE_FILE: &str = "rolerover.db";
 const DEFAULT_WINDOW_WIDTH: i64 = 1480;
@@ -1316,6 +1316,85 @@ fn bootstrap_schema(connection: &Connection) -> Result<(), String> {
         "skill_selection",
         "TEXT",
     )?;
+
+    // Schema v4: drop the auto-fetched GitHub primary language from stored
+    // section content. It is repository metadata, not resume content, and
+    // leaving it behind made templates render a stray "TypeScript" line.
+    // Gate on the recorded schema version so the table scan happens once.
+    let recorded_schema_version = connection
+        .query_row(
+            "SELECT schema_version FROM workspace_metadata WHERE id = 1",
+            [],
+            |row| row.get::<_, i64>(0),
+        )
+        .optional()
+        .map_err(|error| format!("failed to read stored schema version: {error}"))?
+        .unwrap_or(0);
+
+    if recorded_schema_version < 4 {
+        strip_github_repo_language_metadata(connection)?;
+    }
+
+    Ok(())
+}
+
+/// Remove the read-only `language` key from every stored GitHub repo item.
+///
+/// Idempotent, and gated by the recorded schema version in `bootstrap_schema`
+/// so the scan only runs on databases created before schema v4.
+fn strip_github_repo_language_metadata(connection: &Connection) -> Result<(), String> {
+    let mut statement = connection
+        .prepare(
+            r#"
+            SELECT id, content_json
+            FROM document_sections
+            WHERE section_type = 'github'
+              AND content_json LIKE '%"language"%'
+            "#,
+        )
+        .map_err(|error| format!("failed to prepare github metadata migration: {error}"))?;
+
+    let candidates = statement
+        .query_map([], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+        })
+        .map_err(|error| format!("failed to query github sections for migration: {error}"))?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|error| format!("failed to map github section rows: {error}"))?;
+
+    drop(statement);
+
+    for (section_id, content_json) in candidates {
+        let Ok(mut content) = serde_json::from_str::<Value>(&content_json) else {
+            continue;
+        };
+        let Some(items) = content.get_mut("items").and_then(Value::as_array_mut) else {
+            continue;
+        };
+
+        let mut changed = false;
+        for item in items.iter_mut() {
+            let Some(object) = item.as_object_mut() else {
+                continue;
+            };
+            if object.remove("language").is_some() {
+                changed = true;
+            }
+        }
+
+        if !changed {
+            continue;
+        }
+
+        let rewritten = serde_json::to_string(&content)
+            .map_err(|error| format!("failed to serialize migrated github section: {error}"))?;
+        connection
+            .execute(
+                "UPDATE document_sections SET content_json = ?1 WHERE id = ?2",
+                params![rewritten, section_id],
+            )
+            .map_err(|error| format!("failed to update migrated github section: {error}"))?;
+    }
 
     Ok(())
 }
@@ -3819,4 +3898,109 @@ pub fn save_document(app: &AppHandle, input: SaveDocumentInput) -> Result<Docume
 
     get_document(app, &input.id)?
         .ok_or_else(|| format!("document not found after save: {}", input.id))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn github_sections_table() -> Connection {
+        let connection = Connection::open_in_memory().expect("open in-memory sqlite");
+        connection
+            .execute_batch(
+                r#"
+                CREATE TABLE document_sections (
+                  id TEXT PRIMARY KEY,
+                  document_id TEXT NOT NULL,
+                  section_type TEXT NOT NULL,
+                  title TEXT NOT NULL,
+                  sort_order INTEGER NOT NULL DEFAULT 0,
+                  visible INTEGER NOT NULL DEFAULT 1,
+                  content_json TEXT NOT NULL DEFAULT '{}',
+                  created_at_epoch_ms INTEGER NOT NULL,
+                  updated_at_epoch_ms INTEGER NOT NULL
+                );
+                "#,
+            )
+            .expect("create document_sections");
+        connection
+    }
+
+    fn insert_section(connection: &Connection, id: &str, section_type: &str, content_json: &str) {
+        connection
+            .execute(
+                "INSERT INTO document_sections (id, document_id, section_type, title, content_json, created_at_epoch_ms, updated_at_epoch_ms)
+                 VALUES (?1, 'doc-1', ?2, 'Section', ?3, 0, 0)",
+                params![id, section_type, content_json],
+            )
+            .expect("insert section");
+    }
+
+    fn content_of(connection: &Connection, id: &str) -> String {
+        connection
+            .query_row(
+                "SELECT content_json FROM document_sections WHERE id = ?1",
+                params![id],
+                |row| row.get::<_, String>(0),
+            )
+            .expect("read content_json")
+    }
+
+    #[test]
+    fn strips_github_language_and_keeps_other_fields() {
+        let connection = github_sections_table();
+        insert_section(
+            &connection,
+            "gh-1",
+            "github",
+            r#"{"items":[{"id":"repo-1","repoUrl":"https://github.com/jlifeng/JobPilot","name":"JobPilot","stars":140,"language":"TypeScript","description":"Local-first"}]}"#,
+        );
+
+        strip_github_repo_language_metadata(&connection).expect("migration succeeds");
+
+        let value: Value = serde_json::from_str(&content_of(&connection, "gh-1")).expect("json");
+        let item = &value["items"][0];
+        assert!(item.get("language").is_none(), "language must be removed");
+        assert_eq!(item["name"], "JobPilot");
+        assert_eq!(item["stars"], 140);
+        assert_eq!(item["repoUrl"], "https://github.com/jlifeng/JobPilot");
+        assert_eq!(item["description"], "Local-first");
+    }
+
+    #[test]
+    fn keeps_language_on_non_github_sections() {
+        let connection = github_sections_table();
+        insert_section(
+            &connection,
+            "lang-1",
+            "languages",
+            r#"{"items":[{"id":"lang-1","language":"English","proficiency":"Fluent"}]}"#,
+        );
+
+        strip_github_repo_language_metadata(&connection).expect("migration succeeds");
+
+        let value: Value = serde_json::from_str(&content_of(&connection, "lang-1")).expect("json");
+        assert_eq!(value["items"][0]["language"], "English");
+    }
+
+    #[test]
+    fn is_idempotent_and_tolerates_broken_payloads() {
+        let connection = github_sections_table();
+        insert_section(
+            &connection,
+            "gh-2",
+            "github",
+            r#"{"items":[{"id":"repo-2","name":"NoLanguage","stars":3}]}"#,
+        );
+        insert_section(&connection, "gh-3", "github", "not-json");
+
+        let before = content_of(&connection, "gh-2");
+        strip_github_repo_language_metadata(&connection).expect("first run succeeds");
+        let after_first = content_of(&connection, "gh-2");
+        strip_github_repo_language_metadata(&connection).expect("second run succeeds");
+
+        assert_eq!(before, after_first, "payload without language is untouched");
+        assert_eq!(after_first, content_of(&connection, "gh-2"));
+        assert_eq!(content_of(&connection, "gh-3"), "not-json");
+    }
 }

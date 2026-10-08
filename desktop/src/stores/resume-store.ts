@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { saveDocument } from "../lib/desktop-api";
 import { useEditorStore } from "./editor-store";
+import { normalizeSectionContentForRender } from "@/lib/section-content";
 import type {
   Resume,
   ResumeSection,
@@ -12,6 +13,18 @@ const AUTOSAVE_DELAY = 500;
 
 function generateId(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
+/**
+ * Strip render-only metadata (the auto-fetched GitHub primary language) as soon
+ * as stored sections enter the store, so the in-memory snapshot cannot write it
+ * back to SQLite on the next autosave.
+ */
+function normalizeSectionContent(section: ResumeSection): SectionContent {
+  return normalizeSectionContentForRender(
+    section.type,
+    section.content,
+  ) as unknown as SectionContent;
 }
 
 type StoreSet = (
@@ -137,10 +150,7 @@ export const useResumeStore = create<ResumeStore>((set, get) => ({
     const sections = resume.sections.map((s, i) => ({
       ...s,
       sortOrder: s.sortOrder ?? i,
-      content:
-        typeof s.content === "object" && s.content !== null
-          ? s.content
-          : ({} as SectionContent),
+      content: normalizeSectionContent(s),
     }));
 
     set({
