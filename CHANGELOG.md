@@ -5,6 +5,18 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 并且本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.8.2] - 2026-10-08
+
+### 修复
+
+- **导出 PDF 未按 A4 分页** — 修复普通 PDF 导出会提前换页、与预览排版不一致的问题
+  - 原因是导出 HTML 的 `@page` 规则只声明了页边距、没有声明页面尺寸，Chrome `--print-to-pdf` 会回退到 US Letter（215.9×279.4mm），页高比预览使用的 A4（210×297mm）少约 12mm，导致内容更早被推到下一页
+  - 现在显式声明 `size: A4`，与预览及 Web 端 PDF 导出保持一致；实测同一份简历第 1 页底部留白由 37.6% 收敛到 6.3%
+- **GitHub 项目模块出现意外的语言文字** — 修复点击刷新按钮后，开源项目条目会多出一行「TypeScript」等仓库主语言的问题
+  - 原因是刷新按钮除更新 Star 数外，还会把 GitHub API 返回的 `language`、`name`、`description` 一并写回简历数据，而编辑器与模板会渲染 `language`
+  - 现在刷新按钮只更新 Star 数，不再覆盖用户手写的仓库名称与描述，也不再写入仓库主语言
+  - 预览、导出、编辑器统一在归一化阶段剥离该只读字段；桌面端增加一次性数据迁移（schema v4），自动清理历史数据中已写入的语言值
+
 ## [1.8.1] - 2026-09-30
 
 ### 修复
@@ -373,7 +385,8 @@
 - 中英双语 — 完整的国际化支持
 - 本地优先 — 数据存储在本地，隐私安全有保障
 
-[Unreleased]: https://github.com/jlifeng/JobPilot/compare/v1.8.1...HEAD
+[Unreleased]: https://github.com/jlifeng/JobPilot/compare/v1.8.2...HEAD
+[1.8.2]: https://github.com/jlifeng/JobPilot/compare/v1.8.1...v1.8.2
 [1.8.1]: https://github.com/jlifeng/JobPilot/compare/v1.8.0...v1.8.1
 [1.8.0]: https://github.com/jlifeng/JobPilot/compare/v1.7.0...v1.8.0
 [1.7.0]: https://github.com/jlifeng/JobPilot/compare/v1.6.1...v1.7.0
