@@ -213,7 +213,9 @@ export async function generateHtml(resume: ResumeWithSections, forPdf = false): 
 
   const pdfOverrides = forPdf
     ? `/* Page margins and fragmentation */
-       @page { margin: ${needsEdgeToEdge ? '0' : `${pageMarginTop}mm 0 ${pageMarginBottom}mm 0`}; }
+       /* size: A4 is required: Chrome's --print-to-pdf falls back to US Letter
+          when @page has no size, which paginates shorter than the A4 preview. */
+       @page { size: A4; margin: ${needsEdgeToEdge ? '0' : `${pageMarginTop}mm 0 ${pageMarginBottom}mm 0`}; }
        html, body { background: ${bodyBg} !important; padding: 0 !important; margin: 0 !important; display: block !important; min-height: 100%; }
        .resume-export { width: 100%; }
        .resume-export > div:not([data-no-theme-padding]) { box-shadow: none !important; overflow: visible !important; ${outerNeedsClone ? '-webkit-box-decoration-break: clone; box-decoration-break: clone;' : 'padding-top: 0 !important; padding-bottom: 0 !important;'} ${isSidebarDark ? 'min-height: auto !important; max-width: none !important; width: 100% !important; background: transparent !important;' : isBackground ? 'max-width: none !important; width: 100% !important;' : 'background: white !important;'} }
