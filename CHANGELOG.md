@@ -5,6 +5,24 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 并且本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.8.3] - 2026-10-17
+
+### 修复
+
+- **零 Star 开源项目仍显示 Star 组件** — 修复 GitHub 项目的 Star 数量为 0 或缺失时，预览和导出中仍显示「0」星的问题
+  - 统一在渲染归一化阶段移除非正数 Star 值，预览、HTML/PDF 和 DOCX 只在 Star 大于 0 时展示
+  - 覆盖 29 个统一模板、50 个旧版预览模板和 50 个旧版 HTML 导出模板
+
+### 新增
+
+- **亮点支持 Markdown 编辑** — 项目经历、工作经历和教育背景的亮点支持加粗、斜体、删除线、行内代码、链接和列表，并保留新增、删除与拖拽排序
+- **GitHub 项目描述支持 Markdown 编辑** — 开源项目描述现在与项目经历描述一致，支持 Markdown 工具栏与预览
+- **Markdown 渲染样式** — 修复编辑器预览未启用 Typography 插件导致粗体、斜体、列表等没有明显样式差异的问题
+
+### 改进
+
+- 简历预览、PDF/HTML 导出与 DOCX 导出现在共享同一套行内 Markdown 解析规则，支持加粗、斜体、删除线、行内代码和链接
+
 ## [1.8.2] - 2026-10-08
 
 ### 修复
@@ -385,7 +403,8 @@
 - 中英双语 — 完整的国际化支持
 - 本地优先 — 数据存储在本地，隐私安全有保障
 
-[Unreleased]: https://github.com/jlifeng/JobPilot/compare/v1.8.2...HEAD
+[Unreleased]: https://github.com/jlifeng/JobPilot/compare/v1.8.3...HEAD
+[1.8.3]: https://github.com/jlifeng/JobPilot/compare/v1.8.2...v1.8.3
 [1.8.2]: https://github.com/jlifeng/JobPilot/compare/v1.8.1...v1.8.2
 [1.8.1]: https://github.com/jlifeng/JobPilot/compare/v1.8.0...v1.8.1
 [1.8.0]: https://github.com/jlifeng/JobPilot/compare/v1.7.0...v1.8.0
