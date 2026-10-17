@@ -213,7 +213,7 @@ function FinanceSectionContent({
                   </a>
                 )}
               </span>
-              <span className="text-xs italic text-slate-400">★ {item.stars?.toLocaleString()}</span>
+              {item.stars > 0 && <span className="text-xs italic text-slate-400">★ {item.stars.toLocaleString()}</span>}
             </div>
             {item.language && <span className="text-xs text-slate-400">{item.language}</span>}
             {item.description && <p className="mt-1 text-sm text-slate-600" dangerouslySetInnerHTML={{ __html: md(item.description) }} />}
@@ -330,7 +330,7 @@ function buildFinanceSectionHtml(section: CanonicalResume['sections'][number], l
 
   if (section.type === 'github') {
     const items = (content as unknown as GitHubContent).items || [];
-    return `<div class="space-y-3">${items.map((item) => `<div><div class="flex items-baseline justify-between"><span class="text-sm font-bold" style="color:${SLATE_800}">${esc(item.name)}${item.repoUrl ? ` <a href="${esc(item.repoUrl)}" target="_blank" rel="noopener noreferrer" class="ml-1 text-xs font-normal" style="color:#3b82f6">${esc(item.repoUrl)}</a>` : ''}</span><span class="text-xs italic text-slate-400">★ ${item.stars?.toLocaleString() ?? 0}</span></div>${item.language ? `<span class="text-xs text-slate-400">${esc(item.language)}</span>` : ''}${item.description ? `<div class="mt-1 text-sm text-slate-600">${md(item.description)}</div>` : ''}</div>`).join('')}</div>`;
+    return `<div class="space-y-3">${items.map((item) => `<div><div class="flex items-baseline justify-between"><span class="text-sm font-bold" style="color:${SLATE_800}">${esc(item.name)}${item.repoUrl ? ` <a href="${esc(item.repoUrl)}" target="_blank" rel="noopener noreferrer" class="ml-1 text-xs font-normal" style="color:#3b82f6">${esc(item.repoUrl)}</a>` : ''}</span>${item.stars > 0 ? `<span class="text-xs italic text-slate-400">★ ${item.stars.toLocaleString()}</span>` : ''}</div>${item.language ? `<span class="text-xs text-slate-400">${esc(item.language)}</span>` : ''}${item.description ? `<div class="mt-1 text-sm text-slate-600">${md(item.description)}</div>` : ''}</div>`).join('')}</div>`;
   }
 
   if (section.type === 'custom') {

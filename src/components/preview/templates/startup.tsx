@@ -204,7 +204,7 @@ function StartupSectionContent({ section, resume }: { section: any; resume: Resu
                   </a>
                 )}
               </h3>
-              <span className="shrink-0 text-xs text-zinc-400">{'\u2B50'} {item.stars?.toLocaleString()}</span>
+              {item.stars > 0 && <span className="shrink-0 text-xs text-zinc-400">{'\u2B50'} {item.stars.toLocaleString()}</span>}
             </div>
 {item.language && <span className="text-xs" style={{ color: CYAN }}>{item.language}</span>}
             {item.description && <p className="mt-1 text-sm text-zinc-600" dangerouslySetInnerHTML={{ __html: md(item.description) }} />}

@@ -78,7 +78,7 @@ function buildScientistSectionContent(section: Section, sectionIdx: number, lang
 
   if (section.type === 'github') {
     return `<div class="space-y-3">${((c as GitHubContent).items || []).map((it: any, idx: number) => `<div>
-      <div class="flex items-baseline justify-between"><div><span class="text-xs font-bold" style="color:${ACCENT}">[${idx + 1}]</span><span class="ml-1.5 text-sm font-bold" style="color:${PRIMARY}">${esc(it.name)}${it.repoUrl ? ` <a href="${esc(it.repoUrl)}" target="_blank" rel="noopener noreferrer" class="ml-1 text-xs font-normal" style="color:#3b82f6">${esc(it.repoUrl)}</a>` : ''}</span></div><span class="shrink-0 text-xs" style="color:${MUTED}">\u2B50 ${it.stars?.toLocaleString() ?? 0}</span></div>
+      <div class="flex items-baseline justify-between"><div><span class="text-xs font-bold" style="color:${ACCENT}">[${idx + 1}]</span><span class="ml-1.5 text-sm font-bold" style="color:${PRIMARY}">${esc(it.name)}${it.repoUrl ? ` <a href="${esc(it.repoUrl)}" target="_blank" rel="noopener noreferrer" class="ml-1 text-xs font-normal" style="color:#3b82f6">${esc(it.repoUrl)}</a>` : ''}</span></div>${it.stars > 0 ? `<span class="shrink-0 text-xs" style="color:${MUTED}">\u2B50 ${it.stars.toLocaleString()}</span>` : ''}</div>
       ${it.language ? `<span class="pl-6 text-xs italic" style="color:${ACCENT}">${esc(it.language)}</span>` : ''}
       ${it.description ? `<div class="mt-0.5 pl-6 text-sm" style="color:${BODY_TEXT}">${md(it.description)}</div>` : ''}
     </div>`).join('')}</div>`;

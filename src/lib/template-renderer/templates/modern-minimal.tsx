@@ -416,7 +416,7 @@ function ModernMinimalSectionContent({
                   </a>
                 )}
               </span>
-              {item.stars != null && (
+              {item.stars > 0 && (
                 <span className="text-xs" style={{ color: TEXT_SECONDARY }}>
                   {'★'} {item.stars.toLocaleString()}
                 </span>
@@ -673,7 +673,7 @@ function buildModernMinimalSectionHtml(
     const cardsHtml = items.map((it) => `<div style="border:1px solid ${DIVIDER};border-radius:12px;padding:12px;break-inside:avoid">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <span style="font-size:14px;font-weight:600;color:${TEXT_PRIMARY}">${esc(it.name)}${it.repoUrl ? ` <a href="${esc(it.repoUrl)}" target="_blank" rel="noopener noreferrer" class="ml-1 text-xs font-normal" style="color:#3b82f6">${esc(it.repoUrl)}</a>` : ''}</span>
-        ${it.stars != null ? `<span style="font-size:11px;color:${TEXT_SECONDARY}">★ ${it.stars.toLocaleString()}</span>` : ''}
+        ${it.stars > 0 ? `<span style="font-size:11px;color:${TEXT_SECONDARY}">★ ${it.stars.toLocaleString()}</span>` : ''}
       </div>
       ${it.language ? `<span style="font-size:11px;color:${ACCENT}">${esc(it.language)}</span>` : ''}
       ${it.description ? `<div style="font-size:12px;color:${TEXT_SECONDARY};margin:4px 0 0">${md(it.description)}</div>` : ''}

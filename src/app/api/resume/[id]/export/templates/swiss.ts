@@ -76,7 +76,7 @@ function buildSwissSectionContent(section: Section, lang: string): string {
 
   if (section.type === 'github') {
     return `<div class="space-y-3">${((c as GitHubContent).items || []).map((it: any) => `<div class="grid grid-cols-[140px_1fr] gap-4">
-      <span class="text-xs" style="color:#71717a">&#11088; ${it.stars?.toLocaleString() ?? 0}</span>
+      ${it.stars > 0 ? `<span class="text-xs" style="color:#71717a">&#11088; ${it.stars.toLocaleString()}</span>` : ''}
       <div>
         <h3 class="text-sm font-bold" style="color:${TEXT}">${esc(it.name)}${it.repoUrl ? ` <a href="${esc(it.repoUrl)}" target="_blank" rel="noopener noreferrer" class="ml-1 text-xs font-normal" style="color:#3b82f6">${esc(it.repoUrl)}</a>` : ''}</h3>
         ${it.language ? `<span class="text-xs" style="color:${RED}">${esc(it.language)}</span>` : ''}

@@ -102,7 +102,7 @@ function buildCoderMainContent(section: Section, lang: string): string {
 
   if (section.type === 'github') {
     return `<div class="space-y-3">${((c as GitHubContent).items || []).map((it: any) => `<div>
-      <div class="flex items-baseline justify-between"><h3 class="text-sm font-bold" style="color:${BLUE}">${esc(it.name)}${it.repoUrl ? ` <a href="${esc(it.repoUrl)}" target="_blank" rel="noopener noreferrer" class="ml-1 text-xs font-normal" style="color:#3b82f6">${esc(it.repoUrl)}</a>` : ''}</h3><span class="text-xs text-zinc-400">\u2B50 ${it.stars?.toLocaleString() ?? 0}</span></div>
+      <div class="flex items-baseline justify-between"><h3 class="text-sm font-bold" style="color:${BLUE}">${esc(it.name)}${it.repoUrl ? ` <a href="${esc(it.repoUrl)}" target="_blank" rel="noopener noreferrer" class="ml-1 text-xs font-normal" style="color:#3b82f6">${esc(it.repoUrl)}</a>` : ''}</h3>${it.stars > 0 ? `<span class="text-xs text-zinc-400">\u2B50 ${it.stars.toLocaleString()}</span>` : ''}</div>
       ${it.language ? `<span class="rounded-sm px-1.5 py-0.5 text-[10px] font-medium" style="background-color:#f6f8fa;color:#57606a;border:1px solid #d0d7de">${esc(it.language)}</span>` : ''}
       ${it.description ? `<div class="mt-1 text-sm text-zinc-600">${md(it.description)}</div>` : ''}
     </div>`).join('')}</div>`;

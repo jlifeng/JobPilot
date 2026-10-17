@@ -4,7 +4,7 @@ import { Plus, X, RefreshCw, Star, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { EditableText } from "../fields/editable-text";
-import { EditableRichText } from "../fields/editable-rich-text";
+import { EditableMarkdown } from "../fields/editable-markdown";
 import { generateId } from "../../../stores/resume-store";
 import type { ResumeSection, GitHubContent, GitHubRepoItem } from "../../../types/resume";
 
@@ -58,7 +58,7 @@ export function GitHubSection({ section, onUpdate }: Props) {
       stars: 0,
       description: "",
     };
-    onUpdate({ items: [...items, newItem] } as any);
+    onUpdate({ items: [...items, newItem] });
   };
 
   const updateItem = (index: number, data: Partial<GitHubRepoItem>) => {
@@ -66,7 +66,7 @@ export function GitHubSection({ section, onUpdate }: Props) {
     const updated = latest.map((item, i) =>
       i === index ? { ...item, ...data } : item
     );
-    onUpdate({ items: updated } as any);
+    onUpdate({ items: updated });
   };
 
   const removeItem = (index: number) => {
@@ -74,7 +74,7 @@ export function GitHubSection({ section, onUpdate }: Props) {
     const timer = debounceTimers.current.get(item.id);
     if (timer) clearTimeout(timer);
     debounceTimers.current.delete(item.id);
-    onUpdate({ items: items.filter((_, i) => i !== index) } as any);
+    onUpdate({ items: items.filter((_, i) => i !== index) });
   };
 
   // Refresh only the star count. name/description belong to the user, and the
@@ -198,10 +198,11 @@ export function GitHubSection({ section, onUpdate }: Props) {
                 />
               </button>
             </div>
-            <EditableRichText
+            <EditableMarkdown
               label={t("editor.fields.description")}
               value={item.description}
               onChange={(v) => updateItem(index, { description: v })}
+              rows={3}
             />
           </div>
         </div>

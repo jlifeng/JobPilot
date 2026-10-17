@@ -48,7 +48,7 @@ function buildModernSectionContent(section: Section, lang: string = 'en'): strin
   }
   if (section.type === 'github') {
     return `<div class="space-y-4">${((c as GitHubContent).items || []).map((it: any) => `<div class="border-l-2 pl-4" style="border-color:#e94560">
-      <div class="flex items-baseline justify-between"><h3 class="text-sm font-semibold text-zinc-800">${esc(it.name)}${it.repoUrl ? ` <a href="${esc(it.repoUrl)}" target="_blank" rel="noopener noreferrer" class="ml-1 text-xs font-normal" style="color:#3b82f6">${esc(it.repoUrl)}</a>` : ''}</h3><span class="shrink-0 rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs text-zinc-500">${it.stars?.toLocaleString() ?? 0}</span></div>
+      <div class="flex items-baseline justify-between"><h3 class="text-sm font-semibold text-zinc-800">${esc(it.name)}${it.repoUrl ? ` <a href="${esc(it.repoUrl)}" target="_blank" rel="noopener noreferrer" class="ml-1 text-xs font-normal" style="color:#3b82f6">${esc(it.repoUrl)}</a>` : ''}</h3>${it.stars > 0 ? `<span class="shrink-0 rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs text-zinc-500">${it.stars.toLocaleString()}</span>` : ''}</div>
       ${it.language ? `<span class="text-xs text-zinc-500">${esc(it.language)}</span>` : ''}
       ${it.description ? `<div class="mt-1 text-sm text-zinc-600">${md(it.description)}</div>` : ''}
     </div>`).join('')}</div>`;

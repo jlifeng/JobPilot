@@ -1,0 +1,6 @@
+{"file":".trellis/spec/frontend/component-guidelines.md","reason":"Defines shared component patterns and accessibility expectations for the Markdown list editor."}
+{"file":".trellis/spec/frontend/quality-guidelines.md","reason":"Defines required type-check, test, lint, and manual verification."}
+{"file":".trellis/spec/frontend/type-safety.md","reason":"The editor changes must preserve strict types and avoid new any assertions."}
+{"file":".trellis/spec/desktop/frontend/component-guidelines.md","reason":"Desktop editor components use react-i18next, Zustand, and shared UI primitives."}
+{"file":".trellis/spec/document-model/template-contract.md","reason":"Markdown output must stay consistent across preview and export template contexts."}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"Highlight Markdown flows through editor, store, preview, HTML, PDF, and DOCX."}

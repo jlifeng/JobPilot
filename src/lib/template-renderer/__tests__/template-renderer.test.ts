@@ -1043,6 +1043,59 @@ function testAllUnifiedTemplatesSupportBasicMarkdownSyntax(): void {
   }
 }
 
+function testZeroGitHubStarsAreHiddenAcrossUnifiedTemplates(): void {
+  for (const templateId of getUnifiedTemplateIds()) {
+    const unifiedTemplate = getUnifiedTemplate(templateId);
+    assert.ok(unifiedTemplate, `Expected "${templateId}" to be registered`);
+
+    const resume = createSampleResume(templateId);
+    const now = new Date('2026-03-31T00:00:00.000Z');
+    resume.sections = [
+      {
+        id: 'github',
+        resumeId: 'resume-1',
+        type: 'github',
+        title: 'Open Source',
+        sortOrder: 1,
+        visible: true,
+        content: {
+          items: [
+            {
+              id: 'repo-zero',
+              repoUrl: 'https://github.com/example/zero',
+              name: 'ZeroStarProject',
+              stars: 0,
+              description: 'No stars yet.',
+            },
+            {
+              id: 'repo-positive',
+              repoUrl: 'https://github.com/example/positive',
+              name: 'StarredProject',
+              stars: 1234,
+              description: 'Has stars.',
+            },
+          ],
+        },
+        createdAt: now,
+        updatedAt: now,
+      },
+    ];
+
+    const canonical = toCanonicalResume(resume);
+    const previewMarkup = renderToStaticMarkup(
+      React.createElement(unifiedTemplate.PreviewComponent, { resume: canonical }),
+    );
+    const exportMarkup = unifiedTemplate.buildHtml(canonical);
+
+    for (const markup of [previewMarkup, exportMarkup]) {
+      assert.match(markup, /ZeroStarProject/);
+      assert.match(markup, /No stars yet\./);
+      assert.doesNotMatch(markup, /(?:★|⭐|&#11088;)\s*0(?!\d)/);
+      assert.match(markup, /(?:★|⭐|&#11088;)\s*1,234/);
+    }
+  }
+}
+
 testCanonicalResumeMetadata();
 testTemplateParity('classic');
 testTemplateParity('modern');
@@ -1100,3 +1153,4 @@ testModernMinimalProjectAndEducationHighlightsRenderAsBullets();
 testModernMinimalHeaderAlignsLeftWhenAvatarMissing();
 testModernMinimalProfileContactInfoOrder();
 testAllUnifiedTemplatesSupportBasicMarkdownSyntax();
+testZeroGitHubStarsAreHiddenAcrossUnifiedTemplates();

@@ -253,7 +253,7 @@ function MinimalSectionContent({
                   </a>
                 )}
               </span>
-              <span className="text-xs text-zinc-400">{item.stars?.toLocaleString()}</span>
+              {item.stars > 0 && <span className="text-xs text-zinc-400">{item.stars.toLocaleString()}</span>}
             </div>
             {item.language && <span className="text-xs text-zinc-400">{item.language}</span>}
             {item.description && (
@@ -408,7 +408,7 @@ function buildMinimalSectionHtml(
   if (section.type === 'github') {
     const items = (content as unknown as GitHubContent).items || [];
     return `<div class="space-y-4">${items.map((item) => `<div>
-      <div class="flex items-baseline justify-between"><span class="text-sm font-medium text-zinc-800">${esc(item.name)}${item.repoUrl ? ` <a href="${esc(item.repoUrl)}" target="_blank" rel="noopener noreferrer" class="ml-1 text-xs font-normal" style="color:#3b82f6">${esc(item.repoUrl)}</a>` : ''}</span><span class="text-xs text-zinc-400">${item.stars?.toLocaleString() ?? 0}</span></div>
+      <div class="flex items-baseline justify-between"><span class="text-sm font-medium text-zinc-800">${esc(item.name)}${item.repoUrl ? ` <a href="${esc(item.repoUrl)}" target="_blank" rel="noopener noreferrer" class="ml-1 text-xs font-normal" style="color:#3b82f6">${esc(item.repoUrl)}</a>` : ''}</span>${item.stars > 0 ? `<span class="text-xs text-zinc-400">${item.stars.toLocaleString()}</span>` : ''}</div>
       ${item.language ? `<span class="text-xs text-zinc-400">${esc(item.language)}</span>` : ''}
       ${item.description ? `<div class="mt-1 text-sm text-zinc-600">${md(item.description)}</div>` : ''}
     </div>`).join('')}</div>`;

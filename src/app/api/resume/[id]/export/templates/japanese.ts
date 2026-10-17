@@ -90,7 +90,7 @@ function buildJapaneseSectionContent(section: Section, lang: string): string {
     return `<div class="space-y-5">${((c as GitHubContent).items || []).map((it: any) => `<div>
       <div class="flex items-baseline justify-between">
         <h3 class="text-sm font-normal" style="color:${PRIMARY}">${esc(it.name)}${it.repoUrl ? ` <a href="${esc(it.repoUrl)}" target="_blank" rel="noopener noreferrer" class="ml-1 text-xs font-normal" style="color:#3b82f6">${esc(it.repoUrl)}</a>` : ''}</h3>
-        <span class="shrink-0 text-[10px] font-light" style="color:${ACCENT}">&#11088; ${it.stars?.toLocaleString() ?? 0}</span>
+        ${it.stars > 0 ? `<span class="shrink-0 text-[10px] font-light" style="color:${ACCENT}">&#11088; ${it.stars.toLocaleString()}</span>` : ''}
       </div>
       ${it.language ? `<p class="mt-0.5 text-xs font-light" style="color:${ACCENT}">${esc(it.language)}</p>` : ''}
       ${it.description ? `<div class="mt-1 text-sm font-light leading-relaxed" style="color:#57534e">${md(it.description)}</div>` : ''}

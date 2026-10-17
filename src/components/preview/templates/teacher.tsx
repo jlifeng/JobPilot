@@ -250,9 +250,9 @@ function TeacherSectionContent({ section, resume }: { section: any; resume: Resu
           <div key={item.id} className="rounded-lg border-l-3 p-3" style={{ borderColor: ACCENT, backgroundColor: WARM_BG }}>
             <div className="flex items-baseline justify-between">
               <span className="text-sm font-bold" style={{ color: PRIMARY }}>{item.name}{item.repoUrl && (<a href={item.repoUrl} target="_blank" rel="noopener noreferrer" className="ml-1 text-xs font-normal text-blue-500 hover:underline">{item.repoUrl}</a>)}</span>
-              <span className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium" style={{ backgroundColor: '#fed7aa', color: PRIMARY }}>
-                ⭐ {item.stars?.toLocaleString()}
-              </span>
+              {item.stars > 0 && <span className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium" style={{ backgroundColor: '#fed7aa', color: PRIMARY }}>
+                ⭐ {item.stars.toLocaleString()}
+              </span>}
             </div>
 {item.language && (
               <span className="text-xs" style={{ color: ACCENT }}>{item.language}</span>

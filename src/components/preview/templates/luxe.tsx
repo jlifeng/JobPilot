@@ -236,7 +236,7 @@ function LuxeSectionContent({ section, lang }: { section: any; lang?: string }) 
                   </a>
                 )}
               </h3>
-              <span className="shrink-0 text-xs italic" style={{ color: '#a8a29e' }}>&#11088; {item.stars?.toLocaleString()}</span>
+              {item.stars > 0 && <span className="shrink-0 text-xs italic" style={{ color: '#a8a29e' }}>&#11088; {item.stars.toLocaleString()}</span>}
             </div>
 {item.language && <span className="text-xs" style={{ color: GOLD }}>{item.language}</span>}
             {item.description && <p className="mt-0.5 text-sm" style={{ color: '#44403c' }} dangerouslySetInnerHTML={{ __html: md(item.description) }} />}

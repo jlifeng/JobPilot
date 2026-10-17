@@ -244,7 +244,7 @@ function ScientistSectionContent({ section, resume }: { section: any; resume: Re
                 <span className="text-xs font-bold" style={{ color: ACCENT }}>[{idx + 1}]</span>
                 <span className="ml-1.5 text-sm font-bold" style={{ color: PRIMARY }}>{item.name}{item.repoUrl && (<a href={item.repoUrl} target="_blank" rel="noopener noreferrer" className="ml-1 text-xs font-normal text-blue-500 hover:underline">{item.repoUrl}</a>)}</span>
               </div>
-              <span className="shrink-0 text-xs" style={{ color: MUTED }}>⭐ {item.stars?.toLocaleString()}</span>
+              {item.stars > 0 && <span className="shrink-0 text-xs" style={{ color: MUTED }}>⭐ {item.stars.toLocaleString()}</span>}
             </div>
 {item.language && (
               <span className="pl-6 text-xs italic" style={{ color: ACCENT }}>{item.language}</span>

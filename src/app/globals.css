@@ -275,3 +275,67 @@
 .ai-markdown td {
   @apply border border-zinc-200 px-2 py-1 text-zinc-600 dark:border-zinc-700 dark:text-zinc-300;
 }
+
+/* Markdown editor preview and the Markdown injected by resume templates. */
+.editor-markdown-preview,
+.resume-markdown {
+  @apply text-sm leading-relaxed text-zinc-700 dark:text-zinc-200;
+}
+.editor-markdown-preview p,
+.resume-markdown p {
+  @apply my-1 first:mt-0 last:mb-0;
+}
+.editor-markdown-preview strong,
+.resume-markdown strong {
+  @apply font-semibold text-zinc-900 dark:text-zinc-100;
+}
+.editor-markdown-preview em,
+.resume-markdown em {
+  @apply italic;
+}
+.editor-markdown-preview del,
+.resume-markdown del {
+  @apply text-zinc-400 line-through dark:text-zinc-500;
+}
+.editor-markdown-preview a,
+.resume-markdown a {
+  @apply text-blue-600 underline decoration-blue-300 underline-offset-2 hover:text-blue-700 dark:text-blue-400 dark:decoration-blue-700;
+}
+.editor-markdown-preview ul,
+.resume-markdown ul,
+.editor-markdown-preview ol,
+.resume-markdown ol {
+  @apply my-1 ml-4;
+}
+.editor-markdown-preview ul,
+.resume-markdown ul {
+  @apply list-disc;
+}
+.editor-markdown-preview ol,
+.resume-markdown ol {
+  @apply list-decimal;
+}
+.editor-markdown-preview li,
+.resume-markdown li {
+  @apply my-0.5;
+}
+.editor-markdown-preview code,
+.resume-markdown code {
+  @apply rounded bg-zinc-200/70 px-1 py-0.5 font-mono text-[0.92em] text-zinc-800 dark:bg-zinc-700/70 dark:text-zinc-100;
+}
+.editor-markdown-preview pre,
+.resume-markdown pre {
+  @apply my-1.5 overflow-x-auto rounded-md bg-zinc-800 p-2 text-xs text-zinc-100;
+}
+.editor-markdown-preview pre code,
+.resume-markdown pre code {
+  @apply bg-transparent p-0 text-inherit;
+}
+.editor-markdown-preview blockquote,
+.resume-markdown blockquote {
+  @apply my-1 border-l-2 border-blue-300 pl-2.5 text-zinc-500 dark:border-blue-700 dark:text-zinc-400;
+}
+.editor-markdown-preview hr,
+.resume-markdown hr {
+  @apply my-2 border-zinc-200 dark:border-zinc-700;
+}

@@ -6,6 +6,7 @@ import { EditableText } from "../fields/editable-text";
 import { EditableDate } from "../fields/editable-date";
 import { EditableMarkdown } from "../fields/editable-markdown";
 import { EditableList } from "../fields/editable-list";
+import { EditableMarkdownList } from "../fields/editable-markdown-list";
 import { FieldWrapper } from "../fields/field-wrapper";
 import { generateId } from "../../../stores/resume-store";
 import type { ResumeSection } from "../../../types/resume";
@@ -102,10 +103,13 @@ export function WorkExperienceSection({ section, onUpdate }: Props) {
               items={item.technologies || []}
               onChange={(v) => updateItem(index, { technologies: v })}
             />
-            <EditableList
+            <EditableMarkdownList
+              idPrefix={`${item.id}-highlights`}
               label={t("editor.fields.highlights")}
               items={item.highlights || []}
               onChange={(v) => updateItem(index, { highlights: v })}
+              addLabel={t("editor.fields.addItem")}
+              reorderLabel={t("editor.fields.reorderItem")}
             />
           </div>
         </div>

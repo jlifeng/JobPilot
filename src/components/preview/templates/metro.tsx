@@ -257,7 +257,7 @@ function MetroSectionContent({ section, resume }: { section: any; resume: Resume
           <div key={item.id} className="border-l-3 pl-4" style={{ borderColor: AMBER }}>
             <div className="flex items-baseline justify-between">
               <span className="text-sm font-bold" style={{ color: PRIMARY }}>{item.name}{item.repoUrl && (<a href={item.repoUrl} target="_blank" rel="noopener noreferrer" className="ml-1 text-xs font-normal text-blue-500 hover:underline">{item.repoUrl}</a>)}</span>
-              <span className="text-xs text-zinc-400">{'\u2B50'} {item.stars?.toLocaleString()}</span>
+              {item.stars > 0 && <span className="text-xs text-zinc-400">{'\u2B50'} {item.stars.toLocaleString()}</span>}
             </div>
 {item.language && <span className="text-xs" style={{ color: AMBER }}>{item.language}</span>}
             {item.description && <p className="mt-1 text-sm text-zinc-600" dangerouslySetInnerHTML={{ __html: md(item.description) }} />}

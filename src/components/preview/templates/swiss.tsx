@@ -220,7 +220,7 @@ function SwissSectionContent({ section, lang }: { section: any; lang?: string })
       <div className="space-y-3">
         {items.map((item: any) => (
           <div key={item.id} className="grid grid-cols-[140px_1fr] gap-4">
-            <span className="text-xs" style={{ color: '#52525b' }}>&#11088; {item.stars?.toLocaleString()}</span>
+            {item.stars > 0 && <span className="text-xs" style={{ color: '#52525b' }}>&#11088; {item.stars.toLocaleString()}</span>}
             <div>
               <h3 className="text-sm font-bold" style={{ color: TEXT }}>{item.name}
                 {item.repoUrl && (

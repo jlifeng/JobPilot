@@ -129,7 +129,7 @@ function CreativeSectionContent({ section, lang }: { section: CanonicalResume['s
   }
   if (section.type === 'github') {
     const items = (content as unknown as GitHubContent).items || [];
-    return <div className="space-y-3">{items.map((item) => <CreativeCard key={item.id} title={item.name} date={`★ ${item.stars?.toLocaleString() ?? 0}`} description={item.description} subtitle={item.language} link={item.repoUrl} />)}</div>;
+    return <div className="space-y-3">{items.map((item) => <CreativeCard key={item.id} title={item.name} date={item.stars > 0 ? `★ ${item.stars.toLocaleString()}` : undefined} description={item.description} subtitle={item.language} link={item.repoUrl} />)}</div>;
   }
   if (section.type === 'custom') {
     const items = (content as unknown as CustomContent).items || [];
@@ -236,7 +236,7 @@ function buildCreativeSectionHtml(section: CanonicalResume['sections'][number], 
   }
   if (section.type === 'github') {
     const items = (content as unknown as GitHubContent).items || [];
-    return `<div class="space-y-3">${items.map((item) => buildCreativeCardHtml({ title: item.name, date: `★ ${item.stars?.toLocaleString() ?? 0}`, subtitle: item.language, description: item.description, link: item.repoUrl, titlePrimary: true })).join('')}</div>`;
+    return `<div class="space-y-3">${items.map((item) => buildCreativeCardHtml({ title: item.name, date: item.stars > 0 ? `★ ${item.stars.toLocaleString()}` : undefined, subtitle: item.language, description: item.description, link: item.repoUrl, titlePrimary: true })).join('')}</div>`;
   }
   if (section.type === 'custom') {
     const items = (content as unknown as CustomContent).items || [];

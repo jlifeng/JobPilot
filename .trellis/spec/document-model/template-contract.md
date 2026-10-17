@@ -49,6 +49,8 @@ interface TemplateProps {
 
 Templates MUST:
 - Accept a single `resume` prop containing canonical resume data
+- Treat zero or missing GitHub star counts as absent metadata; a GitHub star
+  badge renders only when `stars > 0`
 - Use the provided helper functions for text processing
 - Respect theme configuration for colors, fonts, spacing
 
@@ -197,6 +199,28 @@ expect(countSections(previewHtml)).toBe(countSections(exportHtml));
 expect(previewHtml).toContain('Summary');
 expect(exportHtml).toContain('Summary');
 ```
+
+### GitHub Star Visibility
+
+`normalizeSectionContentForRender('github', content)` removes `language` and
+deletes `stars` when it is not a positive number. Both preview and export must
+also guard their star UI with `stars > 0`, because legacy builders may receive
+non-canonical data directly. Cover every unified template with a fixture that
+contains one zero-star repo and one positive-star repo; assert that the repo
+content still appears, `0` does not render as a star value, and the positive
+value does.
+
+### Markdown Field Contract
+
+Resume Markdown fields (summaries, descriptions, and highlights) use
+`renderInlineMarkdown()` / `renderMarkdownBlocks()` from `src/lib/markdown.ts`.
+Supported inline syntax is bold, italic, strikethrough, inline code, and
+absolute HTTP(S) links. Source HTML is always escaped. Preview and HTML/PDF
+export must call the same helper; DOCX uses `parseInlineMarkdownRuns()`. The
+editor preview uses `.editor-markdown-preview`, and template output can use
+`.resume-markdown`, so formatting remains visible without the Tailwind
+Typography plugin. Regression tests must cover raw-marker removal, safe
+escaping, list-item formatting, and at least one unified-template export path.
 
 ---
 

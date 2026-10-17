@@ -251,7 +251,7 @@ function BerlinSectionContent({ section, lang }: { section: any; lang?: string }
                   </a>
                 )}
               </h3>
-              <span className="shrink-0 text-xs font-bold" style={{ color: BLUE }}>&#11088; {item.stars?.toLocaleString()}</span>
+              {item.stars > 0 && <span className="shrink-0 text-xs font-bold" style={{ color: BLUE }}>&#11088; {item.stars.toLocaleString()}</span>}
             </div>
 {item.language && <span className="text-xs font-medium" style={{ color: TEXT }}>{item.language}</span>}
             {item.description && <p className="mt-0.5 text-sm text-zinc-600" dangerouslySetInnerHTML={{ __html: md(item.description) }} />}

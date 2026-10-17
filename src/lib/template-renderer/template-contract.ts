@@ -6,6 +6,7 @@
  */
 
 import { SECTION_TYPES } from '@/lib/constants';
+import { renderMarkdownBlocks } from '@/lib/markdown';
 import { normalizeSectionContentForRender } from '@/lib/section-content';
 import type {
   Resume,
@@ -43,52 +44,11 @@ export function extractMarkdownBulletItems(text: unknown): string[] | null {
   return items.length > 0 ? items : null;
 }
 
-/**
- * Lightweight markdown to HTML converter for resume text fields.
- * Supports: **bold**, `code`, line breaks, and "- item" lists.
- */
+/** Lightweight Markdown to HTML shared by preview and export. */
 export function md(text: unknown, options: MarkdownOptions = {}): string {
-  if (text == null) return '';
-  let s = String(text);
-  // Escape HTML
-  s = s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-  // Bold: **text**
-  s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-  // Inline code: `text`
-  s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
-  // No newlines - return inline
-  if (!s.includes('\n')) return s;
-  // Process lines for lists and line breaks
-  const lines = s.split('\n');
-  let html = '';
-  let inList = false;
-  const listStyle = options.listStyle ?? markdownListStyle('16px');
-  for (const raw of lines) {
-    const line = raw.trim();
-    if (!line) {
-      if (inList) {
-        html += '</ul>';
-        inList = false;
-      }
-      continue;
-    }
-    const lm = line.match(/^[-\u2013\u2022]\s+(.*)/);
-    if (lm) {
-      if (!inList) {
-        html += `<ul style="${listStyle}">`;
-        inList = true;
-      }
-      html += `<li>${lm[1]}</li>`;
-    } else {
-      if (inList) {
-        html += '</ul>';
-        inList = false;
-      }
-      html += (html && !html.endsWith('>') ? '<br>' : '') + line;
-    }
-  }
-  if (inList) html += '</ul>';
-  return html;
+  return renderMarkdownBlocks(text, {
+    listStyle: options.listStyle ?? markdownListStyle('16px'),
+  });
 }
 
 /**

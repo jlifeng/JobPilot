@@ -56,7 +56,7 @@ function buildAcademicSectionContent(section: Section, lang: string): string {
   }
   if (section.type === 'github') {
     return `<div class="space-y-2.5">${((c as GitHubContent).items || []).map((it: any) => `<div>
-      <div class="flex items-baseline justify-between"><span class="text-sm font-bold text-zinc-800">${esc(it.name)}${it.repoUrl ? ` <a href="${esc(it.repoUrl)}" target="_blank" rel="noopener noreferrer" class="ml-1 text-xs font-normal" style="color:#3b82f6">${esc(it.repoUrl)}</a>` : ''}</span><span class="text-xs text-zinc-500">\u2B50 ${it.stars?.toLocaleString() ?? 0}</span></div>
+      <div class="flex items-baseline justify-between"><span class="text-sm font-bold text-zinc-800">${esc(it.name)}${it.repoUrl ? ` <a href="${esc(it.repoUrl)}" target="_blank" rel="noopener noreferrer" class="ml-1 text-xs font-normal" style="color:#3b82f6">${esc(it.repoUrl)}</a>` : ''}</span>${it.stars > 0 ? `<span class="text-xs text-zinc-500">\u2B50 ${it.stars.toLocaleString()}</span>` : ''}</div>
       ${it.language ? `<span class="text-xs text-zinc-500 italic">${esc(it.language)}</span>` : ''}
       ${it.description ? `<div class="mt-0.5 text-sm text-zinc-600">${md(it.description)}</div>` : ''}
     </div>`).join('')}</div>`;

@@ -279,12 +279,12 @@ function ArchitectSectionContent({ section, resume }: { section: any; resume: Re
           <div key={item.id} className="border-l-2 pl-4" style={{ borderColor: ACCENT }}>
             <div className="flex items-baseline justify-between">
               <span className="text-sm font-bold" style={{ color: PRIMARY }}>{item.name}{item.repoUrl && (<a href={item.repoUrl} target="_blank" rel="noopener noreferrer" className="ml-1 text-xs font-normal text-blue-500 hover:underline">{item.repoUrl}</a>)}</span>
-              <span
+              {item.stars > 0 && <span
                 className="shrink-0 px-1.5 py-0.5 text-[10px] font-medium"
                 style={{ fontFamily: 'JetBrains Mono, Consolas, monospace', color: MUTED, backgroundColor: GRID }}
               >
-                ⭐ {item.stars?.toLocaleString()}
-              </span>
+                ⭐ {item.stars.toLocaleString()}
+              </span>}
             </div>
 {item.language && (
               <span className="text-xs" style={{ color: ACCENT }}>{item.language}</span>

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { EditableText } from "../fields/editable-text";
 import { EditableDate } from "../fields/editable-date";
-import { EditableList } from "../fields/editable-list";
+import { EditableMarkdownList } from "../fields/editable-markdown-list";
 import { FieldWrapper } from "../fields/field-wrapper";
 import { generateId } from "../../../stores/resume-store";
 import type { ResumeSection, EducationContent, EducationItem } from "../../../types/resume";
@@ -29,18 +29,18 @@ export function EducationSection({ section, onUpdate }: Props) {
       endDate: "",
       highlights: [],
     };
-    onUpdate({ items: [...items, newItem] } as any);
+    onUpdate({ items: [...items, newItem] });
   };
 
   const updateItem = (index: number, data: Partial<EducationItem>) => {
     const updated = items.map((item, i) =>
       i === index ? { ...item, ...data } : item
     );
-    onUpdate({ items: updated } as any);
+    onUpdate({ items: updated });
   };
 
   const removeItem = (index: number) => {
-    onUpdate({ items: items.filter((_, i) => i !== index) } as any);
+    onUpdate({ items: items.filter((_, i) => i !== index) });
   };
 
   return (
@@ -82,8 +82,8 @@ export function EducationSection({ section, onUpdate }: Props) {
               />
               <EditableText
                 label={t("editor.fields.gpa")}
-                value={(item as any).gpa || ""}
-                onChange={(v) => updateItem(index, { gpa: v } as any)}
+                value={item.gpa || ""}
+                onChange={(v) => updateItem(index, { gpa: v })}
               />
             </FieldWrapper>
             <FieldWrapper>
@@ -98,10 +98,13 @@ export function EducationSection({ section, onUpdate }: Props) {
                 onChange={(v) => updateItem(index, { endDate: v })}
               />
             </FieldWrapper>
-            <EditableList
+            <EditableMarkdownList
+              idPrefix={`${item.id}-highlights`}
               label={t("editor.fields.highlights")}
               items={item.highlights || []}
               onChange={(v) => updateItem(index, { highlights: v })}
+              addLabel={t("editor.fields.addItem")}
+              reorderLabel={t("editor.fields.reorderItem")}
             />
           </div>
         </div>

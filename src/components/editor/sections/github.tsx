@@ -6,7 +6,7 @@ import { Plus, X, RefreshCw, Star, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { EditableText } from '../fields/editable-text';
-import { EditableRichText } from '../fields/editable-rich-text';
+import { EditableMarkdown } from '../fields/editable-markdown';
 import { generateId } from '@/lib/utils';
 import type { ResumeSection, GitHubContent, GitHubRepoItem } from '@/types/resume';
 
@@ -167,7 +167,7 @@ export function GitHubSection({ section, onUpdate }: Props) {
                 <RefreshCw className={`h-3 w-3 ${loadingIds.has(item.id) ? 'animate-spin' : ''}`} />
               </button>
             </div>
-            <EditableRichText label={t('description')} value={item.description} onChange={(v) => updateItem(index, { description: v })} />
+            <EditableMarkdown label={t('description')} value={item.description} onChange={(v) => updateItem(index, { description: v })} rows={3} />
           </div>
         </div>
       ))}

@@ -225,7 +225,7 @@ function LegalSectionContent({ section, resume }: { section: any; resume: Resume
           <div key={item.id}>
             <div className="flex items-baseline justify-between">
               <span className="text-sm font-bold" style={{ color: PRIMARY }}>{item.name}{item.repoUrl && (<a href={item.repoUrl} target="_blank" rel="noopener noreferrer" className="ml-1 text-xs font-normal text-blue-500 hover:underline">{item.repoUrl}</a>)}</span>
-              <span className="shrink-0 text-xs italic" style={{ color: MUTED }}>⭐ {item.stars?.toLocaleString()}</span>
+              {item.stars > 0 && <span className="shrink-0 text-xs italic" style={{ color: MUTED }}>⭐ {item.stars.toLocaleString()}</span>}
             </div>
 {item.language && (
               <span className="text-xs" style={{ color: ACCENT }}>{item.language}</span>

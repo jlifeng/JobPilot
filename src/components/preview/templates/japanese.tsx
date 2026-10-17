@@ -224,7 +224,7 @@ function JapaneseSectionContent({ section, lang }: { section: any; lang?: string
                   </a>
                 )}
               </h3>
-              <span className="shrink-0 text-[10px] font-light" style={{ color: ACCENT }}>&#11088; {item.stars?.toLocaleString()}</span>
+              {item.stars > 0 && <span className="shrink-0 text-[10px] font-light" style={{ color: ACCENT }}>&#11088; {item.stars.toLocaleString()}</span>}
             </div>
 {item.language && <p className="mt-0.5 text-xs font-light" style={{ color: ACCENT }}>{item.language}</p>}
             {item.description && <p className="mt-1 text-sm font-light leading-relaxed" style={{ color: PRIMARY }} dangerouslySetInnerHTML={{ __html: md(item.description) }} />}

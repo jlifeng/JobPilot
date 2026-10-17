@@ -161,7 +161,7 @@ function EngineerSectionContent({ section, lang }: { section: CanonicalResume['s
   }
   if (section.type === 'github') {
     const items = (content as unknown as GitHubContent).items || [];
-    return <div className="space-y-3">{items.map((item) => <EngineerExperience key={item.id} title={item.name} date={`★ ${item.stars?.toLocaleString() ?? 0}`} description={item.description} language={item.language} link={item.repoUrl} />)}</div>;
+    return <div className="space-y-3">{items.map((item) => <EngineerExperience key={item.id} title={item.name} date={item.stars > 0 ? `★ ${item.stars.toLocaleString()}` : undefined} description={item.description} language={item.language} link={item.repoUrl} />)}</div>;
   }
   if (section.type === 'certifications') {
     const items = (content as unknown as CertificationsContent).items || [];
@@ -285,7 +285,7 @@ function buildEngineerSectionHtml(section: CanonicalResume['sections'][number], 
   }
   if (section.type === 'github') {
     const items = (content as unknown as GitHubContent).items || [];
-    return `<div class="space-y-3">${items.map((item) => experienceHtml(`<div class="flex items-baseline justify-between"><span class="text-sm font-bold" style="color:${PRIMARY}">${esc(item.name)}${item.repoUrl ? ` <a href="${esc(item.repoUrl)}" target="_blank" rel="noopener noreferrer" class="ml-1 text-xs font-normal" style="color:#3b82f6">${esc(item.repoUrl)}</a>` : ''}</span><span class="shrink-0 px-2 py-0.5 text-[10px] font-medium uppercase" style="font-family:${MONO};color:${SECONDARY};background-color:${LIGHT_BG}">★ ${item.stars?.toLocaleString() ?? 0}</span></div>${item.language ? `<span class="text-xs" style="font-family:${MONO};color:${ACCENT}">${esc(item.language)}</span>` : ''}${item.description ? `<div class="mt-1 text-sm" style="color:${BODY_TEXT}">${md(item.description)}</div>` : ''}`)).join('')}</div>`;
+    return `<div class="space-y-3">${items.map((item) => experienceHtml(`<div class="flex items-baseline justify-between"><span class="text-sm font-bold" style="color:${PRIMARY}">${esc(item.name)}${item.repoUrl ? ` <a href="${esc(item.repoUrl)}" target="_blank" rel="noopener noreferrer" class="ml-1 text-xs font-normal" style="color:#3b82f6">${esc(item.repoUrl)}</a>` : ''}</span>${item.stars > 0 ? `<span class="shrink-0 px-2 py-0.5 text-[10px] font-medium uppercase" style="font-family:${MONO};color:${SECONDARY};background-color:${LIGHT_BG}">★ ${item.stars.toLocaleString()}</span>` : ''}</div>${item.language ? `<span class="text-xs" style="font-family:${MONO};color:${ACCENT}">${esc(item.language)}</span>` : ''}${item.description ? `<div class="mt-1 text-sm" style="color:${BODY_TEXT}">${md(item.description)}</div>` : ''}`)).join('')}</div>`;
   }
   if (section.type === 'certifications') {
     const items = (content as unknown as CertificationsContent).items || [];

@@ -1,0 +1,5 @@
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Shared rendering changes must preserve component conventions and template styling."}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Defines the lint, type-check, test, and manual verification bar."}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "GitHub item normalization must remain strictly typed and avoid new any usage."}
+{"file": ".trellis/spec/desktop/frontend/component-guidelines.md", "reason": "Desktop consumes shared template rendering and has its own component conventions."}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "The fix spans shared normalization, preview, HTML export, legacy templates, and DOCX."}

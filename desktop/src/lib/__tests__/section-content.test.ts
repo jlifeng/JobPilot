@@ -41,4 +41,19 @@ describe("normalizeSectionContentForRender", () => {
     expect(item.name).toBe("Plain");
     expect(item).not.toHaveProperty("language");
   });
+
+  it("omits zero or missing GitHub stars from render data", () => {
+    const content = normalizeSectionContentForRender("github", {
+      items: [
+        { id: "repo-zero", name: "Zero", stars: 0, description: "" },
+        { id: "repo-missing", name: "Missing", description: "" },
+        { id: "repo-positive", name: "Positive", stars: 7, description: "" },
+      ],
+    });
+
+    const [zero, missing, positive] = content.items as Array<Record<string, unknown>>;
+    expect(zero).not.toHaveProperty("stars");
+    expect(missing).not.toHaveProperty("stars");
+    expect(positive.stars).toBe(7);
+  });
 });

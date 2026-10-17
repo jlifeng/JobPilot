@@ -200,7 +200,7 @@ export function EditableMarkdown({
       {showPreview && (
         <div className="rounded-md border border-zinc-200 bg-white p-3 text-sm dark:border-zinc-700 dark:bg-zinc-900 min-h-[80px]">
           {value ? (
-            <div className="prose prose-sm dark:prose-invert max-w-none prose-p:my-1 prose-ul:my-1 prose-li:my-0.5">
+            <div className="editor-markdown-preview">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>
                 {value}
               </ReactMarkdown>

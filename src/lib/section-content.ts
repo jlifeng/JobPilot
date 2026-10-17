@@ -42,16 +42,18 @@ export function normalizeSectionContentForRender(
     content.categories = getSectionCollection(content.categories, 'categories');
   }
 
-  // GitHub repositories carry an auto-fetched primary language. It is not
-  // resume content authored by the user, so strip it here — the single
-  // normalization choke point shared by preview, export and the resume store.
-  // This keeps every template from rendering an unexpected "TypeScript" line.
+  // GitHub repositories carry auto-fetched metadata. Strip values that should
+  // not render here, at the single choke point shared by preview, export and the
+  // resume store. Zero stars are also removed so no "0" badge reaches a template.
   if (sectionType === 'github') {
     content.items = getSectionCollection<Record<string, unknown>>(content.items, 'items').map(
       (item) => {
-        if (!('language' in item)) return item;
+        // Templates use nullish checks before rendering a star badge.
         const next = { ...item };
         delete next.language;
+        if (!(typeof next.stars === 'number' && next.stars > 0)) {
+          delete next.stars;
+        }
         return next;
       },
     );

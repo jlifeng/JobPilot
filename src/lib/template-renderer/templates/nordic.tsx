@@ -249,7 +249,7 @@ function NordicSectionContent({
                   </a>
                 )}
               </span>
-              <span className="text-xs font-light" style={{ color: SLATE_400 }}>★ {item.stars?.toLocaleString()}</span>
+              {item.stars > 0 && <span className="text-xs font-light" style={{ color: SLATE_400 }}>★ {item.stars.toLocaleString()}</span>}
             </div>
             {item.language && <span className="text-xs font-light" style={{ color: SLATE_400 }}>{item.language}</span>}
             {item.description && <p className="mt-1 text-sm font-light" style={{ color: SLATE_500 }} dangerouslySetInnerHTML={{ __html: md(item.description) }} />}
@@ -366,7 +366,7 @@ function buildNordicSectionHtml(section: CanonicalResume['sections'][number], la
   if (section.type === 'github') {
     const items = (content as unknown as GitHubContent).items || [];
     return `<div class="space-y-3">${items.map((item) => `<div class="rounded-sm p-3" style="background-color:${SLATE_50}">
-      <div class="flex items-baseline justify-between"><span class="text-sm font-medium" style="color:${SLATE_500}">${esc(item.name)}${item.repoUrl ? ` <a href="${esc(item.repoUrl)}" target="_blank" rel="noopener noreferrer" class="ml-1 text-xs font-normal" style="color:#3b82f6">${esc(item.repoUrl)}</a>` : ''}</span><span class="text-xs font-light" style="color:${SLATE_400}">★ ${item.stars?.toLocaleString() ?? 0}</span></div>
+      <div class="flex items-baseline justify-between"><span class="text-sm font-medium" style="color:${SLATE_500}">${esc(item.name)}${item.repoUrl ? ` <a href="${esc(item.repoUrl)}" target="_blank" rel="noopener noreferrer" class="ml-1 text-xs font-normal" style="color:#3b82f6">${esc(item.repoUrl)}</a>` : ''}</span>${item.stars > 0 ? `<span class="text-xs font-light" style="color:${SLATE_400}">★ ${item.stars.toLocaleString()}</span>` : ''}</div>
       ${item.language ? `<span class="text-xs font-light" style="color:${SLATE_400}">${esc(item.language)}</span>` : ''}
       ${item.description ? `<div class="mt-1 text-sm font-light" style="color:${SLATE_500}">${md(item.description)}</div>` : ''}
     </div>`).join('')}</div>`;

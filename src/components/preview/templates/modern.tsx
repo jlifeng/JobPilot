@@ -192,7 +192,7 @@ function ModernSectionContent({ section, lang }: { section: any; lang?: string }
                   </a>
                 )}
               </h3>
-              <span className="shrink-0 rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs text-zinc-500">{item.stars?.toLocaleString()}</span>
+              {item.stars > 0 && <span className="shrink-0 rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs text-zinc-500">{item.stars.toLocaleString()}</span>}
             </div>
 {item.language && <span className="text-xs text-zinc-500">{item.language}</span>}
             {item.description && <p className="mt-1 text-sm text-zinc-600" dangerouslySetInnerHTML={{ __html: md(item.description) }} />}

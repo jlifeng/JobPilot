@@ -11,6 +11,7 @@ import type {
   GitHubContent, QrCodesContent,
 } from '@/types/resume';
 import QRCode from 'qrcode';
+import { parseInlineMarkdownRuns } from '@/lib/markdown';
 import { type ResumeWithSections, getPersonalInfo, visibleSections, DEFAULT_THEME, safe } from './utils';
 
 // ─── Template style configuration ───────────────────────────
@@ -215,15 +216,25 @@ function fontObj(theme: DocxTheme): IFontAttributesProperties {
 function run(
   text: string,
   theme: DocxTheme,
-  opts?: { size?: number; bold?: boolean; italic?: boolean; color?: string },
+  opts?: {
+    size?: number;
+    bold?: boolean;
+    italic?: boolean;
+    strike?: boolean;
+    color?: string;
+    font?: string;
+  },
 ): TextRun {
   return new TextRun({
     text,
     size: opts?.size ?? theme.bodySize,
     bold: opts?.bold,
     italics: opts?.italic,
+    strike: opts?.strike,
     color: opts?.color ?? '333333',
-    font: fontObj(theme),
+    font: opts?.font
+      ? { ascii: opts.font, hAnsi: opts.font, eastAsia: opts.font, cs: opts.font }
+      : fontObj(theme),
   });
 }
 
@@ -236,10 +247,22 @@ function bodyPara(text: string, theme: DocxTheme, extra?: { before?: number; aft
 
 function bullet(text: string, theme: DocxTheme): Paragraph {
   return new Paragraph({
-    children: [run(text, theme)],
+    children: markdownRuns(text, theme),
     bullet: { level: 0 },
     spacing: { line: theme.lineSpacing, after: 40 },
   });
+}
+
+function markdownRuns(text: string, theme: DocxTheme): TextRun[] {
+  return parseInlineMarkdownRuns(text).map((segment) =>
+    run(segment.text, theme, {
+      bold: segment.bold,
+      italic: segment.italic,
+      strike: segment.strike,
+      color: segment.link ? theme.accent : undefined,
+      font: segment.code ? 'Courier New' : undefined,
+    }),
+  );
 }
 
 type DocxChild = Paragraph | Table;
@@ -675,7 +698,7 @@ function buildGitHub(c: GitHubContent, title: string, theme: DocxTheme): DocxChi
   for (const item of c.items || []) {
     const itemChildren: DocxChild[] = [];
     const nameRuns: TextRun[] = [run(safe(item.name), theme, { bold: true, size: theme.h3Size, color: theme.primary })];
-    const rightRuns: TextRun[] = item.stars
+    const rightRuns: TextRun[] = typeof item.stars === 'number' && item.stars > 0
       ? [run(`★ ${item.stars}`, theme, { color: '71717a' })]
       : [run('', theme)];
     itemChildren.push(twoColRow(nameRuns, rightRuns));

@@ -405,7 +405,7 @@ function CoderMainContent({ section, resume }: { section: any; resume: Resume })
                   </a>
                 )}
               </h3>
-              <span className="text-xs text-zinc-400">{'\u2B50'} {item.stars?.toLocaleString()}</span>
+              {item.stars > 0 && <span className="text-xs text-zinc-400">{'\u2B50'} {item.stars.toLocaleString()}</span>}
             </div>
 {item.language && (
               <span className="rounded-sm px-1.5 py-0.5 text-[10px] font-medium" style={{ backgroundColor: '#f6f8fa', color: '#57606a', border: '1px solid #d0d7de' }}>

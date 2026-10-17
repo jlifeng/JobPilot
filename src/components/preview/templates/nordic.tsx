@@ -190,7 +190,7 @@ function NordicSectionContent({ section, resume }: { section: any; resume: Resum
           <div key={item.id} className="rounded-sm p-3" style={{ backgroundColor: SLATE_50 }}>
             <div className="flex items-baseline justify-between">
               <span className="text-sm font-medium" style={{ color: SLATE_500 }}>{item.name}{item.repoUrl && (<a href={item.repoUrl} target="_blank" rel="noopener noreferrer" className="ml-1 text-xs font-normal text-blue-500 hover:underline">{item.repoUrl}</a>)}</span>
-              <span className="text-xs font-light" style={{ color: SLATE_400 }}>⭐ {item.stars?.toLocaleString()}</span>
+              {item.stars > 0 && <span className="text-xs font-light" style={{ color: SLATE_400 }}>⭐ {item.stars.toLocaleString()}</span>}
             </div>
 {item.language && <span className="text-xs font-light" style={{ color: SLATE_400 }}>{item.language}</span>}
             {item.description && <p className="mt-1 text-sm font-light" style={{ color: SLATE_500 }} dangerouslySetInnerHTML={{ __html: md(item.description) }} />}
