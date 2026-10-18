@@ -194,14 +194,7 @@ beforeEach(() => {
   loadPdfPagesMock.mockReset();
   loadPdfPagesMock.mockResolvedValue({
     pageCount: 1,
-    pages: [
-      {
-        index: 0,
-        dataUrl: "data:image/png;base64,page-0",
-        width: 794,
-        height: 1123,
-      },
-    ],
+    close: () => {},
   });
   writePdfExportMock.mockReset();
   writePdfExportMock.mockResolvedValue({
@@ -222,10 +215,7 @@ beforeEach(() => {
 describe("print preview publishes the artifact an export reuses", () => {
   it("saves the PDF the preview generated, without regenerating it", async () => {
     const resume = makeResume();
-    const core = createPrintPreviewCore({
-      resume: () => resume,
-      sections: () => resume.sections,
-    });
+    const core = createPrintPreviewCore();
     core.sync(resume, resume.sections);
     await flush();
     // Forget the preview's own HTML build; only the export's calls matter.
@@ -254,10 +244,7 @@ describe("print preview publishes the artifact an export reuses", () => {
 
   it("misses and regenerates after an edit invalidates the previewed artifact", async () => {
     const resume = makeResume();
-    const core = createPrintPreviewCore({
-      resume: () => resume,
-      sections: () => resume.sections,
-    });
+    const core = createPrintPreviewCore();
     core.sync(resume, resume.sections);
     await flush();
     // Forget the preview's own HTML build; only the export's calls matter.
@@ -281,10 +268,7 @@ describe("print preview publishes the artifact an export reuses", () => {
 
   it("misses for an anonymized export and regenerates", async () => {
     const resume = makeResume();
-    const core = createPrintPreviewCore({
-      resume: () => resume,
-      sections: () => resume.sections,
-    });
+    const core = createPrintPreviewCore();
     core.sync(resume, resume.sections);
     await flush();
     // Forget the preview's own HTML build; only the export's calls matter.
@@ -308,10 +292,7 @@ describe("print preview publishes the artifact an export reuses", () => {
 
   it("clears the previous document's artifact on a document switch", async () => {
     const first = makeResume();
-    const core = createPrintPreviewCore({
-      resume: () => first,
-      sections: () => first.sections,
-    });
+    const core = createPrintPreviewCore();
     core.sync(first, first.sections);
     await flush();
     expect(getCachedPdfArtifactCountFor(first, "pdf")).toBe(1);
@@ -329,10 +310,7 @@ describe("print preview publishes the artifact an export reuses", () => {
 describe("export reuses the previewed PDF artifact", () => {
   it("writes the cached bytes and does not regenerate for an unchanged PDF export", async () => {
     const resume = makeResume();
-    const core = createPrintPreviewCore({
-      resume: () => resume,
-      sections: () => resume.sections,
-    });
+    const core = createPrintPreviewCore();
     core.sync(resume, resume.sections);
     await flush();
     // Forget the preview's own HTML build; only the export's calls matter.
@@ -359,12 +337,9 @@ describe("export reuses the previewed PDF artifact", () => {
 
   it("writes the cached bytes for Smart One-Page when that mode was previewed", async () => {
     const resume = makeResume();
-    const core = createPrintPreviewCore({
-      resume: () => resume,
-      sections: () => resume.sections,
-    });
+    const core = createPrintPreviewCore();
     core.sync(resume, resume.sections);
-    core.selectMode("pdf-one-page");
+    core.selectMode("pdf-one-page", resume, resume.sections);
     await flush();
     generateHtmlMock.mockClear();
 
@@ -384,10 +359,7 @@ describe("export reuses the previewed PDF artifact", () => {
 
   it("does not reuse a normal-PDF artifact for a Smart One-Page export", async () => {
     const resume = makeResume();
-    const core = createPrintPreviewCore({
-      resume: () => resume,
-      sections: () => resume.sections,
-    });
+    const core = createPrintPreviewCore();
     core.sync(resume, resume.sections);
     await flush();
     // Forget the preview's own HTML build; only the export's calls matter.
@@ -411,12 +383,9 @@ describe("export reuses the previewed PDF artifact", () => {
 
   it("does not reuse a Smart One-Page artifact for a normal PDF export", async () => {
     const resume = makeResume();
-    const core = createPrintPreviewCore({
-      resume: () => resume,
-      sections: () => resume.sections,
-    });
+    const core = createPrintPreviewCore();
     core.sync(resume, resume.sections);
-    core.selectMode("pdf-one-page");
+    core.selectMode("pdf-one-page", resume, resume.sections);
     await flush();
     generateHtmlMock.mockClear();
 
@@ -451,10 +420,7 @@ describe("export reuses the previewed PDF artifact", () => {
 
   it("keeps the existing output path and extension handling on a hit", async () => {
     const resume = makeResume();
-    const core = createPrintPreviewCore({
-      resume: () => resume,
-      sections: () => resume.sections,
-    });
+    const core = createPrintPreviewCore();
     core.sync(resume, resume.sections);
     await flush();
     // Forget the preview's own HTML build; only the export's calls matter.

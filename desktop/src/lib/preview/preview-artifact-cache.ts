@@ -16,10 +16,11 @@ export type { PdfPreviewMode };
  *
  * The key is the effective snapshot key from `createPreviewSnapshot`
  * (mode + document + template + title + language + theme + every section's
- * identity/order/visibility/content), so it changes exactly when the output
- * would change. `anonymized` is a SEPARATE axis on purpose: a preview artifact
- * is always generated from the un-anonymized document, so it must never be
- * handed to an anonymized export, and vice versa.
+ * identity/order/visibility/content) FOLDED TOGETHER WITH the privacy axis, so
+ * it changes exactly when the output would change. Privacy is part of the
+ * identity rather than a separate comparison: a preview artifact is always
+ * generated from the un-anonymized document, so an anonymized export asks for
+ * a different address and can never be handed those bytes.
  *
  * Deliberately in-memory only: no persistence, no schema, no Tauri command.
  * A cache entry lives only for the current preview lifecycle and is dropped on
@@ -27,15 +28,28 @@ export type { PdfPreviewMode };
  */
 
 export interface CachedPdfArtifact {
+  /** The effective snapshot key this artifact was generated for. */
   key: string;
   mode: PdfPreviewMode;
-  /** The exact HTML that produced the PDF. */
-  html: string;
   /** The generated PDF bytes. */
   bytes: number[];
   bytesWritten: number;
   /** Whether the source resume was anonymized when the PDF was generated. */
   anonymized: boolean;
+}
+
+/**
+ * Cache address for one artifact: the snapshot key plus the privacy axis.
+ *
+ * Combining them means a non-anonymized artifact is simply not addressable by
+ * an anonymized export - the mismatch cannot be resolved into a hit even by a
+ * caller that forgets to compare the flag.
+ */
+export function buildArtifactKey(
+  key: string,
+  anonymized: boolean,
+): string {
+  return `${key}|${anonymized ? "anonymized" : "plain"}`;
 }
 
 /**
@@ -59,10 +73,9 @@ export function getCachedPdfArtifact(
   mode: PdfPreviewMode,
   anonymized: boolean,
 ): CachedPdfArtifact | null {
-  const artifact = cache.get(key);
+  const artifact = cache.get(buildArtifactKey(key, anonymized));
   if (!artifact) return null;
   if (artifact.mode !== mode) return null;
-  if (artifact.anonymized !== anonymized) return null;
   return artifact;
 }
 
@@ -74,8 +87,8 @@ export function getCachedPdfArtifact(
  * the bound therefore evicts the least recently stored artifact.
  */
 export function setCachedPdfArtifact(artifact: CachedPdfArtifact): void {
-  cache.delete(artifact.key);
-  cache.set(artifact.key, artifact);
+  cache.delete(buildArtifactKey(artifact.key, artifact.anonymized));
+  cache.set(buildArtifactKey(artifact.key, artifact.anonymized), artifact);
 
   while (cache.size > MAX_CACHED_PDF_ARTIFACTS) {
     const oldestKey = cache.keys().next().value;

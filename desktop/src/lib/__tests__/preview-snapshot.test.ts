@@ -167,6 +167,58 @@ describe("createPreviewSnapshot key", () => {
     mode: "pdf" as PdfPreviewMode,
   });
 
+  it("stays short no matter how much content the document holds", () => {
+    const { resume, mode } = base();
+
+    // The key is compared and used as a map address on every store change, so
+    // it must not scale with the document: serialising the whole resume on
+    // every keystroke turned a long one into a multi-hundred-KB string.
+    const short = snapshot(resume, [makeSection("section-1")], mode).key;
+
+    const long = snapshot(
+      resume,
+      Array.from({ length: 40 }, (_, index) =>
+        makeSection(`section-${index}`, {
+          type: "summary",
+          sortOrder: index,
+          title: `Section ${index}`,
+          content: { text: "x".repeat(4000) },
+        }),
+      ),
+      mode,
+    ).key;
+    assert.ok(
+      long.length <= short.length,
+      "a longer document must not produce a longer key: " +
+        short.length +
+        " -> " +
+        long.length,
+    );
+    assert.ok(
+      long.length < 200,
+      "key length " + long.length + " must stay small",
+    );
+  });
+
+  it("produces a distinct key for every distinct document", () => {
+    const { resume, mode } = base();
+
+    // A digest only helps if it actually separates documents: 500 titles that
+    // differ in one character must give 500 distinct keys, or a stale PDF
+    // could be served for an edited resume.
+    const keys = new Set<string>();
+    for (let index = 0; index < 500; index += 1) {
+      keys.add(
+        snapshot(
+          makeResume({ title: `Title ${index}` }),
+          [makeSection("section-1")],
+          mode,
+        ).key,
+      );
+    }
+
+    assert.equal(keys.size, 500);
+  });
   it("changes when the template changes", () => {
     const { resume, sections, mode } = base();
     assert.notEqual(

@@ -80,8 +80,9 @@ export interface LivePreviewSurfaceProps {
   zoom: number;
   estimate: EstimatedPages;
   onScroll: () => void;
-  contentRef: React.RefObject<HTMLDivElement | null>;
   scrollRef: React.RefObject<HTMLDivElement | null>;
+  /** The zoomed sheet the boundary guides are drawn on. */
+  sheetRef: React.RefObject<HTMLDivElement | null>;
 }
 
 export function LivePreviewSurface({
@@ -89,8 +90,8 @@ export function LivePreviewSurface({
   zoom,
   estimate,
   onScroll,
-  contentRef,
   scrollRef,
+  sheetRef,
 }: LivePreviewSurfaceProps) {
   const { t } = useTranslation();
   const scale = zoom / 100;
@@ -103,6 +104,7 @@ export function LivePreviewSurface({
     >
       <div className="flex min-h-full justify-center px-8 py-8 lg:py-10">
         <div
+          ref={sheetRef}
           className="relative overflow-hidden rounded-sm border border-slate-200 bg-white shadow-xl shadow-slate-900/16 ring-1 ring-slate-900/5 dark:border-zinc-700 dark:shadow-black/50"
           style={{
             width: A4_WIDTH,
@@ -110,9 +112,7 @@ export function LivePreviewSurface({
             zoom: scale,
           }}
         >
-          <div ref={contentRef}>
-            <ResumePreview resume={resume as unknown as SharedResume} />
-          </div>
+          <ResumePreview resume={resume as unknown as SharedResume} />
 
           {/* Estimated page breaks: guidance only, never a real PDF break. */}
           {estimate.boundaries.map((boundary, index) => (
@@ -188,8 +188,10 @@ export function EditorPreviewPanel() {
   });
   const [currentPage, setCurrentPage] = useState(1);
 
-  const contentRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  // The sheet is the box the boundary guides are positioned in, so it is the
+  // box that gets measured.
+  const sheetRef = useRef<HTMLDivElement>(null);
 
   const template = currentResume?.template ?? "classic";
   const themeConfig = currentResume?.themeConfig;
@@ -216,11 +218,16 @@ export function EditorPreviewPanel() {
     [template, themeConfig],
   );
 
-  // Observe the content element: a ResizeObserver is an external-system
-  // callback, so the setState inside it is the sanctioned pattern and the
-  // estimate follows content, template, typography and zoom changes alike.
+  // Observe the SHEET, not the inner content: the boundary guides are drawn
+  // on the sheet at `top: boundary`, so the measured box and the drawn box
+  // have to be the same element. Measuring the content div instead left every
+  // guide offset by the sheet's padding and border.
+  //
+  // A ResizeObserver is an external-system callback, so the setState inside it
+  // is the sanctioned pattern and the estimate follows content, template,
+  // typography and zoom changes alike.
   useEffect(() => {
-    const element = contentRef.current;
+    const element = sheetRef.current;
     if (!element || typeof ResizeObserver === "undefined") return;
 
     const scale = zoom / 100;
@@ -228,7 +235,20 @@ export function EditorPreviewPanel() {
     observer.observe(element);
     measure(element, scale);
 
-    return () => observer.disconnect();
+    // Webfonts and images change the layout after the first paint, so the
+    // first measurement can be too small. Re-measure once they settle.
+    let cancelled = false;
+    const fonts = (document as Document & { fonts?: FontFaceSet }).fonts;
+    if (fonts?.ready) {
+      fonts.ready.then(() => {
+        if (!cancelled) measure(element, scale);
+      }).catch(() => {});
+    }
+
+    return () => {
+      cancelled = true;
+      observer.disconnect();
+    };
   }, [measure, sections, zoom]);
 
   const handleScroll = useCallback(
@@ -330,8 +350,8 @@ export function EditorPreviewPanel() {
             zoom={zoom}
             estimate={estimate}
             onScroll={() => handleScroll(zoom / 100)}
-            contentRef={contentRef}
             scrollRef={scrollRef}
+            sheetRef={sheetRef}
           />
         </>
       )}

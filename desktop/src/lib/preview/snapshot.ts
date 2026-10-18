@@ -48,6 +48,14 @@ export interface PreviewSnapshot {
   template: string;
   themeConfig: ThemeConfig;
   sections: PreviewSnapshotSection[];
+  /**
+   * The document this snapshot was taken from, so the generation pipeline
+   * can build the shared resume without the caller re-supplying it. The
+   * object is the store's own reference; the cloned section list above is
+   * what is rendered, so a later editor mutation cannot change a result
+   * that is already in flight.
+   */
+  resume: DesktopResume;
 }
 
 /**
@@ -79,7 +87,47 @@ function buildKey(
     })),
   };
 
-  return JSON.stringify(stableJson(payload));
+  return hashJson(stableJson(payload));
+}
+
+/**
+ * 64-bit FNV-1a over the serialised payload, hex-encoded.
+ *
+ * The key is compared on every store change and used as a map address, so it
+ * has to be cheap and fixed-size. Serialising the whole resume and keeping the
+ * string made a multi-hundred-KB key out of a long document, rebuilt on every
+ * keystroke; hashing it keeps the comparison and the lookup O(1) in the key
+ * length while still changing whenever any serialised input changes.
+ *
+ * Two independent 32-bit lanes (one fed by the low byte of each character, one
+ * by the high byte) make an accidental collision across the inputs that matter
+ * - mode, document id, per-section content - vanishingly unlikely, and the
+ * digest is not security-sensitive: it only decides whether a cached PDF still
+ * describes the document on screen.
+ */
+function hashJson(value: unknown): string {
+  const serialized = JSON.stringify(value);
+
+  // FNV-1a, carried as two 32-bit lanes so the arithmetic stays exact in
+  // JavaScript numbers. Both start from the same offset basis.
+  let low = 0x811c9dc5;
+  let high = 0x811c9dc5;
+
+  for (let index = 0; index < serialized.length; index += 1) {
+    const code = serialized.charCodeAt(index);
+
+    low ^= code & 0xff;
+    low = Math.imul(low, 0x01000193) >>> 0;
+    // The high byte only varies for non-ASCII input, so it is folded in
+    // separately: a two-lane digest still changes when either byte changes.
+    high ^= (code >>> 8) & 0xff;
+    high = Math.imul(high, 0x01000193) >>> 0;
+  }
+
+  const hex = (value: number): string =>
+    value.toString(16).padStart(8, "0");
+
+  return `${hex(high)}${hex(low)}`;
 }
 
 /** JSON with recursively sorted object keys, so equal content gives one string. */
@@ -129,5 +177,6 @@ export function createPreviewSnapshot(
     template: resume.template,
     themeConfig: structuredClone(resume.themeConfig),
     sections: cloned,
+    resume,
   };
 }
