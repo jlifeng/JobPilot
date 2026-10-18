@@ -1,4 +1,0 @@
-{"event": "_example", "timestamp": "1970-01-01T00:00:00Z"}
-{"event": "spec_loaded", "file": ".trellis/tasks/05-20-updater-check-button/prd.md", "notes": "验收标准：关于按钮样式与设置按钮一致、检查更新功能正常、CI 修复正确"}
-{"event": "spec_loaded", "file": "desktop/src/routes/root.tsx", "notes": "验证：关于按钮在导航栏正确位置、AboutDialog 正确渲染"}
-{"event": "spec_loaded", "file": ".github/workflows/release-desktop.yml", "notes": "验证：PowerShell artifact name 提取逻辑正确，merge 后包含所有平台"}

@@ -1,8 +1,0 @@
-{"event": "_example", "timestamp": "1970-01-01T00:00:00Z"}
-{"event": "spec_loaded", "file": ".trellis/tasks/05-20-updater-check-button/prd.md", "notes": "完整需求文档，包含关于按钮 UI 设计和 macOS updater CI bug 修复方案"}
-{"event": "spec_loaded", "file": "desktop/src/routes/root.tsx", "notes": "导航栏布局，设置按钮的实现参考，需要添加关于按钮"}
-{"event": "spec_loaded", "file": "desktop/src/components/app-update/update-dialog.tsx", "notes": "更新对话框组件，关于弹窗可以参考其设计"}
-{"event": "spec_loaded", "file": "desktop/src/stores/app-update-store.ts", "notes": "更新状态管理，about-dialog 需要调用 checkForUpdates"}
-{"event": "spec_loaded", "file": ".github/workflows/release-desktop.yml", "notes": "release workflow，需要修复 merge 步骤的 PowerShell bug"}
-{"event": "spec_loaded", "file": "messages/en.json", "notes": "英文翻译，需要添加 navAbout 等新 key"}
-{"event": "spec_loaded", "file": "messages/zh.json", "notes": "中文翻译，需要添加 navAbout 等新 key"}

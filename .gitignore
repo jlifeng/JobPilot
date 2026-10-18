@@ -27,6 +27,7 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+/debug.log
 
 # local env files
 .env*.local
@@ -90,6 +91,9 @@ jadeai-data/*
 
 # Update backup directories
 .backup-*
+
+# Local design previews
+/design-preview/
 
 # Conflict resolution temp files
 *.new

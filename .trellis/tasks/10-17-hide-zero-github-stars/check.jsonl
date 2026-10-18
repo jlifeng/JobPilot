@@ -1,4 +1,0 @@
-{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Use as the verification checklist for shared frontend changes."}
-{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Verify the rendering change reuses shared patterns and does not duplicate UI behavior."}
-{"file": ".trellis/spec/desktop/frontend/component-guidelines.md", "reason": "Verify desktop/shared rendering compatibility and dark-mode styling expectations."}
-{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Check preview, export, normalization, and DOCX paths agree."}

@@ -1,4 +1,0 @@
-{"file":".trellis/spec/frontend/quality-guidelines.md","reason":"Use as the verification checklist for editor and rendering changes."}
-{"file":".trellis/spec/desktop/frontend/component-guidelines.md","reason":"Verify desktop editor behavior and design consistency."}
-{"file":".trellis/spec/document-model/template-contract.md","reason":"Verify Markdown formatting reaches both template preview and export output."}
-{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"Check that highlight strings preserve formatting through every output layer."}
