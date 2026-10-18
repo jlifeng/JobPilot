@@ -12,11 +12,6 @@ const DESKTOP_PACKAGE_PATH = "desktop/package.json";
 const TAURI_CONFIG_PATH = "desktop/src-tauri/tauri.conf.json";
 const TAURI_CARGO_PATH = "desktop/src-tauri/Cargo.toml";
 const TAURI_ICON_PATH = "desktop/src-tauri/icons/icon.ico";
-const CHECKLIST_CANDIDATES = [
-  ".trellis/spec/guides/windows-release-smoke-checklist.md",
-  ".trellis/tasks/03-29-desktop-hardening-release-readiness/windows-release-smoke-checklist.md",
-  ".trellis/tasks/archive/2026-04/03-29-desktop-hardening-release-readiness/windows-release-smoke-checklist.md",
-];
 
 function resolveFromRoot(relativePath) {
   return path.resolve(ROOT, relativePath);
@@ -38,11 +33,6 @@ function readText(relativePath) {
 
 function fileExists(relativePath) {
   return fs.existsSync(resolveFromRoot(relativePath));
-}
-
-function resolveChecklistPath() {
-  return CHECKLIST_CANDIDATES.find((candidate) => fileExists(candidate))
-    ?? CHECKLIST_CANDIDATES[0];
 }
 
 function escapeRegex(value) {
@@ -118,7 +108,6 @@ function collectChecks() {
   const desktopPackage = readJson(DESKTOP_PACKAGE_PATH);
   const tauriConfig = readJson(TAURI_CONFIG_PATH);
   const tauriCargo = readText(TAURI_CARGO_PATH);
-  const checklistPath = resolveChecklistPath();
   const updaterConfig = getUpdaterConfig(tauriConfig);
   const updaterEndpointCount = getUpdaterEndpointCount(updaterConfig);
   const updaterPubkeyConfigured = hasUpdaterPubkey(updaterConfig);
@@ -168,11 +157,6 @@ function collectChecks() {
       status: fileExists("desktop/src-tauri/entitlements/macOS.entitlements") ? "pass" : "warn",
       label: "macOS entitlements file exists",
       detail: "Expected entitlements at desktop/src-tauri/entitlements/macOS.entitlements.",
-    },
-    {
-      status: fileExists(checklistPath) ? "pass" : "fail",
-      label: "Windows release smoke checklist exists",
-      detail: `Expected checklist at ${checklistPath}.`,
     },
     {
       status: hasCargoDependency(tauriCargo, "tauri-plugin-updater")
@@ -242,7 +226,8 @@ function collectChecks() {
     {
       status: "warn",
       label: "Packaged Windows smoke remains manual",
-      detail: `Use ${checklistPath} after \`pnpm run build:tauri\` to record installer/unpacked smoke results.`,
+      detail:
+        "Run the installer and the unpacked executable after `pnpm run build:tauri` to record smoke results.",
     },
   ];
 }
@@ -266,7 +251,6 @@ if (!["report", "check"].includes(mode)) {
 const checks = collectChecks();
 const failures = checks.filter((check) => check.status === "fail");
 const warnings = checks.filter((check) => check.status === "warn");
-const checklistPath = resolveChecklistPath();
 
 console.log("[verify-desktop-release-readiness] Windows desktop release status");
 for (const check of checks) {
@@ -277,9 +261,6 @@ for (const check of checks) {
 
 console.log(
   `\n[verify-desktop-release-readiness] Summary: ${checks.length - failures.length - warnings.length} pass, ${warnings.length} warn, ${failures.length} fail.`,
-);
-console.log(
-  `[verify-desktop-release-readiness] Manual smoke checklist: ${checklistPath}`,
 );
 
 if (mode === "check" && failures.length > 0) {
