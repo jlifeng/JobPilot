@@ -2121,7 +2121,7 @@ dependencies = [
 
 [[package]]
 name = "jobpilot-desktop"
-version = "1.8.3"
+version = "1.8.4"
 dependencies = [
  "argon2",
  "base64 0.22.1",

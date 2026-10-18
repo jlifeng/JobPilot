@@ -5,6 +5,24 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 并且本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.8.4] - 2026-10-18
+
+### 新增
+
+- **预览页分页渲染** — 编辑简历时可以同时看到分页情况，不必导出后才发现页数不对（Issue #17）
+  - 实时预览新增预估页数、分页参考线与当前页指示，滚动时同步高亮所在页
+  - 新增「打印预览」：直接展示导出 PDF 的真实页面，支持总页数、当前页、上一页/下一页与页码跳转
+  - 打印预览与导出共用同一条 PDF 生成链路，可选普通 PDF 或智能一页两种模式
+  - 编辑后打印预览会标记为「已过期」并保留旧页面，可手动刷新；生成、过期、失败均有明确状态提示
+  - 内容未变化时导出会复用已预览的 PDF，保存下来的文件与检查过的页面始终一致
+
+### 修复
+
+- **切换预览视图后预估页数变成 1 页** — 修复从打印预览切回实时预览时，预估页数被重置为 1 的问题
+  - 原因是实时预览卸载时，尺寸观察者会为已移除的节点补发一次回调，其测量值为 0，被当成了「一页内容」
+  - 现在测量不到内容时保留上一次的真实预估，并补上字体加载完成后的重新测量
+- **预估页数随缩放比例虚高** — 修复缩放越小预估页数越不准的问题，缩放现在只影响显示大小
+
 ## [1.8.3] - 2026-10-17
 
 ### 修复
@@ -403,7 +421,8 @@
 - 中英双语 — 完整的国际化支持
 - 本地优先 — 数据存储在本地，隐私安全有保障
 
-[Unreleased]: https://github.com/jlifeng/JobPilot/compare/v1.8.3...HEAD
+[Unreleased]: https://github.com/jlifeng/JobPilot/compare/v1.8.4...HEAD
+[1.8.4]: https://github.com/jlifeng/JobPilot/compare/v1.8.3...v1.8.4
 [1.8.3]: https://github.com/jlifeng/JobPilot/compare/v1.8.2...v1.8.3
 [1.8.2]: https://github.com/jlifeng/JobPilot/compare/v1.8.1...v1.8.2
 [1.8.1]: https://github.com/jlifeng/JobPilot/compare/v1.8.0...v1.8.1
