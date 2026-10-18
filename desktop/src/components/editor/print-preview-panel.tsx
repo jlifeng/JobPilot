@@ -33,6 +33,10 @@ import {
   type PdfPreviewMode,
   type PreviewSnapshot,
 } from "../../lib/preview/snapshot";
+import {
+  clearPdfArtifactCache,
+  setCachedPdfArtifact,
+} from "../../lib/preview/preview-artifact-cache";
 import type { Resume, ResumeSection } from "../../types/resume";
 
 /**
@@ -51,6 +55,10 @@ import type { Resume, ResumeSection } from "../../types/resume";
  * 2. `desktop/vitest.config.ts` runs in a node environment where React effects
  *    and the DOM are unavailable, so the machine lives in a framework-free core
  *    (`createPrintPreviewCore`). The React layer is a thin subscriber over it.
+ *
+ * The generated PDF is published to the shared artifact cache, so exporting an
+ * unchanged document saves the very PDF that was displayed instead of running
+ * the browser pipeline a second time.
  */
 
 /** Visible lifecycle of a print-preview result. */
@@ -155,6 +163,9 @@ export function createPrintPreviewCore(
     generatedKey = null;
     inFlightKey = null;
     requestKey = "";
+    // A document switch must not leave the previous document's PDF behind for
+    // an export to pick up.
+    clearPdfArtifactCache();
     patch({
       phase: "idle",
       pageCount: 0,
@@ -213,6 +224,18 @@ export function createPrintPreviewCore(
       // An older request may finish, but its result is never presented as
       // current after the document, content or mode changed.
       if (requestKey !== target.key) return;
+
+      // Publish the artifact for the export path: the key is the effective
+      // snapshot, so a later export only reuses it while the document and the
+      // output mode are unchanged. Preview is never anonymized.
+      setCachedPdfArtifact({
+        key: target.key,
+        mode: target.mode,
+        html,
+        bytes: receipt.bytes,
+        bytesWritten: receipt.bytesWritten,
+        anonymized: false,
+      });
 
       const document = await loadPdfPages(new Uint8Array(receipt.bytes));
       if (requestKey !== target.key) return;
