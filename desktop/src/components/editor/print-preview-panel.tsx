@@ -1,5 +1,6 @@
 import {
   useEffect,
+  useMemo,
   useReducer,
   useRef,
   useState,
@@ -81,12 +82,6 @@ export interface PrintPreviewState {
   errorMessage: string;
 }
 
-/** Reads the effective document for the core, without owning it. */
-export interface PrintPreviewCoreHost {
-  resume: () => Resume | null;
-  sections: () => ResumeSection[];
-}
-
 export interface PrintPreviewCore {
   getState(): PrintPreviewState;
   subscribe(listener: (state: PrintPreviewState) => void): () => void;
@@ -100,8 +95,17 @@ export interface PrintPreviewCore {
   sync(resume: Resume | null, sections: ResumeSection[]): void;
   /** Explicit user refresh for the current snapshot. */
   refresh(): void;
-  /** Switch the PDF output mode and regenerate immediately. */
-  selectMode(mode: PdfPreviewMode): void;
+  /**
+   * Switch the PDF output mode and regenerate immediately.
+   *
+   * The effective document is passed in, so the new snapshot is built from
+   * exactly what `sync` last saw and the two can never disagree.
+   */
+  selectMode(
+    mode: PdfPreviewMode,
+    resume: Resume | null,
+    sections: ResumeSection[],
+  ): void;
   goToPage(page: number): void;
   nextPage(): void;
   prevPage(): void;
@@ -116,6 +120,40 @@ function readErrorMessage(error: unknown): string {
 }
 
 /**
+ * Upper bound on rendered page images held in core state.
+ *
+ * Each entry is a base64 PNG data URL of roughly 100-300 KB, so an unbounded
+ * record costs several MB for a long resume and nothing releases it. The panel
+ * pre-renders the window around the current page, so keeping the nearest pages
+ * and dropping the farthest matches how the list is actually read.
+ */
+const MAX_CACHED_PAGE_IMAGES = 6;
+
+/**
+ * Keeps the `MAX_CACHED_PAGE_IMAGES` pages nearest to `currentPage`.
+ *
+ * Distance is measured in pages, so a jump to the far end of the document
+ * replaces the window instead of growing the record without limit.
+ */
+function boundPageImages(
+  images: Record<number, string>,
+  currentPage: number,
+): Record<number, string> {
+  const indices = Object.keys(images).map(Number);
+  if (indices.length <= MAX_CACHED_PAGE_IMAGES) return images;
+
+  const centre = currentPage - 1;
+  indices.sort((a, b) => Math.abs(a - centre) - Math.abs(b - centre));
+
+  const kept: Record<number, string> = {};
+  for (const index of indices.slice(0, MAX_CACHED_PAGE_IMAGES)) {
+    kept[index] = images[index];
+  }
+
+  return kept;
+}
+
+/**
  * Framework-free core of the print preview state machine.
  *
  * Kept free of React so the observable behaviour - generation, de-duplication
@@ -123,9 +161,7 @@ function readErrorMessage(error: unknown): string {
  * previous document, retry and page navigation - can be exercised directly in
  * vitest's node environment.
  */
-export function createPrintPreviewCore(
-  host?: PrintPreviewCoreHost,
-): PrintPreviewCore {
+export function createPrintPreviewCore(): PrintPreviewCore {
   let state: PrintPreviewState = {
     phase: "idle",
     mode: "pdf",
@@ -158,8 +194,24 @@ export function createPrintPreviewCore(
   let inFlightKey: string | null = null;
   let loaded: LoadedPdfPages | null = null;
 
+  /**
+   * Key of the document currently loaded; the pages on screen are its pages.
+   *
+   * `loaded` is only ever replaced by a generation that was still current when
+   * it finished, so a page request against `loaded` belongs to a document the
+   * panel really produced. Comparing against this key - rather than the newest
+   * request - is what lets the panel keep drawing the document it is showing
+   * while a newer generation is in flight, and still drops a page that belongs
+   * to a document that has since been replaced.
+   */
+  let loadedKey: string | null = null;
+
   const clearResult = (): void => {
+    // A document switch must release the wasm document of the one it replaces;
+    // dropping the reference alone leaves it allocated.
+    loaded?.close();
     loaded = null;
+    loadedKey = null;
     generatedKey = null;
     inFlightKey = null;
     requestKey = "";
@@ -178,18 +230,25 @@ export function createPrintPreviewCore(
   async function renderPages(indices: number[]): Promise<void> {
     const document = loaded;
     if (!document) return;
+    const documentKey = loadedKey;
 
     for (const index of indices) {
       if (index < 0 || index >= document.pageCount) continue;
       if (state.pageImages[index]) continue;
-      // A superseded snapshot must never render pages of a stale document.
-      if (snapshot === null || requestKey !== snapshot.key) return;
+      // Skip rather than abandon the batch: the remaining pages of this
+      // document are still worth drawing even if one request was superseded.
+      if (documentKey === null || loadedKey !== documentKey) continue;
 
       try {
         const image = await renderPdfPage(document, index, { scale: 1 });
-        if (snapshot === null || requestKey !== snapshot.key) return;
+        // A generation that finished while this page was rendering replaced
+        // the document, so this page belongs to the old one and is dropped.
+        if (loadedKey !== documentKey) return;
         patch({
-          pageImages: { ...state.pageImages, [image.index]: image.dataUrl },
+          pageImages: boundPageImages(
+            { ...state.pageImages, [image.index]: image.dataUrl },
+            state.currentPage,
+          ),
         });
       } catch {
         // Keep the page placeholder; a render failure must not break navigation.
@@ -202,16 +261,13 @@ export function createPrintPreviewCore(
     // process for identical content is pure waste.
     if (inFlightKey === target.key) return;
 
-    const resume = host?.resume() ?? null;
-    if (!resume) return;
-
     inFlightKey = target.key;
     requestKey = target.key;
     patch({ phase: "generating", errorMessage: "" });
 
     try {
       const sharedResume = toSharedResume(
-        { ...resume, sections: target.sections },
+        { ...target.resume, sections: target.sections },
         target.sections,
       );
       // Mirrors the export flow, minus the save dialog and anonymization.
@@ -231,7 +287,6 @@ export function createPrintPreviewCore(
       setCachedPdfArtifact({
         key: target.key,
         mode: target.mode,
-        html,
         bytes: receipt.bytes,
         bytesWritten: receipt.bytesWritten,
         anonymized: false,
@@ -240,7 +295,10 @@ export function createPrintPreviewCore(
       const document = await loadPdfPages(new Uint8Array(receipt.bytes));
       if (requestKey !== target.key) return;
 
+      // The previous document is superseded: release it before swapping.
+      loaded?.close();
       loaded = document;
+      loadedKey = target.key;
       generatedKey = target.key;
       state = {
         ...state,
@@ -251,6 +309,13 @@ export function createPrintPreviewCore(
       };
       notify();
       void renderPages([0]);
+      // A page requested while this generation was in flight was skipped, so
+      // draw the window around the page now on screen.
+      const from = Math.max(0, state.currentPage - 2);
+      const to = Math.min(document.pageCount - 1, state.currentPage);
+      const window: number[] = [];
+      for (let index = from; index <= to; index += 1) window.push(index);
+      void renderPages(window);
     } catch (error) {
       if (requestKey !== target.key) return;
       patch({ phase: "failed", errorMessage: readErrorMessage(error) });
@@ -311,15 +376,16 @@ export function createPrintPreviewCore(
       if (snapshot) void generate(snapshot);
     },
 
-    selectMode(next) {
+    selectMode(next, resume, sections) {
       if (next === mode) return;
       mode = next;
-      const resume = host?.resume() ?? null;
-      const nextSnapshot = createPreviewSnapshot(
-        resume,
-        host?.sections() ?? [],
-        next,
-      );
+      // The caller hands over the effective document, so the snapshot
+      // cannot disagree with what sync() already saw.
+      const nextSnapshot = createPreviewSnapshot(resume, sections, next);
+      // Record the new baseline BEFORE generating: the staleness guards
+      // and the render path compare against it, and without this no page
+      // of the regenerated PDF would ever be drawn.
+      snapshot = nextSnapshot;
       patch({ mode: next });
       if (!nextSnapshot) return;
       // An explicit mode choice regenerates right away; the old pages stay
@@ -360,28 +426,46 @@ export function createPrintPreviewCore(
  * The store owns the document, so the hook only forwards it: the core decides
  * what is current, outdated or failed.
  */
+/**
+ * The core, with `selectMode` bound to the document the editor holds.
+ *
+ * A thin adapter rather than a second state machine: the panel calls
+ * `controller.selectMode(mode)`, and this forwards the effective document
+ * so the core never has to hold a reference to the store.
+ */
+function useBoundCore(
+  core: PrintPreviewCore,
+  resume: Resume | null,
+  sections: ResumeSection[],
+): PrintPreviewCore {
+  return useMemo(
+    () => ({
+      ...core,
+      selectMode: (mode: PdfPreviewMode) =>
+        core.selectMode(mode, resume, sections),
+    }),
+    [core, resume, sections],
+  );
+}
+
 export function usePrintPreview(
   resume: Resume | null,
   sections: ResumeSection[],
 ): PrintPreviewCore {
-  // The core is created once and then driven from an effect. The host
-  // callbacks read the latest document through a mutable holder that is only
-  // written inside effects, never during render.
+  // The core is created once and then driven from an effect. It holds no
+  // reference to the store: every entry point receives the effective
+  // document from this hook, so the binding cannot silently detach from the
+  // document the editor is showing.
   const [core] = useState(createPrintPreviewCore);
-  const hostRef = useRef<PrintPreviewCoreHost>({
-    resume: () => null,
-    sections: () => [],
-  });
   const [, forceRender] = useReducer((count: number) => count + 1, 0);
 
   useEffect(() => {
-    hostRef.current = { resume: () => resume, sections: () => sections };
     core.sync(resume, sections);
   }, [core, resume, sections]);
 
   useEffect(() => core.subscribe(() => forceRender()), [core]);
 
-  return core;
+  return useBoundCore(core, resume, sections);
 }
 
 export interface PrintPreviewPanelProps {
@@ -392,8 +476,13 @@ export interface PrintPreviewPanelProps {
 /** Presentational surface: everything visible, nothing stateful. */
 export function PrintPreviewSurface({
   controller,
+  resume,
+  sections,
 }: {
   controller: PrintPreviewCore;
+  /** The effective document, forwarded to `selectMode` on a mode switch. */
+  resume: Resume | null;
+  sections: ResumeSection[];
 }) {
   const { t } = useTranslation();
   const state = useSyncExternalStore(
@@ -412,9 +501,18 @@ export function PrintPreviewSurface({
   const pageCount = state.pageCount;
   const isGenerating = state.phase === "generating";
 
+  // React null-pads removed entries, but the array itself keeps its old
+  // length, so a scroll handler would keep walking detached cards. Trim it to
+  // the pages actually rendered.
+  useEffect(() => {
+    cardRefs.current.length = pageCount;
+  }, [pageCount]);
+
   const handleScroll = (): void => {
     const container = scrollRef.current;
-    if (!container || pageCount <= 1) return;
+    // While a refresh is running the page list still describes the document
+    // that is about to be replaced, so a scroll must not retarget it.
+    if (!container || pageCount <= 1 || isGenerating) return;
 
     const view = container.getBoundingClientRect();
     const centre = view.top + view.height / 2;
@@ -461,7 +559,7 @@ export function PrintPreviewSurface({
               key={value}
               type="button"
               aria-pressed={state.mode === value}
-              onClick={() => controller.selectMode(value)}
+              onClick={() => controller.selectMode(value, resume, sections)}
               className={`cursor-pointer rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${
                 state.mode === value
                   ? "bg-white text-blue-600 shadow-sm dark:bg-blue-950/40 dark:text-blue-200"
@@ -528,7 +626,7 @@ export function PrintPreviewSurface({
             className="h-7 w-7 cursor-pointer rounded-full p-0 text-slate-600 hover:bg-slate-100 hover:text-blue-600 dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-blue-200"
             aria-label={t("editor.preview.prevPage")}
             onClick={() => controller.prevPage()}
-            disabled={state.currentPage <= 1 || pageCount === 0}
+            disabled={state.currentPage <= 1 || pageCount === 0 || isGenerating}
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
@@ -547,7 +645,7 @@ export function PrintPreviewSurface({
             className="h-7 w-7 cursor-pointer rounded-full p-0 text-slate-600 hover:bg-slate-100 hover:text-blue-600 dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-blue-200"
             aria-label={t("editor.preview.nextPage")}
             onClick={() => controller.nextPage()}
-            disabled={state.currentPage >= pageCount || pageCount === 0}
+            disabled={state.currentPage >= pageCount || pageCount === 0 || isGenerating}
           >
             <ChevronRight className="h-4 w-4" />
           </Button>
@@ -565,7 +663,7 @@ export function PrintPreviewSurface({
                 if (event.key === "Enter") commitJump(event.currentTarget.value);
               }}
               aria-label={t("editor.preview.pageJump")}
-              disabled={pageCount === 0}
+              disabled={pageCount === 0 || isGenerating}
               className="w-14 rounded-md border border-slate-200 bg-white px-1.5 py-1 text-xs tabular-nums text-slate-700 shadow-xs outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:opacity-50 dark:border-white/10 dark:bg-input/30 dark:text-zinc-200"
             />
           </label>
@@ -681,5 +779,11 @@ export function PrintPreviewPanel({
     controller.renderPages(indices);
   }, [controller, state.currentPage, state.pageCount]);
 
-  return <PrintPreviewSurface controller={controller} />;
+  return (
+    <PrintPreviewSurface
+      controller={controller}
+      resume={resume}
+      sections={sections}
+    />
+  );
 }

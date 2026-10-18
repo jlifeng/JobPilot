@@ -26,7 +26,6 @@ function artifact(
   return {
     key: "key-a",
     mode: "pdf",
-    html: "<html><body>a</body></html>",
     bytes: PDF_BYTES,
     bytesWritten: PDF_BYTES.length,
     anonymized: false,
@@ -74,6 +73,19 @@ describe("preview artifact cache", () => {
     setCachedPdfArtifact(artifact({ anonymized: false }));
 
     assert.equal(getCachedPdfArtifact("key-a", "pdf", true), null);
+  });
+
+  it("addresses the same snapshot key separately per privacy option", () => {
+    // The privacy axis is part of the cache ADDRESS, not a post-hoc filter:
+    // two artifacts for the same document key live at two addresses, so no
+    // lookup can ever resolve one privacy option to the other's bytes.
+    setCachedPdfArtifact(artifact({ key: "key-a", anonymized: false }));
+    setCachedPdfArtifact(
+      artifact({ key: "key-a", anonymized: true, bytes: [9, 9, 9] }),
+    );
+
+    assert.deepEqual(getCachedPdfArtifact("key-a", "pdf", false)?.bytes, PDF_BYTES);
+    assert.deepEqual(getCachedPdfArtifact("key-a", "pdf", true)?.bytes, [9, 9, 9]);
   });
 
   it("hits an anonymized artifact for an anonymized export", () => {

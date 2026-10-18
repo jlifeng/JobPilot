@@ -38,9 +38,27 @@ export interface PdfPageImage {
 /** A PDF opened for reading. No page has been rendered yet. */
 export interface LoadedPdfPages {
   pageCount: number;
-  /** Lazily rendered, kept in page order. */
-  pages: PdfPageImage[];
+  /**
+   * Releases the wasm document and every page image it rendered.
+   *
+   * Callers that replace a preview must call this instead of just dropping the
+   * reference: the MuPDF document is a wasm allocation the GC cannot reclaim,
+   * so a preview that is superseded without closing leaks the largest resource
+   * in this flow. Idempotent and safe to call on any value.
+   */
+  close(): void;
 }
+
+/**
+ * Upper bound on rendered pages kept per document.
+ *
+ * A 20-page resume at scale 1 holds 20 base64 PNG data URLs of roughly
+ * 100-300 KB each, so an unbounded cache costs several MB per preview and
+ * nothing ever releases it. Six pages covers the pre-render window around the
+ * page on screen (current +/- 1, plus what a jump needs), and the panel asks
+ * again when the user navigates back.
+ */
+export const MAX_RENDERED_PDF_PAGES = 6;
 
 /** Options for {@link renderPdfPage}. */
 export interface RenderPdfPageOptions {
@@ -79,6 +97,7 @@ type MupdfPixmap = {
 type MupdfDocument = {
   countPages(): number;
   loadPage(index: number): MupdfPage;
+  destroy?(): void;
 };
 
 /** The MuPDF module namespace, narrowed to what this module calls. */
@@ -201,7 +220,13 @@ export async function loadPdfPages(bytes: Uint8Array): Promise<LoadedPdfPages> {
 
   const loaded: LoadedPdfPages = {
     pageCount: document.countPages(),
-    pages: [],
+    close: () => {
+      const state = readerStates.get(loaded);
+      if (!state) return;
+      readerStates.delete(loaded);
+      state.rendered.clear();
+      state.document.destroy?.();
+    },
   };
 
   readerStates.set(loaded, {
@@ -277,7 +302,14 @@ export async function renderPdfPage(
   };
 
   state.rendered.set(index, image);
-  loaded.pages = [...state.rendered.values()].sort((a, b) => a.index - b.index);
+
+  // Bound the cache: without this every page of every preview stays resident
+  // for the life of the panel, which is several MB for a long resume.
+  while (state.rendered.size > MAX_RENDERED_PDF_PAGES) {
+    const oldest = state.rendered.keys().next().value;
+    if (oldest === undefined) break;
+    state.rendered.delete(oldest);
+  }
 
   return image;
 }

@@ -15,15 +15,18 @@ import {
 // only for its pre-wasm header guard: the check runs before any dynamic
 // `import("mupdf")`, which is what keeps this module importable under vitest's
 // node environment (desktop/vitest.config.ts has no optimizeDeps.exclude).
+/**
+ * A stand-in for a real `LoadedPdfPages`.
+ *
+ * Only the index guard is exercised here (it runs before any wasm work), so
+ * the value needs the shape the guard reads - a page count and a `close()`.
+ * Building it through `loadPdfPages` is impossible in the node environment
+ * because MuPDF only boots inside the webview.
+ */
 function loaded(pageCount: number): LoadedPdfPages {
   return {
     pageCount,
-    pages: Array.from({ length: pageCount }, (_, index) => ({
-      index,
-      dataUrl: `data:image/png;base64,page-${index}`,
-      width: 794,
-      height: 1123,
-    })),
+    close: () => {},
   };
 }
 
@@ -95,5 +98,36 @@ describe("a4PageSizeAtScale", () => {
 
     assert.equal(size.width, Math.round(794 * 1.5));
     assert.equal(size.height, Math.round(1123 * 1.5));
+  });
+});
+
+// ---------------------------------------------------------------------
+// LoadedPdfPages: the close contract
+// ---------------------------------------------------------------------
+
+describe("LoadedPdfPages.close", () => {
+  it("is safe to call more than once and on a value that was never opened", () => {
+    const document = loaded(3);
+
+    document.close();
+    document.close();
+
+    assert.equal(document.pageCount, 3);
+  });
+
+  it("leaves the page count readable after closing", () => {
+    const document = loaded(7);
+
+    document.close();
+
+    // The panel still needs the count to lay its list out while the next
+    // document loads, so closing must not scramble the plain data fields.
+    assert.equal(document.pageCount, 7);
+  });
+
+  it("is part of the public contract, so a caller can release the document", () => {
+    const document = loaded(1);
+
+    assert.equal(typeof document.close, "function");
   });
 });
