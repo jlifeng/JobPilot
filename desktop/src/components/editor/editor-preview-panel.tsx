@@ -20,8 +20,9 @@ import { PrintPreviewPanel } from "./print-preview-panel";
  *
  * The live view keeps the existing continuous A4 sheet and zoom control, and
  * adds an EXPLICITLY ESTIMATED page count, page boundary guides and a
- * scroll-driven current-page indicator. The estimate is measured from the
- * unzoomed layout, so zooming only changes display size.
+ * scroll-driven current-page indicator. The estimate only ever describes a
+ * sheet that is actually on screen: a measurement taken from a detached node
+ * reports zeros, which would silently reset the estimate to one page.
  *
  * The print view (see `print-preview-panel.tsx`) shows the real pages of the
  * PDF the user would export.
@@ -37,19 +38,30 @@ const MAX_ZOOM = 150;
 export type PreviewViewMode = "live" | "print";
 
 /**
- * Read a zoomed measurement back into unzoomed px.
+ * Layout height of a sheet in the px space the estimate works in, or 0 when
+ * there is nothing to measure.
  *
- * The sheet uses the CSS `zoom` property, so a raw `scrollHeight` /
- * `getBoundingClientRect` reading is a screen measurement. Dividing by the
- * zoom factor recovers the layout height the estimate needs: zooming must never
- * change the reported pagination.
+ * Two rules make this trustworthy:
+ *
+ * - A CSS-`zoom` element reports `scrollHeight`/`offsetHeight` in its own
+ *   UNZOOMED px (verified in Chrome: 4400 at zoom 0.3, 0.9 and 1.5 alike), so
+ *   the reading is used as-is - dividing by the zoom would inflate every
+ *   estimate, and the inflation would grow as the user zooms out.
+ * - A detached or unlaid-out node reports 0 from both heights and a zero
+ *   `getBoundingClientRect()`. Callers must read that as "no measurement", never
+ *   as "one page of content", which is how switching the preview view used to
+ *   reset the estimate to a single page.
  */
-export function unzoomedHeight(measured: number, zoom: number): number {
-  if (!Number.isFinite(measured) || measured <= 0) return 0;
+export function sheetLayoutHeight(sheet: HTMLElement): number {
+  if (!sheet.isConnected) return 0;
 
-  const scale = Number.isFinite(zoom) && zoom > 0 ? zoom / 100 : 1;
+  const scrollHeight = sheet.scrollHeight;
+  if (Number.isFinite(scrollHeight) && scrollHeight > 0) return scrollHeight;
 
-  return Math.round(measured / scale);
+  const offsetHeight = sheet.offsetHeight;
+  if (Number.isFinite(offsetHeight) && offsetHeight > 0) return offsetHeight;
+
+  return 0;
 }
 
 /**
@@ -196,16 +208,15 @@ export function EditorPreviewPanel() {
   const template = currentResume?.template ?? "classic";
   const themeConfig = currentResume?.themeConfig;
 
-  // Measure the UNZOOMED layout and turn it into an estimate. The zoom is
-  // passed in (never read from a render-time ref write) so the estimate depends
-  // only on the layout, not on the display scale.
+  // Measure the layout and turn it into an estimate. Only a sheet that is
+  // actually rendered can produce a measurement; see `sheetLayoutHeight`.
   const measure = useCallback(
-    (element: HTMLElement, scale: number) => {
-      const raw =
-        element.scrollHeight > 0
-          ? element.scrollHeight
-          : element.getBoundingClientRect().height;
-      const contentHeight = unzoomedHeight(raw, scale * 100);
+    (element: HTMLElement) => {
+      const contentHeight = sheetLayoutHeight(element);
+      // Nothing measurable (the view is swapped, the sheet is detached or the
+      // layout has not run). Keep the last real estimate rather than
+      // overwriting it with a single page.
+      if (contentHeight <= 0) return;
 
       setEstimate(
         estimateLivePages(
@@ -226,14 +237,17 @@ export function EditorPreviewPanel() {
   // A ResizeObserver is an external-system callback, so the setState inside it
   // is the sanctioned pattern and the estimate follows content, template,
   // typography and zoom changes alike.
+  //
+  // `view` is a dependency on purpose: switching to the print view unmounts
+  // this sheet, and switching back mounts a different DOM node. Without it the
+  // effect never re-runs, so the estimate would never be measured again.
   useEffect(() => {
     const element = sheetRef.current;
     if (!element || typeof ResizeObserver === "undefined") return;
 
-    const scale = zoom / 100;
-    const observer = new ResizeObserver(() => measure(element, scale));
+    const observer = new ResizeObserver(() => measure(element));
     observer.observe(element);
-    measure(element, scale);
+    measure(element);
 
     // Webfonts and images change the layout after the first paint, so the
     // first measurement can be too small. Re-measure once they settle.
@@ -241,7 +255,7 @@ export function EditorPreviewPanel() {
     const fonts = (document as Document & { fonts?: FontFaceSet }).fonts;
     if (fonts?.ready) {
       fonts.ready.then(() => {
-        if (!cancelled) measure(element, scale);
+        if (!cancelled) measure(element);
       }).catch(() => {});
     }
 
@@ -249,7 +263,7 @@ export function EditorPreviewPanel() {
       cancelled = true;
       observer.disconnect();
     };
-  }, [measure, sections, zoom]);
+  }, [measure, sections, view]);
 
   const handleScroll = useCallback(
     (scale: number) => {

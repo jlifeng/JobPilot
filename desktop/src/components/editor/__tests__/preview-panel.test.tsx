@@ -75,7 +75,7 @@ import {
   EditorPreviewPanel,
   LivePreviewSurface,
   estimateLivePages,
-  unzoomedHeight,
+  sheetLayoutHeight,
 } from "../editor-preview-panel";
 
 // ---------------------------------------------------------------------
@@ -92,6 +92,19 @@ const THEME: ThemeConfig = {
   sectionSpacing: 16,
   avatarStyle: "circle",
 };
+
+/** Stand-in for the live sheet DOM node: only what `sheetLayoutHeight` reads. */
+function fakeSheet(
+  height: number,
+  options: { connected?: boolean } = {},
+): HTMLElement {
+  return {
+    isConnected: options.connected ?? true,
+    scrollHeight: height,
+    offsetHeight: height,
+    getBoundingClientRect: () => ({ height: 0 }) as DOMRect,
+  } as unknown as HTMLElement;
+}
 
 function makeSection(
   id: string,
@@ -213,23 +226,24 @@ describe("EditorPreviewPanel live view", () => {
     expect(markup).toContain("Estimated page break");
   });
 
-  it("keeps the estimate unchanged when only the zoom changes", () => {
-    const measuredAtDefaultZoom = 2400;
-    const measuredAtHighZoom = 2400 * 1.5;
+  it("reads the layout height the estimate works in, zoom or no zoom", () => {
+    // A CSS-zoom element reports scrollHeight in its own unzoomed px, so the
+    // same sheet yields the same height whatever the display scale. The old
+    // implementation divided by zoom, which inflated every estimate.
+    const sheet = fakeSheet(4400);
 
-    const atDefault = estimateLivePages(
-      "classic",
-      { ...THEME },
-      unzoomedHeight(measuredAtDefaultZoom, 90),
-    );
-    const atHigh = estimateLivePages(
-      "classic",
-      { ...THEME },
-      unzoomedHeight(measuredAtHighZoom, 150),
-    );
+    expect(sheetLayoutHeight(sheet)).toBe(4400);
+  });
 
-    expect(atDefault.pageCount).toBe(atHigh.pageCount);
-    expect(atDefault.boundaries).toEqual(atHigh.boundaries);
+  it("reports no measurement for a detached sheet instead of one page", () => {
+    // This is the regression: switching to the print view unmounts the sheet,
+    // the ResizeObserver fires once for the removed node, and the old code
+    // turned the resulting 0 into a one-page estimate.
+    const detached = fakeSheet(4400, { connected: false });
+
+    expect(sheetLayoutHeight(detached)).toBe(0);
+    expect(estimateLivePages("classic", { ...THEME }, sheetLayoutHeight(detached)))
+      .toEqual({ pageCount: 1, boundaries: [], contentHeight: 0 });
   });
 
   it("keeps the zoom control operable", async () => {
