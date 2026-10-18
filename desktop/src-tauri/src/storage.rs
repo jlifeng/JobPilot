@@ -29,15 +29,16 @@ const PDF_EXPORT_OUTPUT_TIMEOUT_MS: u64 = 8_000;
 const PDF_EXPORT_STABLE_POLL_MS: u64 = 150;
 const PDF_EXPORT_STABLE_POLLS: usize = 3;
 const PDF_EXPORT_PROCESS_TIMEOUT_MS: u64 = 30_000;
+pub(crate) const PDF_SCRATCH_DIR_NAME: &str = "exports";
 
-enum BrowserCommandResult {
+pub(crate) enum BrowserCommandResult {
     Success(std::process::Output),
     ProducedPdf,
     TimedOut,
     LaunchFailed(String),
 }
 
-fn observe_stable_pdf_output(
+pub(crate) fn observe_stable_pdf_output(
     path: &Path,
     last_size: &mut Option<u64>,
     stable_polls: &mut usize,
@@ -61,7 +62,7 @@ fn observe_stable_pdf_output(
     false
 }
 
-fn run_command_with_timeout(
+pub(crate) fn run_command_with_timeout(
     mut command: std::process::Command,
     output_path: &Path,
     timeout: Duration,
@@ -131,6 +132,118 @@ fn run_command_with_timeout(
         }
         Err(error) => BrowserCommandResult::LaunchFailed(error.to_string()),
     }
+}
+
+/// Scratch directory shared by the PDF export and the print-preview pipelines.
+pub(crate) fn pdf_scratch_dir(app: &AppHandle) -> Result<PathBuf, String> {
+    let cache_dir = app
+        .path()
+        .app_cache_dir()
+        .map_err(|error| format!("failed to resolve app cache dir: {error}"))?
+        .join(PDF_SCRATCH_DIR_NAME);
+    ensure_storage_directory(&cache_dir)?;
+    Ok(cache_dir)
+}
+
+/// Builds the headless-Chrome `--print-to-pdf` command for one HTML document.
+pub(crate) fn build_browser_print_command(
+    browser_path: &Path,
+    html_path: &Path,
+    pdf_path: &Path,
+    user_data_dir: &Path,
+) -> Result<Command, String> {
+    let html_url = file_url_from_path(html_path)?;
+    let pdf_path_str = path_to_string(pdf_path);
+    let print_argument = format!("--print-to-pdf={}", pdf_path_str);
+    let user_data_dir_str = path_to_string(user_data_dir);
+
+    let mut command = Command::new(browser_path);
+    #[cfg(target_os = "windows")]
+    command.creation_flags(0x08000000); // CREATE_NO_WINDOW
+    command
+        .arg("--headless=new")
+        .arg("--disable-gpu")
+        .arg("--allow-file-access-from-files")
+        .arg("--run-all-compositor-stages-before-draw")
+        .arg("--virtual-time-budget=12000")
+        .arg("--no-first-run")
+        .arg("--no-default-browser-check")
+        .arg("--no-pdf-header-footer")
+        .arg(format!("--user-data-dir={}", user_data_dir_str))
+        .arg(&print_argument)
+        .arg(&html_url);
+
+    #[cfg(target_os = "linux")]
+    command.arg("--no-sandbox");
+
+    Ok(command)
+}
+
+/// Runs the headless browser print for `html_path` and waits for `pdf_path`.
+///
+/// `operation` only labels error messages ("pdf export" / "pdf preview") so that
+/// both callers stay on exactly the same browser pipeline.
+pub(crate) async fn run_browser_pdf_print(
+    browser_path: &Path,
+    html_path: &Path,
+    pdf_path: &Path,
+    user_data_dir: &Path,
+) -> Result<(), String> {
+    let browser_path = browser_path.to_path_buf();
+    let html_path = html_path.to_path_buf();
+    let pdf_path = pdf_path.to_path_buf();
+    let user_data_dir = user_data_dir.to_path_buf();
+
+    tauri::async_runtime::spawn_blocking(move || {
+        let command = build_browser_print_command(
+            &browser_path,
+            &html_path,
+            &pdf_path,
+            &user_data_dir,
+        )?;
+
+        // Use a thread with timeout to prevent Chrome headless from hanging indefinitely
+        // (known issue on macOS M1 where Chrome may not exit after printing PDF)
+        let browser_result = run_command_with_timeout(
+            command,
+            &pdf_path,
+            Duration::from_millis(PDF_EXPORT_PROCESS_TIMEOUT_MS),
+        );
+
+        match browser_result {
+            BrowserCommandResult::Success(output) => {
+                if !output.status.success() {
+                    // Chrome may report non-zero exit but still produce valid PDF
+                    let pdf_exists = pdf_path.exists();
+                    if !pdf_exists {
+                        let stdout_text =
+                            String::from_utf8_lossy(&output.stdout).trim().to_string();
+                        let stderr_text =
+                            String::from_utf8_lossy(&output.stderr).trim().to_string();
+                        return Err(format!(
+                            "pdf export browser command failed (status: {}). stdout: {} stderr: {}",
+                            output.status.code().map(|code| code.to_string()).unwrap_or_else(|| "terminated".into()),
+                            if stdout_text.is_empty() { "<empty>" } else { &stdout_text },
+                            if stderr_text.is_empty() { "<empty>" } else { &stderr_text },
+                        ));
+                    }
+                }
+                Ok(())
+            }
+            BrowserCommandResult::ProducedPdf => Ok(()),
+            BrowserCommandResult::TimedOut => {
+                Err("pdf export timed out: browser did not exit within the timeout and no PDF was produced".into())
+            }
+            BrowserCommandResult::LaunchFailed(error) => {
+                Err(format!(
+                    "failed to launch browser {} for pdf export: {error}",
+                    browser_path.display()
+                ))
+            }
+        }
+    })
+    .await
+    .map_err(|error| format!("pdf export task panicked: {error}"))?
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -407,12 +520,7 @@ pub async fn write_pdf_export(
         })?;
     }
 
-    let cache_dir = app
-        .path()
-        .app_cache_dir()
-        .map_err(|error| format!("failed to resolve app cache dir: {error}"))?
-        .join("exports");
-    ensure_storage_directory(&cache_dir)?;
+    let cache_dir = pdf_scratch_dir(&app)?;
 
     let timestamp = now_epoch_ms()?;
     let temp_html_path = cache_dir.join(format!("pdf-export-{timestamp}.html"));
@@ -424,78 +532,10 @@ pub async fn write_pdf_export(
     })?;
 
     let browser_path = resolve_pdf_browser_path()?;
-    let pdf_path_str = path_to_string(&resolved_output_path);
-    let print_argument = format!("--print-to-pdf={}", pdf_path_str);
-
     let user_data_dir = cache_dir.join(format!("pdf-render-profile-{timestamp}"));
     ensure_storage_directory(&user_data_dir)?;
-
-    let html_url = file_url_from_path(&temp_html_path)?;
-    let user_data_dir_str = path_to_string(&user_data_dir);
-
-    let resolved_output_path_clone = resolved_output_path.clone();
-    let browser_path_clone = browser_path.clone();
-
-    tauri::async_runtime::spawn_blocking(move || {
-        let mut command = Command::new(&browser_path_clone);
-        #[cfg(target_os = "windows")]
-        command.creation_flags(0x08000000); // CREATE_NO_WINDOW
-        command
-            .arg("--headless=new")
-            .arg("--disable-gpu")
-            .arg("--allow-file-access-from-files")
-            .arg("--run-all-compositor-stages-before-draw")
-            .arg("--virtual-time-budget=12000")
-            .arg("--no-first-run")
-            .arg("--no-default-browser-check")
-            .arg("--no-pdf-header-footer")
-            .arg(format!("--user-data-dir={}", user_data_dir_str))
-            .arg(&print_argument)
-            .arg(&html_url);
-
-        #[cfg(target_os = "linux")]
-        command.arg("--no-sandbox");
-
-        // Use a thread with timeout to prevent Chrome headless from hanging indefinitely
-        // (known issue on macOS M1 where Chrome may not exit after printing PDF)
-        let browser_result = run_command_with_timeout(
-            command,
-            &resolved_output_path_clone,
-            Duration::from_millis(PDF_EXPORT_PROCESS_TIMEOUT_MS),
-        );
-
-        match browser_result {
-            BrowserCommandResult::Success(output) => {
-                if !output.status.success() {
-                    // Chrome may report non-zero exit but still produce valid PDF
-                    let pdf_exists = resolved_output_path_clone.exists();
-                    if !pdf_exists {
-                        let stdout_text = String::from_utf8_lossy(&output.stdout).trim().to_string();
-                        let stderr_text = String::from_utf8_lossy(&output.stderr).trim().to_string();
-                        return Err(format!(
-                            "pdf export browser command failed (status: {}). stdout: {} stderr: {}",
-                            output.status.code().map(|code| code.to_string()).unwrap_or_else(|| "terminated".into()),
-                            if stdout_text.is_empty() { "<empty>" } else { &stdout_text },
-                            if stderr_text.is_empty() { "<empty>" } else { &stderr_text },
-                        ));
-                    }
-                }
-                Ok(())
-            }
-            BrowserCommandResult::ProducedPdf => Ok(()),
-            BrowserCommandResult::TimedOut => {
-                Err("pdf export timed out: browser did not exit within the timeout and no PDF was produced".into())
-            }
-            BrowserCommandResult::LaunchFailed(error) => {
-                Err(format!(
-                    "failed to launch browser {} for pdf export: {error}",
-                    browser_path_clone.display()
-                ))
-            }
-        }
-    })
-    .await
-    .map_err(|error| format!("pdf export task panicked: {error}"))??;
+    run_browser_pdf_print(&browser_path, &temp_html_path, &resolved_output_path, &user_data_dir)
+        .await?;
 
     let bytes_written = wait_for_pdf_export_output(&resolved_output_path)?;
     validate_pdf_export_output(&resolved_output_path)?;
@@ -1035,7 +1075,7 @@ fn write_export_bytes(
     })
 }
 
-fn resolve_pdf_browser_path() -> Result<PathBuf, String> {
+pub(crate) fn resolve_pdf_browser_path() -> Result<PathBuf, String> {
     for key in [
         "ROLEROVER_DESKTOP_BROWSER_PATH",
         "CHROME_PATH",
@@ -1088,7 +1128,7 @@ fn resolve_pdf_browser_path() -> Result<PathBuf, String> {
     )
 }
 
-fn ensure_storage_directory(path: &PathBuf) -> Result<(), String> {
+pub(crate) fn ensure_storage_directory(path: &PathBuf) -> Result<(), String> {
     fs::create_dir_all(path).map_err(|error| {
         format!(
             "failed to create storage directory {}: {error}",
@@ -1522,24 +1562,24 @@ fn collect_table_counts(connection: &Connection) -> Result<Vec<TableCountSnapsho
         .collect()
 }
 
-fn now_epoch_ms() -> Result<u64, String> {
+pub(crate) fn now_epoch_ms() -> Result<u64, String> {
     let duration = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map_err(|error| format!("clock drift detected: {error}"))?;
     Ok(duration.as_millis() as u64)
 }
 
-fn path_to_string(path: &Path) -> String {
+pub(crate) fn path_to_string(path: &Path) -> String {
     path.to_string_lossy().replace('\\', "/")
 }
 
-fn file_url_from_path(path: &Path) -> Result<String, String> {
+pub(crate) fn file_url_from_path(path: &Path) -> Result<String, String> {
     Url::from_file_path(path)
         .map(|url| url.to_string())
         .map_err(|()| format!("failed to convert {} to a file URL", path.display()))
 }
 
-fn wait_for_pdf_export_output(path: &Path) -> Result<usize, String> {
+pub(crate) fn wait_for_pdf_export_output(path: &Path) -> Result<usize, String> {
     let started_at = Instant::now();
     let timeout = Duration::from_millis(PDF_EXPORT_OUTPUT_TIMEOUT_MS);
     let poll_interval = Duration::from_millis(PDF_EXPORT_STABLE_POLL_MS);
@@ -1572,13 +1612,16 @@ fn wait_for_pdf_export_output(path: &Path) -> Result<usize, String> {
     ))
 }
 
-fn validate_pdf_export_output(path: &Path) -> Result<(), String> {
+pub(crate) fn read_validated_pdf_output(
+    path: &Path,
+    operation: &str,
+) -> Result<Vec<u8>, String> {
     let bytes = fs::read(path)
         .map_err(|error| format!("failed to read generated pdf {}: {error}", path.display()))?;
 
     if !bytes.starts_with(b"%PDF-") {
         return Err(format!(
-            "pdf export produced a non-PDF file at {}",
+            "{operation} produced a non-PDF file at {}",
             path.display()
         ));
     }
@@ -1586,14 +1629,19 @@ fn validate_pdf_export_output(path: &Path) -> Result<(), String> {
     if let Ok(text) = pdf_extract::extract_text_from_mem(&bytes) {
         if text.contains("ERR_FILE_NOT_FOUND") {
             return Err(format!(
-                "pdf export rendered Chrome's file-not-found error page for {}",
+                "{operation} rendered Chrome's file-not-found error page for {}",
                 path.display()
             ));
         }
     }
 
-    Ok(())
+    Ok(bytes)
 }
+
+fn validate_pdf_export_output(path: &Path) -> Result<(), String> {
+    read_validated_pdf_output(path, "pdf export").map(|_| ())
+}
+
 
 // =====================================================
 // Interview native storage models
@@ -3944,6 +3992,85 @@ mod tests {
                 |row| row.get::<_, String>(0),
             )
             .expect("read content_json")
+    }
+
+    fn scratch_dir_for(name: &str) -> PathBuf {
+        std::env::temp_dir().join(format!("jobpilot-storage-pdf-tests-{name}"))
+    }
+
+    #[test]
+    fn observe_stable_pdf_output_needs_three_stable_polls() {
+        let dir = scratch_dir_for("stable-output");
+        fs::create_dir_all(&dir).expect("create scratch dir");
+        let output_path = dir.join("preview.pdf");
+        let mut last_size = None;
+        let mut stable_polls = 0;
+
+        assert!(
+            !observe_stable_pdf_output(&output_path, &mut last_size, &mut stable_polls),
+            "missing output must not count as stable"
+        );
+
+        fs::write(&output_path, b"").expect("write empty output");
+        assert!(
+            !observe_stable_pdf_output(&output_path, &mut last_size, &mut stable_polls),
+            "empty output must not count as stable"
+        );
+
+        fs::write(&output_path, b"%PDF-1.4").expect("write pdf header");
+        assert!(
+            !observe_stable_pdf_output(&output_path, &mut last_size, &mut stable_polls),
+            "first non-empty observation only records the size"
+        );
+        assert!(
+            !observe_stable_pdf_output(&output_path, &mut last_size, &mut stable_polls),
+            "one stable poll is not enough"
+        );
+        assert!(
+            !observe_stable_pdf_output(&output_path, &mut last_size, &mut stable_polls),
+            "two stable polls are not enough"
+        );
+        assert!(
+            observe_stable_pdf_output(&output_path, &mut last_size, &mut stable_polls),
+            "three stable polls confirm the output"
+        );
+
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn read_validated_pdf_output_returns_pdf_bytes() {
+        let dir = scratch_dir_for("valid-pdf");
+        fs::create_dir_all(&dir).expect("create scratch dir");
+        let output_path = dir.join("preview.pdf");
+        let payload = b"%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF\n".to_vec();
+        fs::write(&output_path, &payload).expect("write pdf");
+
+        let bytes = read_validated_pdf_output(&output_path, "pdf preview").expect("pdf is accepted");
+
+        assert_eq!(bytes, payload);
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn read_validated_pdf_output_rejects_non_pdf_bytes() {
+        let dir = scratch_dir_for("non-pdf");
+        fs::create_dir_all(&dir).expect("create scratch dir");
+        let output_path = dir.join("preview.pdf");
+        fs::write(&output_path, b"<html><body>Chrome error page</body></html>")
+            .expect("write non-pdf output");
+
+        let error = read_validated_pdf_output(&output_path, "pdf preview")
+            .expect_err("non-pdf output must be rejected");
+
+        assert_eq!(
+            error,
+            format!(
+                "pdf preview produced a non-PDF file at {}",
+                output_path.display()
+            )
+        );
+        let _ = fs::remove_dir_all(&dir);
     }
 
     #[test]

@@ -26,12 +26,23 @@ import { useResumeStore } from "../../stores/resume-store";
 import {
   writeExportFile,
   writePdfExport,
+  type TemplateValidationExportReceipt,
 } from "../../lib/desktop-api";
+import type {
+  Resume as DesktopResume,
+  ResumeSection as DesktopResumeSection,
+} from "../../types/resume";
 import {
   anonymizeResumeForExport,
   prepareDesktopPdfHtml,
   toSharedResume,
 } from "../../lib/resume-export";
+import type { Resume as SharedResume } from "@/types/resume";
+import {
+  getCachedPdfArtifact,
+  type PdfPreviewMode,
+} from "../../lib/preview/preview-artifact-cache";
+import { createPreviewSnapshot } from "../../lib/preview/snapshot";
 
 interface ExportDialogProps {
   open: boolean;
@@ -145,6 +156,83 @@ function formatTimestamp(date: Date): string {
 
 function encodeText(value: string): number[] {
   return Array.from(new TextEncoder().encode(value));
+}
+
+/**
+ * PDF output mode behind a selected export format.
+ *
+ * Returns null for every non-PDF format, so those keep their existing
+ * generate-and-write path untouched.
+ */
+function pdfModeOf(format: ExportFormat): PdfPreviewMode | null {
+  return format === "pdf-one-page"
+    ? "pdf-one-page"
+    : format === "pdf"
+      ? "pdf"
+      : null;
+}
+
+/**
+ * PDF output path for the export dialog.
+ *
+ * Saving an unchanged, matching preview reuses the artifact the print preview
+ * already generated: the same effective snapshot key, the same PDF mode and the
+ * same privacy option. Anything else - an edit, a mode switch, a document
+ * switch, or anonymization - is a miss and the PDF is regenerated exactly as
+ * before, so the saved file always describes the current document. Byte
+ * equality across independently generated files is not required.
+ *
+ * The key is derived from the same desktop resume/sections the print preview
+ * uses, so both sides agree on what "unchanged" means. Exported so the reuse
+ * decision can be exercised directly in the node test environment, where React
+ * effects are unavailable (same approach as `createPrintPreviewCore`).
+ */
+export async function writePdfExportForFormat(input: {
+  outputPath: string;
+  exportResume: SharedResume;
+  /** Desktop resume/sections the effective snapshot is taken from. */
+  previewSource: { resume: DesktopResume; sections: DesktopResumeSection[] };
+  anonymized: boolean;
+  format: ExportFormat;
+}): Promise<TemplateValidationExportReceipt> {
+  const mode = pdfModeOf(input.format);
+  const fitOnePage = input.format === "pdf-one-page";
+
+  const snapshot =
+    mode === null
+      ? null
+      : createPreviewSnapshot(
+          input.previewSource.resume,
+          input.previewSource.sections,
+          mode,
+        );
+
+  // The anonymized flag is part of the lookup on purpose: a preview artifact is
+  // always generated from the un-anonymized document, so an anonymized export
+  // asks for `anonymized: true` and can never be served from it.
+  const cached =
+    snapshot === null || mode === null
+      ? null
+      : getCachedPdfArtifact(snapshot.key, mode, input.anonymized);
+
+  if (cached) {
+    // Same effective document, same mode, same privacy option: write the exact
+    // PDF the user previewed through the existing export write path, so output
+    // path and extension handling stay identical.
+    return writeExportFile({
+      outputPath: input.outputPath,
+      expectedExtension: "pdf",
+      bytes: cached.bytes,
+    });
+  }
+
+  return writePdfExport({
+    outputPath: input.outputPath,
+    html: prepareDesktopPdfHtml(
+      await generateHtml(input.exportResume, true),
+      { fitOnePage },
+    ),
+  });
 }
 
 async function openNativeSaveDialog(
@@ -298,12 +386,12 @@ export function ExportDialog({ open, onClose, resumeId }: ExportDialogProps) {
 
       const receipt =
         selectedFormat === "pdf" || selectedFormat === "pdf-one-page"
-          ? await writePdfExport({
+          ? await writePdfExportForFormat({
               outputPath: resolvedOutputPath,
-              html: prepareDesktopPdfHtml(
-                await generateHtml(exportResume, true),
-                { fitOnePage: selectedFormat === "pdf-one-page" },
-              ),
+              exportResume,
+              previewSource: { resume: currentResume, sections },
+              anonymized: anonymizeSensitiveData,
+              format: selectedFormat,
             })
           : await writeExportFile({
               outputPath: resolvedOutputPath,

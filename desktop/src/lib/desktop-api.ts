@@ -2420,3 +2420,24 @@ export async function parsePdfResume(
 ): Promise<ParsedResumeData> {
   return invoke<ParsedResumeData>("parse_pdf_resume", { input });
 }
+
+// ============================================================================
+// Paginated Resume Preview
+// ============================================================================
+
+export interface PdfPreviewGenerateInput extends Record<string, unknown> {
+  html: string;
+}
+
+export interface PdfPreviewReceipt {
+  bytesWritten: number;
+  bytes: number[];
+}
+
+// Plain `invoke`, not `invokeWithFallback`: a failed preview must surface to
+// the caller so the editor can show the failure and offer a retry.
+export async function generatePdfPreview(
+  input: PdfPreviewGenerateInput,
+): Promise<PdfPreviewReceipt> {
+  return invoke<PdfPreviewReceipt>("generate_pdf_preview", input);
+}
