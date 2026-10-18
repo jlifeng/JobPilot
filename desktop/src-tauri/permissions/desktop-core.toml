@@ -37,6 +37,7 @@ commands.allow = [
   "write_template_validation_export",
   "write_export_file",
   "write_pdf_export",
+  "generate_pdf_preview",
   "parse_markdown_resume",
   "parse_pdf_resume",
   "list_interview_sessions",
