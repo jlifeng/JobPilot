@@ -2,6 +2,7 @@ mod ai;
 mod domain;
 mod importer;
 mod legacy_import_contract;
+mod pdf_preview;
 mod release;
 mod settings;
 mod skills;
@@ -19,6 +20,7 @@ use importer::{
     MigrationExecutionResult, StagingExecutionResult,
 };
 use legacy_import_contract::LegacyImportContract;
+use pdf_preview::PdfPreviewReceipt;
 use release::{AppUpdateCheckResult, ReleaseReadinessSnapshot};
 use serde::Serialize;
 use settings::{
@@ -232,6 +234,14 @@ async fn write_pdf_export(
     html: String,
 ) -> Result<TemplateValidationExportWriteResult, String> {
     storage::write_pdf_export(app, output_path, html).await
+}
+
+#[tauri::command]
+async fn generate_pdf_preview(
+    app: tauri::AppHandle,
+    html: String,
+) -> Result<PdfPreviewReceipt, String> {
+    pdf_preview::generate_pdf_preview(app, html).await
 }
 
 #[tauri::command]
@@ -610,6 +620,7 @@ pub fn run() {
             write_template_validation_export,
             write_export_file,
             write_pdf_export,
+            generate_pdf_preview,
             get_workspace_settings_snapshot,
             get_secret_vault_status,
             get_secret_inventory_snapshot,
