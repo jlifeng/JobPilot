@@ -9,9 +9,12 @@ import {
   Link,
   Eye,
   EyeOff,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { useTranslation } from "react-i18next";
 
 interface EditableMarkdownProps {
   label: string;
@@ -19,6 +22,8 @@ interface EditableMarkdownProps {
   onChange: (value: string) => void;
   placeholder?: string;
   rows?: number;
+  /** Rows shown after the user expands the editor. */
+  expandedRows?: number;
 }
 
 export function EditableMarkdown({
@@ -27,9 +32,14 @@ export function EditableMarkdown({
   onChange,
   placeholder,
   rows = 4,
+  expandedRows,
 }: EditableMarkdownProps) {
+  const { t } = useTranslation();
   const [showPreview, setShowPreview] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const canExpand = rows < (expandedRows ?? rows * 2);
+  const visibleRows = isExpanded ? (expandedRows ?? rows * 2) : rows;
 
   const insertMarkdown = useCallback(
     (prefix: string, suffix: string = prefix) => {
@@ -112,20 +122,39 @@ export function EditableMarkdown({
         <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
           {label}
         </label>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={() => setShowPreview(!showPreview)}
-          className={`h-6 w-6 cursor-pointer p-0 ${showPreview ? "bg-emerald-500/10 text-emerald-600" : ""}`}
-          title={showPreview ? "编辑" : "预览"}
-        >
-          {showPreview ? (
-            <EyeOff className="h-3 w-3" />
-          ) : (
-            <Eye className="h-3 w-3" />
-          )}
-        </Button>
+        <div className="flex items-center gap-0.5">
+          {canExpand && !showPreview ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsExpanded((expanded) => !expanded)}
+              className="h-6 w-6 cursor-pointer p-0"
+              title={t(isExpanded ? "editor.fields.collapseEditor" : "editor.fields.expandEditor")}
+              aria-label={t(isExpanded ? "editor.fields.collapseEditor" : "editor.fields.expandEditor")}
+            >
+              {isExpanded ? (
+                <Minimize2 className="h-3 w-3" />
+              ) : (
+                <Maximize2 className="h-3 w-3" />
+              )}
+            </Button>
+          ) : null}
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowPreview(!showPreview)}
+            className={`h-6 w-6 cursor-pointer p-0 ${showPreview ? "bg-emerald-500/10 text-emerald-600" : ""}`}
+            title={t(showPreview ? "editor.fields.markdownEdit" : "editor.fields.markdownPreview")}
+          >
+            {showPreview ? (
+              <EyeOff className="h-3 w-3" />
+            ) : (
+              <Eye className="h-3 w-3" />
+            )}
+          </Button>
+        </div>
       </div>
 
       {!showPreview && (
@@ -189,9 +218,10 @@ export function EditableMarkdown({
             ref={textareaRef}
             value={value || ""}
             onChange={(e) => onChange(e.target.value)}
-            placeholder={placeholder || "支持 Markdown 格式..."}
-            rows={rows}
-            className="text-sm resize-none font-mono"
+            placeholder={placeholder || t("editor.fields.markdownPlaceholder")}
+            rows={visibleRows}
+            className="resize-none text-sm font-mono"
+            style={{ fieldSizing: "fixed", minHeight: `${visibleRows * 1.5}rem` }}
           />
         </>
       )}

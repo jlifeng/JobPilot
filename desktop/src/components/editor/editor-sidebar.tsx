@@ -203,18 +203,20 @@ export function EditorSidebar({
     isSectionSidebarCollapsed,
     toggleSectionSidebar,
     setSectionSidebarCollapsed,
+    expandSection,
   } = useEditorStore();
   const { updateSectionTitle } = useResumeStore();
 
   const handleSelect = useCallback(
     (id: string) => {
       selectSection(id);
+      expandSection(id);
       requestAnimationFrame(() => {
         const el = document.querySelector(`[data-section-id="${id}"]`);
         el?.scrollIntoView({ behavior: "smooth", block: "start" });
       });
     },
-    [selectSection]
+    [expandSection, selectSection]
   );
 
   const sensors = useSensors(

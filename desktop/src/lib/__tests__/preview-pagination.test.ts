@@ -105,6 +105,21 @@ describe("estimatePages", () => {
     assert.ok(result.boundaries.every((value) => value < result.contentHeight));
   });
 
+  it("always reports exactly one fewer boundary than its page count", () => {
+    // The UI labels each line with its page number. Keeping this invariant in
+    // one place stops the last line (`n - 1`) from reading as `n - 1 pages`.
+    for (let pages = 1; pages <= 12; pages += 1) {
+      const result = estimate(REGULAR_USABLE * (pages - 0.5));
+      assert.equal(result.pageCount, pages);
+      assert.equal(result.boundaries.length, result.pageCount - 1);
+
+      result.boundaries.forEach((boundary, index) => {
+        assert.equal(boundary, (index + 1) * REGULAR_USABLE);
+        assert.ok(index + 2 <= result.pageCount);
+      });
+    }
+  });
+
   it("ignores zoom: only the unzoomed height and theme margins decide", () => {
     // The preview is measured unzoomed, so the same 1075 px of content stays one
     // page no matter what zoom the sheet is displayed at.

@@ -1,6 +1,13 @@
 import { useState, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { GripVertical, X, Eye, EyeOff, Sparkles } from "lucide-react";
+import {
+  ChevronDown,
+  Eye,
+  EyeOff,
+  GripVertical,
+  Sparkles,
+  X,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useEditorStore } from "../../stores/editor-store";
 import { useResumeStore } from "../../stores/resume-store";
@@ -43,10 +50,17 @@ const sectionComponents: Record<
 
 export function SectionWrapper({ section, onUpdate, onRemove }: SectionWrapperProps) {
   const { t } = useTranslation();
-  const { selectedSectionId, selectSection, showAiChat, toggleAiChat } = useEditorStore();
+  const {
+    collapsedSectionIds,
+    selectedSectionId,
+    selectSection,
+    toggleAiChat,
+    toggleSectionCollapsed,
+  } = useEditorStore();
   const { toggleSectionVisibility, updateSectionTitle } = useResumeStore();
   const { attributes, listeners } = useDragHandle();
   const isSelected = selectedSectionId === section.id;
+  const isCollapsed = collapsedSectionIds.includes(section.id);
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState(section.title);
   const renameInputRef = useRef<HTMLInputElement>(null);
@@ -73,20 +87,56 @@ export function SectionWrapper({ section, onUpdate, onRemove }: SectionWrapperPr
 
   return (
     <div
-      className={`rounded-xl border bg-white shadow-sm transition-all duration-200 dark:bg-zinc-900 ${
+      data-section-card={section.id}
+      data-collapsed={isCollapsed ? "true" : "false"}
+      className={`scroll-mt-3 rounded-xl border bg-white shadow-sm transition-[border-color,box-shadow] duration-200 dark:bg-zinc-900 ${
         isSelected
-          ? "border-zinc-300 shadow-zinc-100/50 dark:shadow-zinc-700/20"
+          ? "border-blue-300 shadow-[0_0_0_3px_rgba(59,130,246,0.08)] dark:border-blue-500/50 dark:shadow-[0_0_0_3px_rgba(59,130,246,0.1)]"
           : "border-zinc-200 hover:border-zinc-300 dark:border-zinc-700 dark:hover:border-zinc-600"
       } ${!section.visible ? "opacity-50" : ""}`}
       onClick={() => selectSection(section.id)}
     >
-      <div className="flex flex-row items-center justify-between border-b border-zinc-100 px-4 py-2.5 dark:border-zinc-800">
-        <div className="flex items-center gap-2">
+      <div
+        className={`sticky top-0 z-10 flex flex-row items-center justify-between gap-2 px-3 py-2 transition-colors sm:px-4 ${
+          isCollapsed ? "rounded-xl" : "rounded-t-xl border-b"
+        } ${
+          isSelected
+            ? "border-blue-100 bg-blue-50/90 dark:border-blue-500/20 dark:bg-blue-950/45"
+            : "border-zinc-100 bg-white/95 dark:border-zinc-800 dark:bg-zinc-900/95"
+        }`}
+      >
+        <div className="flex min-w-0 items-center gap-2">
           <GripVertical
-            className="h-4 w-4 cursor-grab text-zinc-300 active:cursor-grabbing"
+            className="h-4 w-4 shrink-0 cursor-grab text-zinc-300 active:cursor-grabbing"
             {...attributes}
             {...listeners}
           />
+          <button
+            type="button"
+            className="flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-md text-zinc-400 transition-colors hover:bg-white hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+            aria-expanded={!isCollapsed}
+            aria-label={t(
+              isCollapsed
+                ? "editor.sections.expandSection"
+                : "editor.sections.collapseSection",
+            )}
+            title={t(
+              isCollapsed
+                ? "editor.sections.expandSection"
+                : "editor.sections.collapseSection",
+            )}
+            onClick={(event) => {
+              event.stopPropagation();
+              selectSection(section.id);
+              toggleSectionCollapsed(section.id);
+            }}
+          >
+            <ChevronDown
+              className={`h-4 w-4 transition-transform duration-200 ${
+                isCollapsed ? "-rotate-90" : ""
+              }`}
+            />
+          </button>
           {isRenaming ? (
             <input
               ref={renameInputRef}
@@ -105,7 +155,7 @@ export function SectionWrapper({ section, onUpdate, onRemove }: SectionWrapperPr
             />
           ) : (
             <h3
-              className={`text-sm font-semibold text-zinc-700 dark:text-zinc-200 ${
+              className={`truncate text-sm font-semibold text-zinc-700 dark:text-zinc-200 ${
                 isRenamable
                   ? "cursor-text rounded px-1 -mx-1 hover:bg-zinc-100 dark:hover:bg-zinc-700"
                   : ""
@@ -124,11 +174,11 @@ export function SectionWrapper({ section, onUpdate, onRemove }: SectionWrapperPr
             </h3>
           )}
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex shrink-0 items-center gap-0.5">
           <Button
             variant="ghost"
             size="sm"
-            className="h-7 w-7 cursor-pointer p-0 text-zinc-700 dark:text-zinc-300 hover:text-zinc-700 dark:hover:text-zinc-200"
+            className="h-7 w-7 cursor-pointer p-0 text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
             title={t("editorAiPolish")}
             onClick={(e) => {
               e.stopPropagation();
@@ -167,15 +217,17 @@ export function SectionWrapper({ section, onUpdate, onRemove }: SectionWrapperPr
           </Button>
         </div>
       </div>
-      <div className="px-4 pb-4 pt-3">
-        {SectionComponent ? (
-          <SectionComponent section={section} onUpdate={onUpdate} />
-        ) : (
-          <p className="text-sm text-zinc-400">
-            Unknown section type: {section.type}
-          </p>
-        )}
-      </div>
+      {!isCollapsed && (
+        <div className="px-3 pb-3 pt-2.5 sm:px-4 sm:pb-4 sm:pt-3">
+          {SectionComponent ? (
+            <SectionComponent section={section} onUpdate={onUpdate} />
+          ) : (
+            <p className="text-sm text-zinc-400">
+              Unknown section type: {section.type}
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 }

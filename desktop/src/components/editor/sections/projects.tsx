@@ -181,6 +181,7 @@ export function ProjectsSection({ section, onUpdate }: Props) {
                         value={item.description}
                         onChange={(v) => updateItem(index, { description: v })}
                         rows={3}
+                        expandedRows={8}
                       />
                       <SortableStringList
                         idPrefix={`${item.id}-technologies`}

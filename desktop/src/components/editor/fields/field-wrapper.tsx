@@ -9,8 +9,13 @@ export function FieldWrapper({
 }: FieldWrapperProps) {
   return (
     <div
-      className="grid gap-3"
-      style={{ gridTemplateColumns: `repeat(${columns}, 1fr)` }}
+      className="grid gap-2.5"
+      style={{
+        gridTemplateColumns:
+          columns > 1
+            ? `repeat(auto-fit, minmax(min(100%, 190px), 1fr))`
+            : "minmax(0, 1fr)",
+      }}
     >
       {children}
     </div>

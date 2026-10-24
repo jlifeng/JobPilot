@@ -10,7 +10,9 @@ export interface ResumeSnapshot {
 
 interface EditorStore {
   selectedSectionId: string | null;
+  collapsedSectionIds: string[];
   showThemeEditor: boolean;
+  showPreview: boolean;
   showAiChat: boolean;
   aiChatInitialPrompt: string | null;
   isSectionSidebarCollapsed: boolean;
@@ -19,7 +21,11 @@ interface EditorStore {
   redoStack: ResumeSnapshot[];
 
   selectSection: (id: string | null) => void;
+  toggleSectionCollapsed: (id: string) => void;
+  expandSection: (id: string) => void;
+  setCollapsedSections: (ids: string[]) => void;
   toggleThemeEditor: () => void;
+  togglePreview: () => void;
   toggleSectionSidebar: () => void;
   setSectionSidebarCollapsed: (collapsed: boolean) => void;
   setDragging: (dragging: boolean) => void;
@@ -32,7 +38,9 @@ interface EditorStore {
 
 export const useEditorStore = create<EditorStore>((set, get) => ({
   selectedSectionId: null,
+  collapsedSectionIds: [],
   showThemeEditor: false,
+  showPreview: true,
   showAiChat: false,
   aiChatInitialPrompt: null,
   isSectionSidebarCollapsed: true,
@@ -42,7 +50,26 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
 
   selectSection: (id) => set({ selectedSectionId: id }),
 
+  toggleSectionCollapsed: (id) =>
+    set((state) => ({
+      collapsedSectionIds: state.collapsedSectionIds.includes(id)
+        ? state.collapsedSectionIds.filter((sectionId) => sectionId !== id)
+        : [...state.collapsedSectionIds, id],
+    })),
+
+  expandSection: (id) =>
+    set((state) => ({
+      collapsedSectionIds: state.collapsedSectionIds.filter(
+        (sectionId) => sectionId !== id,
+      ),
+    })),
+
+  setCollapsedSections: (ids) =>
+    set({ collapsedSectionIds: [...new Set(ids)] }),
+
   toggleThemeEditor: () => set((state) => ({ showThemeEditor: !state.showThemeEditor })),
+
+  togglePreview: () => set((state) => ({ showPreview: !state.showPreview })),
 
   toggleSectionSidebar: () =>
     set((state) => ({
@@ -100,7 +127,9 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
   reset: () =>
     set({
       selectedSectionId: null,
+      collapsedSectionIds: [],
       showThemeEditor: false,
+      showPreview: true,
       isSectionSidebarCollapsed: true,
       isDragging: false,
       undoStack: [],

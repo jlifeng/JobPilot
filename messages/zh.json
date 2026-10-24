@@ -297,10 +297,18 @@
       "expand": "展开简历模块",
       "dragHint": "拖拽模块以调整顺序"
     },
+    "layout": {
+      "dragHint": "拖动调整编辑区和预览区宽度，双击恢复默认",
+      "resetSplit": "双击恢复默认宽度",
+      "hidePreview": "隐藏预览，专注编辑",
+      "showPreview": "显示预览"
+    },
     "preview": {
       "live": "实时预览",
       "print": "打印预览",
+      "fitWidth": "适应宽度",
       "estimatedPages": "预估页数：{count}",
+      "boundaryLabel": "第 {page} 页 / 共 {total} 页",
       "estimateNotice": "根据实时版面估算，最终分页以 PDF 为准。",
       "boundaryGuide": "估算分页线",
       "pageIndicator": "第 {current} 页 / 共 {total} 页",
@@ -321,6 +329,8 @@
       "pageJump": "跳转到页面"
     },
     "sections": {
+      "collapseSection": "收起模块",
+      "expandSection": "展开模块",
       "personalInfo": "个人信息",
       "summary": "个人简介",
       "workExperience": "工作经历",
@@ -398,6 +408,8 @@
       "markdownPreview": "预览",
       "markdownEmpty": "暂无内容",
       "markdownPlaceholder": "支持 Markdown：加粗、斜体、删除线、代码、链接…",
+      "expandEditor": "展开编辑",
+      "collapseEditor": "收起编辑",
       "clear": "清除",
       "dateDisplay": "{year}年{month}",
       "months": {

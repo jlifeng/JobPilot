@@ -224,6 +224,13 @@ describe("EditorPreviewPanel live view", () => {
     expect(markup).toContain("data-page-boundary=\"0\"");
     expect(markup).toContain("data-page-boundary=\"1\"");
     expect(markup).toContain("Estimated page break");
+    // A document with n pages has n - 1 break lines. Every label names its
+    // page out of the total so the last label can never be mistaken for the
+    // page count.
+    expect(estimate.pageCount).toBe(3);
+    expect(markup).toContain("data-boundary-page=\"2\"");
+    expect(markup).toContain("data-page-count=\"3\"");
+    expect(markup).toContain("Page 2 of 3");
   });
 
   it("reads the layout height the estimate works in, zoom or no zoom", () => {
@@ -233,6 +240,26 @@ describe("EditorPreviewPanel live view", () => {
     const sheet = fakeSheet(4400);
 
     expect(sheetLayoutHeight(sheet)).toBe(4400);
+  });
+
+  it("does not turn one full A4 page into two pages", () => {
+    // The sheet has min-height A4, while a regular template pads its content
+    // by the theme's top and bottom margins. Measuring the outer sheet and
+    // comparing it with the smaller usable page height used to add a phantom
+    // page (an A4 sheet measured 1120px against 1075px of usable space).
+    const estimate = estimateLivePages("classic", { ...THEME }, 1120);
+
+    expect(estimate.pageCount).toBe(1);
+    expect(estimate.boundaries).toEqual([]);
+    expect(estimate.contentHeight).toBe(1120);
+  });
+
+  it("offsets page guides by the template's top padding", () => {
+    // One full usable page plus another usable page of content.
+    const estimate = estimateLivePages("classic", { ...THEME }, 1120 + 1075);
+
+    expect(estimate.pageCount).toBe(2);
+    expect(estimate.boundaries).toEqual([24 + 1075]);
   });
 
   it("reports no measurement for a detached sheet instead of one page", () => {
@@ -1094,6 +1121,8 @@ describe("preview panel localization", () => {
     const keys = [
       "live",
       "print",
+      "fitWidth",
+      "boundaryLabel",
       "estimatedPages",
       "estimateNotice",
       "boundaryGuide",

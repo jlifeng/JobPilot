@@ -674,7 +674,7 @@ export function PrintPreviewSurface({
       <div
         ref={scrollRef}
         onScroll={handleScroll}
-        className="min-h-0 flex-1 overflow-auto bg-slate-100/60 p-4 dark:bg-zinc-950"
+        className="min-h-0 flex-1 overflow-auto bg-slate-100/60 p-3 dark:bg-zinc-950"
       >
         {state.phase === "failed" ? (
           <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
@@ -706,7 +706,7 @@ export function PrintPreviewSurface({
         ) : null}
 
         {pageCount > 0 ? (
-          <div className="mx-auto flex w-full max-w-[820px] flex-col gap-4">
+          <div className="mx-auto flex w-full max-w-[820px] flex-col items-center gap-4">
             {Array.from({ length: pageCount }, (_, index) => {
               const dataUrl = state.pageImages[index];
               const isActive = index + 1 === state.currentPage;
@@ -724,7 +724,11 @@ export function PrintPreviewSurface({
                       ? "border-blue-400 ring-2 ring-blue-400/40 dark:border-blue-500"
                       : "border-slate-200 dark:border-zinc-700"
                   }`}
-                  style={{ width: A4_WIDTH, minHeight: A4_HEIGHT }}
+                  style={{
+                    width: "100%",
+                    maxWidth: A4_WIDTH,
+                    aspectRatio: `${A4_WIDTH} / ${A4_HEIGHT}`,
+                  }}
                 >
                   {dataUrl ? (
                     <img
@@ -732,12 +736,11 @@ export function PrintPreviewSurface({
                       alt={t("editor.preview.pageAlt", { page: index + 1 })}
                       width={A4_WIDTH}
                       height={A4_HEIGHT}
-                      className="block h-auto w-full"
+                      className="block h-full w-full object-contain"
                     />
                   ) : (
                     <div
-                      className="flex items-center justify-center text-xs text-slate-400 dark:text-zinc-500"
-                      style={{ minHeight: A4_HEIGHT - 8 }}
+                      className="flex h-full min-h-40 items-center justify-center text-xs text-slate-400 dark:text-zinc-500"
                     >
                       <Loader2 className="h-4 w-4 animate-spin" />
                       <span className="ml-2">

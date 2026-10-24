@@ -75,9 +75,9 @@ export function EditorCanvas({
   const activeSection = activeId ? sections.find((s) => s.id === activeId) : null;
 
   return (
-    <div className="min-w-[380px] flex-[4] overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-[0_4px_12px_rgba(15,23,42,0.05)] dark:border-white/10 dark:bg-card dark:shadow-[0_18px_44px_rgba(0,0,0,0.22)]">
+    <div className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-[0_4px_12px_rgba(15,23,42,0.05)] dark:border-white/10 dark:bg-card dark:shadow-[0_18px_44px_rgba(0,0,0,0.22)]">
       <ScrollArea className="h-full">
-        <div className="mx-auto max-w-3xl px-6 py-7">
+        <div className="mx-auto max-w-3xl px-3 py-4 sm:px-5 sm:py-6">
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}
@@ -88,7 +88,7 @@ export function EditorCanvas({
               items={sections.map((s) => s.id)}
               strategy={verticalListSortingStrategy}
             >
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {sections.map((section) => (
                   <SortableSection key={section.id} id={section.id}>
                     <SectionWrapper

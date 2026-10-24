@@ -97,6 +97,7 @@ export function WorkExperienceSection({ section, onUpdate }: Props) {
               value={item.description}
               onChange={(v) => updateItem(index, { description: v })}
               rows={3}
+              expandedRows={8}
             />
             <EditableList
               label={t("editor.fields.technologies")}
@@ -110,6 +111,7 @@ export function WorkExperienceSection({ section, onUpdate }: Props) {
               onChange={(v) => updateItem(index, { highlights: v })}
               addLabel={t("editor.fields.addItem")}
               reorderLabel={t("editor.fields.reorderItem")}
+              rows={2}
             />
           </div>
         </div>

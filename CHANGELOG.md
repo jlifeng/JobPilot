@@ -5,6 +5,27 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 并且本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.8.5] - 2026-10-24
+
+### 新增
+
+- **编辑器工作区优化** — 简历编辑与预览布局现在可以按个人习惯调整（Issue #12）
+  - 编辑区与预览区支持拖动调整宽度，也可用方向键微调，双击分隔条恢复默认比例
+  - 可隐藏预览进入专注编辑，实时预览新增「适应宽度」并在分栏变化时自动缩放
+  - 长文本支持展开编辑，窄编辑区下双列字段会自动切换为单列
+
+### 优化
+
+- **模块导航更清晰** — 简历模块默认收起，选中模块高亮显示，标题栏滚动时吸顶
+  - 点击左侧模块导航会自动展开并定位目标模块
+  - 折叠后的模块卡片使用一致的完整圆角
+- **打印预览适配窄分栏** — PDF 页面按可用宽度等比显示，不再出现横向滚动
+
+### 修复
+
+- **短简历被多算一页** — 修复包含主题上下边距的 A4 纸面被按可用内容高度分页，导致单页简历显示为两页的问题
+- **分页提示数字歧义** — 分页参考线标签改为「第 N 页 / 共 M 页」，避免把最后一条分页线误认为总页数
+
 ## [1.8.4] - 2026-10-18
 
 ### 新增
@@ -421,7 +442,8 @@
 - 中英双语 — 完整的国际化支持
 - 本地优先 — 数据存储在本地，隐私安全有保障
 
-[Unreleased]: https://github.com/jlifeng/JobPilot/compare/v1.8.4...HEAD
+[Unreleased]: https://github.com/jlifeng/JobPilot/compare/v1.8.5...HEAD
+[1.8.5]: https://github.com/jlifeng/JobPilot/compare/v1.8.4...v1.8.5
 [1.8.4]: https://github.com/jlifeng/JobPilot/compare/v1.8.3...v1.8.4
 [1.8.3]: https://github.com/jlifeng/JobPilot/compare/v1.8.2...v1.8.3
 [1.8.2]: https://github.com/jlifeng/JobPilot/compare/v1.8.1...v1.8.2

@@ -297,10 +297,18 @@
       "expand": "Expand sections",
       "dragHint": "Drag sections to reorder"
     },
+    "layout": {
+      "dragHint": "Drag to resize the editor and preview; double-click to reset",
+      "resetSplit": "Double-click to reset the width",
+      "hidePreview": "Hide preview and focus on editing",
+      "showPreview": "Show preview"
+    },
     "preview": {
       "live": "Live",
       "print": "Print preview",
+      "fitWidth": "Fit to width",
       "estimatedPages": "Estimated pages: {count}",
+      "boundaryLabel": "Page {page} of {total}",
       "estimateNotice": "Estimated from the live layout - the PDF decides the final pagination.",
       "boundaryGuide": "Estimated page break",
       "pageIndicator": "Page {current} of {total}",
@@ -321,6 +329,8 @@
       "pageJump": "Jump to page"
     },
     "sections": {
+      "collapseSection": "Collapse section",
+      "expandSection": "Expand section",
       "personalInfo": "Personal Info",
       "summary": "Summary",
       "workExperience": "Work Experience",
@@ -398,6 +408,8 @@
       "markdownPreview": "Preview",
       "markdownEmpty": "No content",
       "markdownPlaceholder": "Supports Markdown: bold, italic, strikethrough, code, links...",
+      "expandEditor": "Expand editor",
+      "collapseEditor": "Collapse editor",
       "clear": "Clear",
       "dateDisplay": "{month} {year}",
       "months": {

@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ZoomIn, ZoomOut } from "lucide-react";
+import {
+  Maximize2,
+  PanelRightClose,
+  ZoomIn,
+  ZoomOut,
+} from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { ResumePreview } from "@/components/preview/resume-preview";
 import type { Resume as SharedResume, ThemeConfig } from "@/types/resume";
@@ -13,6 +18,8 @@ import {
   usablePageHeight,
   type EstimatedPages,
 } from "../../lib/preview/pagination";
+import { BACKGROUND_TEMPLATES } from "@/lib/constants";
+import { fitZoomPercent } from "../../lib/editor-layout";
 import { PrintPreviewPanel } from "./print-preview-panel";
 
 /**
@@ -33,6 +40,7 @@ const A4_WIDTH = 794;
 const DEFAULT_ZOOM = 90;
 const MIN_ZOOM = 30;
 const MAX_ZOOM = 150;
+const LIVE_PREVIEW_HORIZONTAL_PADDING = 32;
 
 /** Which view the panel is showing. */
 export type PreviewViewMode = "live" | "print";
@@ -74,16 +82,32 @@ export function sheetLayoutHeight(sheet: HTMLElement): number {
 export function estimateLivePages(
   template: string,
   theme: ThemeConfig,
-  contentHeight: number,
+  sheetHeight: number,
 ): EstimatedPages {
   const usable = usablePageHeight(template, theme);
+  const hasPagePadding = !BACKGROUND_TEMPLATES.has(template);
+  const topPadding = hasPagePadding ? Math.max(0, theme.margin.top) : 0;
+  const bottomPadding = hasPagePadding ? Math.max(0, theme.margin.bottom) : 0;
 
-  return estimatePages({
+  // The sheet's min-height includes the template's top and bottom padding.
+  // Pagination must measure only the flow inside that padding, or a full
+  // single page (A4 + margins) is rounded up into a phantom second page.
+  const contentHeight = Math.max(0, sheetHeight - topPadding - bottomPadding);
+
+  const estimate = estimatePages({
     contentHeight,
     pageHeight: usable,
     topMargin: 0,
     bottomMargin: 0,
   });
+
+  return {
+    pageCount: estimate.pageCount,
+    // Guides live in sheet coordinates, not in the padded content box.
+    boundaries: estimate.boundaries.map((boundary) => boundary + topPadding),
+    // Scroll current-page detection shares those coordinates.
+    contentHeight: Math.max(sheetHeight, 0),
+  };
 }
 
 /** The live sheet: continuous A4 with estimated page guides. */
@@ -114,7 +138,7 @@ export function LivePreviewSurface({
       onScroll={onScroll}
       className="min-h-0 flex-1 overflow-auto bg-slate-50 dark:bg-zinc-950"
     >
-      <div className="flex min-h-full justify-center px-8 py-8 lg:py-10">
+      <div className="flex min-h-full justify-center px-4 py-6 lg:py-8">
         <div
           ref={sheetRef}
           className="relative overflow-hidden rounded-sm border border-slate-200 bg-white shadow-xl shadow-slate-900/16 ring-1 ring-slate-900/5 dark:border-zinc-700 dark:shadow-black/50"
@@ -136,8 +160,16 @@ export function LivePreviewSurface({
               className="pointer-events-none absolute inset-x-0 border-t-2 border-dashed border-blue-400/70 dark:border-blue-500/60"
               style={{ top: boundary }}
             >
-              <span className="absolute right-1 -top-2 rounded-sm bg-blue-500/90 px-1 text-[10px] font-medium leading-4 text-white">
-                {index + 2}
+              <span
+                data-boundary-page={index + 2}
+                data-page-count={estimate.pageCount}
+                aria-hidden="true"
+                className="absolute right-1 -top-2 rounded-sm bg-blue-500/90 px-1 text-[10px] font-medium leading-4 text-white"
+              >
+                {t("editor.preview.boundaryLabel", {
+                  page: index + 2,
+                  total: estimate.pageCount,
+                })}
               </span>
             </div>
           ))}
@@ -150,17 +182,36 @@ export function LivePreviewSurface({
 /** Zoom control, unchanged in behaviour from the original panel. */
 function ZoomControls({
   zoom,
+  autoFit,
   onZoomOut,
   onZoomIn,
+  onAutoFit,
 }: {
   zoom: number;
+  autoFit: boolean;
   onZoomOut: () => void;
   onZoomIn: () => void;
+  onAutoFit: () => void;
 }) {
   const { t } = useTranslation();
 
   return (
     <div className="flex items-center gap-1 rounded-full border border-blue-100 bg-blue-50/60 px-1 py-0.5 dark:border-blue-500/20 dark:bg-blue-950/25">
+      <Button
+        variant="ghost"
+        size="sm"
+        className={`h-7 w-7 cursor-pointer rounded-full p-0 ${
+          autoFit
+            ? "bg-white text-blue-600 dark:bg-blue-950/50 dark:text-blue-200"
+            : "text-slate-600 hover:bg-white hover:text-blue-600 dark:text-zinc-400 dark:hover:bg-blue-950/40 dark:hover:text-blue-200"
+        }`}
+        aria-label={t("editor.preview.fitWidth")}
+        title={t("editor.preview.fitWidth")}
+        aria-pressed={autoFit}
+        onClick={onAutoFit}
+      >
+        <Maximize2 className="h-3.5 w-3.5" />
+      </Button>
       <Button
         variant="ghost"
         size="sm"
@@ -171,7 +222,7 @@ function ZoomControls({
       >
         <ZoomOut className="h-3.5 w-3.5" />
       </Button>
-      <span className="w-12 text-center text-xs font-medium tabular-nums text-slate-600 dark:text-zinc-300">
+      <span className="w-9 text-center text-xs font-medium tabular-nums text-slate-600 dark:text-zinc-300">
         {zoom}%
       </span>
       <Button
@@ -188,10 +239,15 @@ function ZoomControls({
   );
 }
 
-export function EditorPreviewPanel() {
+export function EditorPreviewPanel({
+  onHide,
+}: {
+  onHide?: () => void;
+} = {}) {
   const { t } = useTranslation();
   const { currentResume, sections } = useResumeStore();
   const [zoom, setZoom] = useState(DEFAULT_ZOOM);
+  const [autoFit, setAutoFit] = useState(true);
   const [view, setView] = useState<PreviewViewMode>("live");
   const [estimate, setEstimate] = useState<EstimatedPages>({
     pageCount: 1,
@@ -265,6 +321,29 @@ export function EditorPreviewPanel() {
     };
   }, [measure, sections, view]);
 
+  // Fit the A4 sheet to the preview column until the user picks an explicit
+  // zoom level. The horizontal padding belongs to LivePreviewSurface.
+  useEffect(() => {
+    if (!autoFit || view !== "live") return;
+
+    const element = scrollRef.current;
+    if (!element) return;
+
+    const update = () => {
+      const available =
+        element.clientWidth - LIVE_PREVIEW_HORIZONTAL_PADDING;
+      if (available <= 0) return;
+      setZoom(fitZoomPercent(available, A4_WIDTH, MIN_ZOOM, MAX_ZOOM));
+    };
+
+    update();
+    if (typeof ResizeObserver === "undefined") return;
+
+    const observer = new ResizeObserver(update);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [autoFit, view]);
+
   const handleScroll = useCallback(
     (scale: number) => {
       const container = scrollRef.current;
@@ -294,10 +373,10 @@ export function EditorPreviewPanel() {
   return (
     <div
       data-tour="preview"
-      className="flex min-w-[420px] flex-[6] flex-col overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-[0_4px_12px_rgba(15,23,42,0.05)] dark:border-white/10 dark:bg-card dark:shadow-[0_18px_44px_rgba(0,0,0,0.22)]"
+      className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-[0_4px_12px_rgba(15,23,42,0.05)] dark:border-white/10 dark:bg-card dark:shadow-[0_18px_44px_rgba(0,0,0,0.22)]"
     >
       {/* Header */}
-      <div className="flex h-12 shrink-0 items-center justify-between gap-2 border-b border-slate-100 bg-white px-5 dark:border-white/10 dark:bg-card">
+      <div className="flex h-12 shrink-0 items-center justify-between gap-1.5 border-b border-slate-100 bg-white px-2.5 dark:border-white/10 dark:bg-card">
         <div className="flex items-center gap-1 rounded-full border border-slate-200 bg-slate-100/70 p-0.5 dark:border-white/10 dark:bg-white/5">
           {(
             [
@@ -321,19 +400,35 @@ export function EditorPreviewPanel() {
           ))}
         </div>
 
-        <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-zinc-400">
-          {t("editor.toolbar.preview")}
-        </span>
-
-        {view === "live" ? (
-          <ZoomControls
-            zoom={zoom}
-            onZoomOut={() => setZoom((z) => Math.max(MIN_ZOOM, z - 10))}
-            onZoomIn={() => setZoom((z) => Math.min(MAX_ZOOM, z + 10))}
-          />
-        ) : (
-          <span className="w-[92px]" />
-        )}
+        <div className="flex shrink-0 items-center gap-1">
+          {view === "live" ? (
+            <ZoomControls
+              zoom={zoom}
+              autoFit={autoFit}
+              onZoomOut={() => {
+                setAutoFit(false);
+                setZoom((z) => Math.max(MIN_ZOOM, z - 10));
+              }}
+              onZoomIn={() => {
+                setAutoFit(false);
+                setZoom((z) => Math.min(MAX_ZOOM, z + 10));
+              }}
+              onAutoFit={() => setAutoFit(true)}
+            />
+          ) : null}
+          {onHide ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 w-7 cursor-pointer rounded-full p-0 text-slate-500 hover:bg-blue-50 hover:text-blue-600 dark:text-zinc-400 dark:hover:bg-blue-950/40 dark:hover:text-blue-200"
+              aria-label={t("editor.layout.hidePreview")}
+              title={t("editor.layout.hidePreview")}
+              onClick={onHide}
+            >
+              <PanelRightClose className="h-4 w-4" />
+            </Button>
+          ) : null}
+        </div>
       </div>
 
       {view === "print" ? (
@@ -346,7 +441,7 @@ export function EditorPreviewPanel() {
               className="truncate font-medium text-slate-600 dark:text-zinc-300"
               title={t("editor.preview.estimateNotice")}
             >
-              {t("editor.preview.estimatedPages", { count: estimate.pageCount })}
+                {t("editor.preview.estimatedPages", { count: estimate.pageCount })}
             </span>
             <span
               className="shrink-0 tabular-nums text-slate-500 dark:text-zinc-400"
