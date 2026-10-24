@@ -5,6 +5,21 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 并且本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.8.6] - 2026-10-24
+
+### 新增
+
+- **开源项目支持技术栈与亮点** — GitHub 项目现在与项目经历一样，可以独立维护技术栈和亮点
+  - 支持新增、删除和拖拽排序，技术栈与亮点分别持久化保存
+  - 实时预览、打印预览、HTML/PDF 与 DOCX 导出一致展示
+  - 已有 GitHub 项目无需迁移，缺少新字段时自动按空内容处理
+
+### 优化
+
+- **开源项目排版与项目经历统一** — 全部模板复用各自的“项目经历”布局来渲染开源项目
+  - 技术栈、亮点、间距和项目符号样式随当前模板保持一致，不再单独拼接成描述文本
+  - 仓库链接与 Star 数继续保留；Star 为 0 时仍按原规则隐藏
+
 ## [1.8.5] - 2026-10-24
 
 ### 新增
@@ -442,7 +457,8 @@
 - 中英双语 — 完整的国际化支持
 - 本地优先 — 数据存储在本地，隐私安全有保障
 
-[Unreleased]: https://github.com/jlifeng/JobPilot/compare/v1.8.5...HEAD
+[Unreleased]: https://github.com/jlifeng/JobPilot/compare/v1.8.6...HEAD
+[1.8.6]: https://github.com/jlifeng/JobPilot/compare/v1.8.5...v1.8.6
 [1.8.5]: https://github.com/jlifeng/JobPilot/compare/v1.8.4...v1.8.5
 [1.8.4]: https://github.com/jlifeng/JobPilot/compare/v1.8.3...v1.8.4
 [1.8.3]: https://github.com/jlifeng/JobPilot/compare/v1.8.2...v1.8.3
