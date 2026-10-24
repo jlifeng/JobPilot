@@ -3,7 +3,10 @@
 import { useId } from 'react';
 import type { Resume, ThemeConfig } from '@/types/resume';
 import { BACKGROUND_TEMPLATES } from '@/lib/constants';
-import { normalizeSectionContentForRender } from '@/lib/section-content';
+import {
+  adaptGitHubSectionsToProjects,
+  normalizeSectionContentForRender,
+} from '@/lib/section-content';
 import { getUnifiedTemplate, toCanonicalResume } from '@/lib/template-renderer';
 import { ClassicTemplate } from './templates/classic';
 import { ModernTemplate } from './templates/modern';
@@ -248,10 +251,19 @@ export function ResumePreview({ resume }: ResumePreviewProps) {
     ...resume,
     sections: resume.sections.map((section) => ({
       ...section,
-      content: normalizeSectionContentForRender(section.type, section.content) as unknown as typeof section.content,
+      content: normalizeSectionContentForRender(section.type, section.content, {
+        useProjectLayoutForGitHub: false,
+      }) as unknown as typeof section.content,
     })),
   };
   const canonicalResume = toCanonicalResume(normalizedResume);
+  const legacyResume: Resume = {
+    ...normalizedResume,
+    sections: adaptGitHubSectionsToProjects(
+      normalizedResume.sections as unknown as Array<Record<string, unknown>>,
+      resume.language,
+    ) as unknown as typeof normalizedResume.sections,
+  };
 
   return (
     <>
@@ -265,7 +277,7 @@ export function ResumePreview({ resume }: ResumePreviewProps) {
         {unifiedTemplate ? (
           <unifiedTemplate.PreviewComponent resume={canonicalResume} />
         ) : (
-          <LegacyTemplate resume={normalizedResume} />
+          <LegacyTemplate resume={legacyResume} />
         )}
       </div>
     </>

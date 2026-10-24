@@ -3,7 +3,10 @@ import { EXPORT_TAILWIND_CSS } from '@/lib/pdf/export-tailwind-css';
 import { BACKGROUND_TEMPLATES } from '@/lib/constants';
 import { generateQrSvg } from '@/lib/qrcode';
 import { getUnifiedTemplate, toCanonicalResume } from '@/lib/template-renderer';
-import { normalizeSectionContentForRender } from '@/lib/section-content';
+import {
+  adaptGitHubSectionsToProjects,
+  normalizeSectionContentForRender,
+} from '@/lib/section-content';
 import { buildClassicHtml } from './templates/classic';
 import { buildModernHtml } from './templates/modern';
 import { buildMinimalHtml } from './templates/minimal';
@@ -173,7 +176,9 @@ export async function generateHtml(resume: ResumeWithSections, forPdf = false): 
     ...resume,
     sections: resume.sections.map((section) => ({
       ...section,
-      content: normalizeSectionContentForRender(section.type, section.content) as unknown as Section['content'],
+      content: normalizeSectionContentForRender(section.type, section.content, {
+        useProjectLayoutForGitHub: false,
+      }) as unknown as Section['content'],
     })),
   };
 
@@ -183,8 +188,15 @@ export async function generateHtml(resume: ResumeWithSections, forPdf = false): 
   if (unifiedTemplate) {
     bodyHtml = unifiedTemplate.buildHtml(toCanonicalResume(renderResume));
   } else {
+    const legacyResume: ResumeWithSections = {
+      ...renderResume,
+      sections: adaptGitHubSectionsToProjects(
+        renderResume.sections as unknown as Array<Record<string, unknown>>,
+        resume.language,
+      ) as unknown as ResumeWithSections['sections'],
+    };
     const builder = TEMPLATE_BUILDERS[renderResume.template] || buildClassicHtml;
-    bodyHtml = builder(renderResume);
+    bodyHtml = builder(legacyResume);
   }
   const theme = { ...DEFAULT_THEME, ...((resume as any).themeConfig || {}) };
   const themeCSS = buildExportThemeCSS(theme, resume.template);

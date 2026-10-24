@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { EditableText } from "../fields/editable-text";
 import { EditableMarkdown } from "../fields/editable-markdown";
+import { EditableMarkdownList } from "../fields/editable-markdown-list";
+import { SortableStringList } from "../fields/sortable-string-list";
 import { generateId } from "../../../stores/resume-store";
 import type { ResumeSection, GitHubContent, GitHubRepoItem } from "../../../types/resume";
 
@@ -57,6 +59,8 @@ export function GitHubSection({ section, onUpdate }: Props) {
       name: "",
       stars: 0,
       description: "",
+      technologies: [],
+      highlights: [],
     };
     onUpdate({ items: [...items, newItem] });
   };
@@ -203,6 +207,23 @@ export function GitHubSection({ section, onUpdate }: Props) {
               value={item.description}
               onChange={(v) => updateItem(index, { description: v })}
               rows={3}
+              expandedRows={8}
+            />
+            <SortableStringList
+              idPrefix={`${item.id}-technologies`}
+              label={t("editor.fields.technologies")}
+              items={item.technologies || []}
+              onChange={(v) => updateItem(index, { technologies: v })}
+              addLabel={t("editor.fields.addItem")}
+              reorderLabel={t("editor.fields.reorderItem")}
+            />
+            <EditableMarkdownList
+              idPrefix={`${item.id}-highlights`}
+              label={t("editor.fields.highlights")}
+              items={item.highlights || []}
+              onChange={(v) => updateItem(index, { highlights: v })}
+              addLabel={t("editor.fields.addItem")}
+              reorderLabel={t("editor.fields.reorderItem")}
             />
           </div>
         </div>

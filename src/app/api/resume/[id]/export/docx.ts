@@ -12,6 +12,7 @@ import type {
 } from '@/types/resume';
 import QRCode from 'qrcode';
 import { parseInlineMarkdownRuns } from '@/lib/markdown';
+import { normalizeSectionContentForRender } from '@/lib/section-content';
 import { type ResumeWithSections, getPersonalInfo, visibleSections, DEFAULT_THEME, safe } from './utils';
 
 // ─── Template style configuration ───────────────────────────
@@ -703,6 +704,16 @@ function buildGitHub(c: GitHubContent, title: string, theme: DocxTheme): DocxChi
       : [run('', theme)];
     itemChildren.push(twoColRow(nameRuns, rightRuns));
     if (item.description) itemChildren.push(bodyPara(item.description, theme, { before: 40, after: 40 }));
+    if (item.technologies?.length) {
+      itemChildren.push(new Paragraph({
+        children: [
+          run('Technologies: ', theme, { bold: true, color: '666666', size: theme.bodySize - 2 }),
+          run(item.technologies.join(', '), theme, { color: '666666', size: theme.bodySize - 2 }),
+        ],
+        spacing: { before: 40, after: 40 },
+      }));
+    }
+    for (const h of item.highlights || []) { if (h) itemChildren.push(bullet(h, theme)); }
     if (item.repoUrl) {
       itemChildren.push(new Paragraph({
         children: [run(item.repoUrl, theme, { color: theme.accent, size: theme.bodySize - 2 })],
@@ -1096,7 +1107,14 @@ function buildMainSection(section: Section, theme: DocxTheme, qrImages: Map<stri
 export async function generateDocxBuffer(resume: ResumeWithSections): Promise<Uint8Array> {
   const theme = resolveTheme(resume.themeConfig, resume.template);
   const info = getPersonalInfo(resume);
-  const sections = visibleSections(resume);
+  const renderResume: ResumeWithSections = {
+    ...resume,
+    sections: resume.sections.map((section) => ({
+      ...section,
+      content: normalizeSectionContentForRender(section.type, section.content) as unknown as Section['content'],
+    })),
+  };
+  const sections = visibleSections(renderResume);
 
   // Pre-generate QR code PNG buffers
   const qrImages = new Map<string, Uint8Array>();

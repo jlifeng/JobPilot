@@ -134,6 +134,10 @@ export interface GitHubRepoItem {
   repoUrl: string;
   name: string;
   stars: number;
+  /** User-authored stack tags, same semantics as ProjectItem.technologies. */
+  technologies?: string[];
+  /** User-authored achievement bullets, same semantics as ProjectItem.highlights. */
+  highlights?: string[];
   /**
    * Repository primary language reported by the GitHub API. Read-only metadata
    * that `normalizeSectionContentForRender` strips before rendering, so templates

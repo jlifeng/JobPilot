@@ -118,10 +118,10 @@ function ConsultantSectionContent({
                 <span dangerouslySetInnerHTML={{ __html: md(item.description, { listStyle: markdownListStyle('1.25rem') }) }} />
               </p>
             )}
-            {item.technologies?.length > 0 && (
+            {item.technologies && item.technologies.length > 0 && (
               <p className="mt-0.5 text-xs text-gray-400">{lang === 'zh' ? '技术栈' : 'Tech'}: {item.technologies.join(', ')}</p>
             )}
-            {item.highlights?.length > 0 && (
+            {item.highlights && item.highlights.length > 0 && (
               <div className="mt-1.5">
                 <p className="text-xs font-semibold" style={{ color: GRAY_700 }}>{lang === 'zh' ? '主要成就' : 'Key Achievements'}:</p>
                 <ul className="mt-0.5 space-y-0.5" style={{ paddingLeft: '1.25rem', listStyleType: 'disc' }}>
@@ -198,10 +198,10 @@ function ConsultantSectionContent({
               )}
             </div>
             {item.description && <p className="mt-1 text-sm text-gray-600" dangerouslySetInnerHTML={{ __html: md(item.description) }} />}
-            {item.technologies?.length > 0 && (
+            {item.technologies && item.technologies.length > 0 && (
               <p className="mt-0.5 text-xs text-gray-400">{lang === 'zh' ? '技术栈' : 'Tech'}: {item.technologies.join(', ')}</p>
             )}
-            {item.highlights?.length > 0 && (
+            {item.highlights && item.highlights.length > 0 && (
               <ul className="mt-1.5 space-y-0.5" style={{ paddingLeft: '1.25rem', listStyleType: 'disc' }}>
                 {item.highlights.map((h, i) => (
                   <li key={i} className="text-sm text-gray-600" dangerouslySetInnerHTML={{ __html: md(h) }} />

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { EditableText } from '../fields/editable-text';
 import { EditableMarkdown } from '../fields/editable-markdown';
+import { EditableList } from '../fields/editable-list';
 import { generateId } from '@/lib/utils';
 import type { ResumeSection, GitHubContent, GitHubRepoItem } from '@/types/resume';
 
@@ -34,14 +35,16 @@ export function GitHubSection({ section, onUpdate }: Props) {
       name: '',
       stars: 0,
       description: '',
+      technologies: [],
+      highlights: [],
     };
-    onUpdate({ items: [...items, newItem] } as any);
+    onUpdate({ items: [...items, newItem] });
   };
 
   const updateItem = (index: number, data: Partial<GitHubRepoItem>) => {
     const latest = itemsRef.current;
     const updated = latest.map((item, i) => (i === index ? { ...item, ...data } : item));
-    onUpdate({ items: updated } as any);
+    onUpdate({ items: updated });
   };
 
   const removeItem = (index: number) => {
@@ -49,7 +52,7 @@ export function GitHubSection({ section, onUpdate }: Props) {
     const timer = debounceTimers.current.get(item.id);
     if (timer) clearTimeout(timer);
     debounceTimers.current.delete(item.id);
-    onUpdate({ items: items.filter((_, i) => i !== index) } as any);
+    onUpdate({ items: items.filter((_, i) => i !== index) });
   };
 
   // Refresh only the star count. name/description belong to the user, and the
@@ -168,6 +171,16 @@ export function GitHubSection({ section, onUpdate }: Props) {
               </button>
             </div>
             <EditableMarkdown label={t('description')} value={item.description} onChange={(v) => updateItem(index, { description: v })} rows={3} />
+            <EditableList
+              label={t('technologies')}
+              items={item.technologies || []}
+              onChange={(v) => updateItem(index, { technologies: v })}
+            />
+            <EditableList
+              label={t('highlights')}
+              items={item.highlights || []}
+              onChange={(v) => updateItem(index, { highlights: v })}
+            />
           </div>
         </div>
       ))}

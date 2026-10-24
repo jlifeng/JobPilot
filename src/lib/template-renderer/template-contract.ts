@@ -7,7 +7,10 @@
 
 import { SECTION_TYPES } from '@/lib/constants';
 import { renderMarkdownBlocks } from '@/lib/markdown';
-import { normalizeSectionContentForRender } from '@/lib/section-content';
+import {
+  normalizeSectionContentForRender,
+  adaptGitHubSectionsToProjects,
+} from '@/lib/section-content';
 import type {
   Resume,
   CanonicalResume,
@@ -176,6 +179,10 @@ export function toCanonicalResume(resume: Resume): import('./types').CanonicalRe
       content: normalizeSectionContentForRender(section.type, section.content) as unknown as SectionContent,
     }));
   const personalInfo = (sections.find((section) => section.type === 'personal_info')?.content || {}) as PersonalInfoContent;
+  const renderSections = adaptGitHubSectionsToProjects(
+    sections as unknown as Array<Record<string, unknown>>,
+    resume.language,
+  );
 
   return {
     id: resume.id,
@@ -184,6 +191,7 @@ export function toCanonicalResume(resume: Resume): import('./types').CanonicalRe
     language: resume.language,
     themeConfig: resume.themeConfig,
     personalInfo,
-    sections,
+    // `github` renders through the project branch; its title stays unchanged.
+    sections: renderSections as unknown as CanonicalSection[],
   };
 }
