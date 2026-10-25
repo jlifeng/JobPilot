@@ -1450,6 +1450,49 @@ function ModernMinimalThumb() {
   );
 }
 
+function RecruitThumb() {
+  return (
+    <div className="flex h-full flex-col p-2.5">
+      <div className="mb-2 flex items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <div className="h-1.5 w-11 rounded-sm bg-zinc-900" />
+          <div className="mt-1 flex flex-wrap gap-x-1 gap-y-0.5">
+            <div className="h-0.5 w-4 rounded-full bg-zinc-400" />
+            <div className="h-0.5 w-3 rounded-full bg-zinc-300" />
+            <div className="h-0.5 w-4 rounded-full bg-zinc-400" />
+            <div className="h-0.5 w-3 rounded-full bg-zinc-300" />
+            <div className="h-0.5 w-5 rounded-full bg-zinc-400" />
+          </div>
+        </div>
+        <div className="h-7 w-5 shrink-0 rounded-sm bg-zinc-200" />
+      </div>
+      <div className="space-y-1.5">
+        <div>
+          <div className="mb-0.5 h-1 w-8 rounded-sm bg-zinc-800" />
+          <div className="border-t border-zinc-300 pt-0.5">
+            <div className="flex items-center justify-between gap-1">
+              <div className="h-0.5 w-7 rounded-full bg-zinc-500" />
+              <div className="h-0.5 w-5 rounded-full bg-zinc-300" />
+            </div>
+            <div className="mt-0.5 h-0.5 w-full rounded-full bg-zinc-200" />
+            <div className="mt-0.5 h-0.5 w-4/5 rounded-full bg-zinc-200" />
+          </div>
+        </div>
+        <div>
+          <div className="mb-0.5 h-1 w-6 rounded-sm bg-zinc-800" />
+          <div className="border-t border-zinc-300 pt-0.5">
+            <div className="flex items-center justify-between gap-1">
+              <div className="h-0.5 w-8 rounded-full bg-zinc-500" />
+              <div className="h-0.5 w-5 rounded-full bg-zinc-300" />
+            </div>
+            <div className="mt-0.5 h-0.5 w-3/4 rounded-full bg-zinc-200" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const thumbnails: Record<string, React.FC> = {
   classic: ClassicThumb,
   modern: ModernThumb,
@@ -1508,6 +1551,7 @@ const thumbnails: Record<string, React.FC> = {
   ribbon: RibbonThumb,
   mosaic: MosaicThumb,
   'modern-minimal': ModernMinimalThumb,
+  recruit: RecruitThumb,
 };
 
 export function TemplateThumbnail({ template, className = '' }: TemplateThumbnailProps) {

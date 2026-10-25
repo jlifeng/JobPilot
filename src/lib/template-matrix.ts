@@ -23,7 +23,7 @@ export const TEMPLATE_MATRIX_GROUPS: readonly TemplateMatrixGroup[] = [
     id: 'ats-general',
     titleKey: 'templates.matrix.atsGeneral.title',
     descriptionKey: 'templates.matrix.atsGeneral.description',
-    templates: ['ats', 'minimal', 'classic', 'clean', 'formal'],
+    templates: ['recruit', 'ats', 'minimal', 'classic', 'clean', 'formal'],
   },
   {
     id: 'tech-engineering',

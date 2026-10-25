@@ -224,6 +224,19 @@ export function PersonalInfoSection({ section, onUpdate }: Props) {
 
       <FieldWrapper>
         <EditableText
+          label={t("editor.fields.availability")}
+          value={content.availability || ""}
+          onChange={(value) => onUpdate({ availability: value })}
+        />
+        <EditableText
+          label={t("editor.fields.expectedSalary")}
+          value={content.expectedSalary || ""}
+          onChange={(value) => onUpdate({ expectedSalary: value })}
+        />
+      </FieldWrapper>
+
+      <FieldWrapper>
+        <EditableText
           label={t("editor.fields.email")}
           value={content.email || ""}
           onChange={(value) => onUpdate({ email: value })}

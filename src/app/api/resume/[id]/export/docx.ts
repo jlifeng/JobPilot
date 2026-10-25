@@ -102,6 +102,7 @@ const TEMPLATE_STYLES: Record<string, TemplateStyle> = {
   clean:        { accent: '#0d9488', secondary: '#0066cc', headingStyle: 'left-border', itemBorder: true },
   designer:     { accent: '#ff6b6b', headingStyle: 'left-border', itemBorder: true },
   magazine:     { accent: '#dc2626', headingStyle: 'left-border' },
+  recruit:      { accent: '#d8dadd', headingStyle: 'bottom-border', headerAlign: 'left', itemBorder: false },
 };
 
 // ─── Theme resolution ────────────────────────────────────────
@@ -396,6 +397,8 @@ function buildContactParts(info: PersonalInfoContent): string[] {
   if (info.maritalStatus) parts.push(info.maritalStatus);
   if (info.yearsOfExperience) parts.push(info.yearsOfExperience);
   if (info.educationLevel) parts.push(info.educationLevel);
+  if (info.availability) parts.push(info.availability);
+  if (info.expectedSalary) parts.push(info.expectedSalary);
   if (info.email) parts.push(info.email);
   if (info.phone) parts.push(info.phone);
   if (info.wechat) parts.push(info.wechat);

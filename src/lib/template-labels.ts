@@ -62,4 +62,5 @@ export const templateLabelsMap: Record<string, string> = {
   mosaic: 'dashboard.templateMosaic',
   // Batch 7
   'modern-minimal': 'dashboard.templateModernMinimal',
+  recruit: 'dashboard.templateRecruit',
 };

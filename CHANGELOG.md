@@ -5,6 +5,16 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 并且本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.8.7] - 2026-10-25
+
+### 新增
+
+- **朴素模板** — 新增面向国内招聘场景的单栏简历模板，支持一寸照、求职状态、期望薪资和双列荣誉奖项
+  - 个人信息、工作经历、教育经历、项目经历、个人优势、资格证书、社交主页和志愿者经历在实时预览、打印预览、HTML/PDF、DOCX、Markdown 与纯文本中保持适配
+  - 项目经历和开源项目的技术栈、亮点使用与模板一致的排版，并将每条亮点渲染为独立项目符号
+  - 模板库新增“朴素”缩略图和中英文名称，模板选择页与桌面端模板矩阵同步接入
+  - 荣誉奖项固定为两列网格，第 1/3 项与第 2/4 项分别垂直对齐
+
 ## [1.8.6] - 2026-10-24
 
 ### 新增
@@ -457,7 +467,8 @@
 - 中英双语 — 完整的国际化支持
 - 本地优先 — 数据存储在本地，隐私安全有保障
 
-[Unreleased]: https://github.com/jlifeng/JobPilot/compare/v1.8.6...HEAD
+[Unreleased]: https://github.com/jlifeng/JobPilot/compare/v1.8.7...HEAD
+[1.8.7]: https://github.com/jlifeng/JobPilot/compare/v1.8.6...v1.8.7
 [1.8.6]: https://github.com/jlifeng/JobPilot/compare/v1.8.5...v1.8.6
 [1.8.5]: https://github.com/jlifeng/JobPilot/compare/v1.8.4...v1.8.5
 [1.8.4]: https://github.com/jlifeng/JobPilot/compare/v1.8.3...v1.8.4

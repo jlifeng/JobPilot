@@ -113,6 +113,7 @@ import { teacherTemplate } from './templates/teacher';
 import { legalTemplate } from './templates/legal';
 import { scientistTemplate } from './templates/scientist';
 import { academicTemplate } from './templates/academic';
+import { recruitTemplate } from './templates/recruit';
 
 registerTemplate(classicTemplate);
 registerTemplate(modernTemplate);
@@ -143,3 +144,4 @@ registerTemplate(teacherTemplate);
 registerTemplate(legalTemplate);
 registerTemplate(scientistTemplate);
 registerTemplate(academicTemplate);
+registerTemplate(recruitTemplate);

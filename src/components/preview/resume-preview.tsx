@@ -145,6 +145,14 @@ const DEFAULT_THEME: ThemeConfig = {
   avatarStyle: 'oneInch',
 };
 
+function normalizeThemeForTemplate(theme: ThemeConfig, template: string): ThemeConfig {
+  if (template === 'recruit') {
+    return { ...theme, avatarStyle: 'oneInch' };
+  }
+
+  return theme;
+}
+
 /** Returns true if a hex colour is dark (luminance < 0.4) */
 function isDark(hex: string): boolean {
   const c = hex.replace('#', '');
@@ -246,7 +254,10 @@ export function ResumePreview({ resume }: ResumePreviewProps) {
   const unifiedTemplate = getUnifiedTemplate(resume.template);
   const LegacyTemplate = templateMap[resume.template] || ClassicTemplate;
   const scopeId = useId();
-  const theme: ThemeConfig = { ...DEFAULT_THEME, ...(resume.themeConfig || {}) };
+  const theme = normalizeThemeForTemplate(
+    { ...DEFAULT_THEME, ...(resume.themeConfig || {}) },
+    resume.template,
+  );
   const normalizedResume: Resume = {
     ...resume,
     sections: resume.sections.map((section) => ({
@@ -256,7 +267,11 @@ export function ResumePreview({ resume }: ResumePreviewProps) {
       }) as unknown as typeof section.content,
     })),
   };
-  const canonicalResume = toCanonicalResume(normalizedResume);
+  const themedResume: Resume = {
+    ...normalizedResume,
+    themeConfig: theme,
+  };
+  const canonicalResume = toCanonicalResume(themedResume);
   const legacyResume: Resume = {
     ...normalizedResume,
     sections: adaptGitHubSectionsToProjects(

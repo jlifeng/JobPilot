@@ -102,6 +102,7 @@
     "templateRibbon": "Ribbon",
     "templateMosaic": "Mosaic",
     "templateModernMinimal": "Modern Minimal",
+    "templateRecruit": "Plain",
     "upload": {
       "fromTemplate": "From Template",
       "fromFile": "Upload File",
@@ -354,6 +355,8 @@
       "maritalStatus": "Marital Status",
       "yearsOfExperience": "Experience",
       "educationLevel": "Education Level",
+      "availability": "Availability",
+      "expectedSalary": "Expected Salary",
       "genderOptions": "Male,Female",
       "politicalStatusOptions": "Citizen,CYL Member,CPC Probationary Member,CPC Member,Democratic Party",
       "ethnicityOptions": "Han,Mongolian,Hui,Tibetan,Uyghur,Miao,Yi,Zhuang,Buyei,Korean,Manchu,Dong,Yao,Bai,Tujia,Hani,Kazakh,Dai,Li,Lisu,Va,She,Gaoshan,Lahu,Sui,Dongxiang,Naxi,Jingpo,Kirgiz,Tu,Daur,Mulao,Qiang,Blang,Salar,Maonan,Gelao,Xibe,Achang,Pumi,Tajik,Nu,Uzbek,Russian,Ewenki,De'ang,Bonan,Yugur,Jing,Tatar,Derung,Oroqen,Hezhen,Monba,Lhoba,Jino",

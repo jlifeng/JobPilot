@@ -765,6 +765,7 @@ const legacyResources = {
       dashboardTemplateZigzag: "锯齿",
       dashboardTemplateRibbon: "丝带",
       dashboardTemplateMosaic: "马赛克",
+      dashboardTemplateRecruit: "朴素",
       // Common
       commonRename: "重命名",
       commonDuplicate: "复制",
@@ -910,6 +911,8 @@ const legacyResources = {
       editorFieldsDate: "日期",
       editorFieldsLanguage: "语言",
       editorFieldsProficiency: "熟练程度",
+      editorFieldsAvailability: "求职状态",
+      editorFieldsExpectedSalary: "期望薪资",
       editorFieldsTitle: "标题",
       editorFieldsSubtitle: "副标题",
       editorFieldsLabel: "标签",
@@ -1215,6 +1218,7 @@ const legacyResources = {
       dashboardTemplateZigzag: "Zigzag",
       dashboardTemplateRibbon: "Ribbon",
       dashboardTemplateMosaic: "Mosaic",
+      dashboardTemplateRecruit: "Plain",
       // Common
       commonRename: "Rename",
       commonDuplicate: "Duplicate",
@@ -1310,6 +1314,8 @@ const legacyResources = {
       editorFieldsDate: "Date",
       editorFieldsLanguage: "Language",
       editorFieldsProficiency: "Proficiency",
+      editorFieldsAvailability: "Availability",
+      editorFieldsExpectedSalary: "Expected Salary",
       editorFieldsTitle: "Title",
       editorFieldsSubtitle: "Subtitle",
       editorFieldsLabel: "Label",

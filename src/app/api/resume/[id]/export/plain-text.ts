@@ -31,6 +31,8 @@ export function generatePlainText(resume: ResumeWithSections): string {
         if (info.maritalStatus) infoParts.push(info.maritalStatus);
         if (info.yearsOfExperience) infoParts.push(info.yearsOfExperience);
         if (info.educationLevel) infoParts.push(info.educationLevel);
+        if (info.availability) infoParts.push(info.availability);
+        if (info.expectedSalary) infoParts.push(info.expectedSalary);
         if (infoParts.length > 0) lines.push(infoParts.join(' | '));
         const contactParts: string[] = [];
         if (info.email) contactParts.push(info.email);
@@ -182,6 +184,8 @@ export function generateMarkdown(resume: ResumeWithSections): string {
         if (info.maritalStatus) infoParts.push(info.maritalStatus);
         if (info.yearsOfExperience) infoParts.push(info.yearsOfExperience);
         if (info.educationLevel) infoParts.push(info.educationLevel);
+        if (info.availability) infoParts.push(info.availability);
+        if (info.expectedSalary) infoParts.push(info.expectedSalary);
         if (infoParts.length > 0) lines.push(infoParts.join(' · '));
 
         const contactParts: string[] = [];

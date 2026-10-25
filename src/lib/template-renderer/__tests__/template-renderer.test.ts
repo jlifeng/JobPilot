@@ -117,6 +117,8 @@ function createSampleResume(template: string): Resume {
         content: {
           fullName: 'Alex Template',
           jobTitle: 'Senior Frontend Engineer',
+          availability: 'Available immediately',
+          expectedSalary: '40-50k',
           email: 'alex@example.com',
           phone: '123-456-7890',
           location: 'Hong Kong',
@@ -1154,3 +1156,4 @@ testModernMinimalHeaderAlignsLeftWhenAvatarMissing();
 testModernMinimalProfileContactInfoOrder();
 testAllUnifiedTemplatesSupportBasicMarkdownSyntax();
 testZeroGitHubStarsAreHiddenAcrossUnifiedTemplates();
+testTemplateParity('recruit', ['Summary', 'Experience', 'Skills']);

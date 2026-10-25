@@ -15,6 +15,8 @@ export interface PersonalInfoContent {
   maritalStatus?: string;
   yearsOfExperience?: string;
   educationLevel?: string;
+  availability?: string;
+  expectedSalary?: string;
   email: string;
   phone: string;
   wechat?: string;

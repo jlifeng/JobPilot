@@ -40,6 +40,12 @@ function buildMockResume(template: string): Resume {
         content: {
           fullName: "Alex Chen",
           jobTitle: "Senior Software Engineer",
+          age: "1990/05",
+          gender: "男",
+          educationLevel: "本科",
+          yearsOfExperience: "8年工作经验",
+          availability: "离职-随时到岗",
+          expectedSalary: "40-50k",
           email: "alex@example.com",
           phone: "+1 (555) 123-4567",
           location: "San Francisco, CA",
@@ -230,6 +236,17 @@ function TemplatesRoute() {
   const navigate = useNavigate();
   const [previewTemplate, setPreviewTemplate] = useState<string | null>(null);
   const [creatingTemplate, setCreatingTemplate] = useState<string | null>(null);
+  const [templatePreviews] = useState(
+    () =>
+      new Map(
+        TEMPLATE_MATRIX_GROUPS.flatMap((group) =>
+          group.templates.map((template) => [
+            template,
+            buildMockResume(template),
+          ] as const),
+        ),
+      ),
+  );
   const firstTemplate = TEMPLATE_MATRIX_GROUPS[0]?.templates[0];
 
   const handleUseTemplate = async (template: string) => {
@@ -277,7 +294,10 @@ function TemplatesRoute() {
             </div>
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {group.templates.map((template) => {
-                const mockResume = buildMockResume(template);
+                const mockResume = templatePreviews.get(template);
+                if (!mockResume) {
+                  return null;
+                }
                 const labelKey = templateLabelsMap[template];
                 const label = labelKey ? t(labelKey) : template;
                 const isCreating = creatingTemplate === template;

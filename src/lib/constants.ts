@@ -42,6 +42,8 @@ export const TEMPLATES = [
   'sidebar', 'card', 'zigzag', 'ribbon', 'mosaic',
   // Batch 7: Modern Minimal
   'modern-minimal',
+  // Chinese recruitment-platform style
+  'recruit',
 ] as const;
 export type Template = (typeof TEMPLATES)[number];
 
